@@ -28,6 +28,10 @@ export class AppMenu {
                 items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/'] }]
             },
             {
+                label: 'Iglesia',
+                items: [{ label: 'Miembros', icon: 'pi pi-fw pi-users', routerLink: ['/miembros'] }]
+            },
+            {
                 label: 'UI Components',
                 items: [
                     { label: 'Form Layout', icon: 'pi pi-fw pi-id-card', routerLink: ['/uikit/formlayout'] },
