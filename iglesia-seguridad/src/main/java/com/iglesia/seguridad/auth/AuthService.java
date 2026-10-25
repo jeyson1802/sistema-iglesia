@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.iglesia.seguridad.auth.dto.LoginRequest;
-import com.iglesia.seguridad.auth.dto.TokenResponse;
+import com.iglesia.seguridad.auth.dto.TokenAccesoResponse;
 import com.iglesia.seguridad.jwt.GeneradorTokenAcceso;
 import com.iglesia.seguridad.jwt.TokenAcceso;
 import com.iglesia.seguridad.usuario.Correo;
@@ -42,7 +42,7 @@ class AuthService {
 	}
 
 	@Transactional
-	public TokenResponse iniciarSesion(LoginRequest solicitud) {
+	public SesionEmitida iniciarSesion(LoginRequest solicitud) {
 		Authentication autenticacion = gestorAutenticacion.authenticate(UsernamePasswordAuthenticationToken
 			.unauthenticated(Correo.normalizar(solicitud.correo()), solicitud.contrasena()));
 		Usuario usuario = usuarios.findByCorreo(autenticacion.getName())
@@ -51,7 +51,7 @@ class AuthService {
 	}
 
 	@Transactional(noRollbackFor = TokenRefrescoInvalidoException.class)
-	public TokenResponse refrescar(String tokenRefresco) {
+	public SesionEmitida refrescar(String tokenRefresco) {
 		return emitirTokens(tokensRefresco.consumir(tokenRefresco));
 	}
 
@@ -59,10 +59,11 @@ class AuthService {
 		tokensRefresco.revocar(tokenRefresco);
 	}
 
-	private TokenResponse emitirTokens(Usuario usuario) {
+	private SesionEmitida emitirTokens(Usuario usuario) {
 		TokenAcceso acceso = generadorTokenAcceso.generar(usuario);
 		long segundos = Duration.between(reloj.instant(), acceso.expiraEn()).toSeconds();
-		return new TokenResponse(acceso.valor(), TokenResponse.TIPO_BEARER, segundos, tokensRefresco.emitir(usuario));
+		return new SesionEmitida(new TokenAccesoResponse(acceso.valor(), TokenAccesoResponse.TIPO_BEARER, segundos),
+				tokensRefresco.emitir(usuario));
 	}
 
 }

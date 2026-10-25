@@ -15,6 +15,8 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import com.iglesia.seguridad.TestcontainersConfiguration;
 
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -31,6 +33,8 @@ class AuthIntegrationTest {
 
 	static final String CONTRASENA_ADMIN = "AdminPrueba123";
 
+	private static final String COOKIE_REFRESCO = "iglesia_refresco";
+
 	@Autowired
 	private MockMvc mvc;
 
@@ -38,7 +42,7 @@ class AuthIntegrationTest {
 	void flujoCompletoDeSesion() throws Exception {
 		MvcResult login = iniciarSesion("ADMIN@sistema.test", CONTRASENA_ADMIN);
 		String acceso = JsonPath.read(login.getResponse().getContentAsString(), "$.tokenAcceso");
-		String refresco = JsonPath.read(login.getResponse().getContentAsString(), "$.tokenRefresco");
+		String refresco = login.getResponse().getCookie(COOKIE_REFRESCO).getValue();
 
 		mvc.perform(get("/api/usuarios/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + acceso))
 			.andExpect(status().isOk())
@@ -58,6 +62,21 @@ class AuthIntegrationTest {
 		// Reutilizar el token ya rotado invalida también el nuevo (posible robo).
 		refrescar(refresco).andExpect(status().isUnauthorized());
 		refrescar(refrescoNuevo).andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void elLoginEntregaElTokenDeRefrescoSoloEnUnaCookieSegura() throws Exception {
+		mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+			.content("{\"correo\":\"admin@sistema.test\",\"contrasena\":\"%s\"}".formatted(CONTRASENA_ADMIN)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.tokenAcceso").isNotEmpty())
+			.andExpect(jsonPath("$.tipo").value("Bearer"))
+			.andExpect(jsonPath("$.expiraEn").isNumber())
+			.andExpect(jsonPath("$.tokenRefresco").doesNotExist())
+			.andExpect(header().string(HttpHeaders.SET_COOKIE,
+					allOf(containsString(COOKIE_REFRESCO + "="), containsString("Path=/api/auth"),
+							containsString("Max-Age=604800"), containsString("HttpOnly"), containsString("Secure"),
+							containsString("SameSite=Strict"))));
 	}
 
 	@Test
