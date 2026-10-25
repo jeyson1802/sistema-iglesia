@@ -1,0 +1,60 @@
+package com.iglesia.api.common.seguridad;
+
+import java.util.List;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import static org.springframework.security.config.Customizer.withDefaults;
+
+/**
+ * Resource server sin estado: toda la API exige un JWT válido de iglesia-seguridad.
+ * Este servicio nunca gestiona credenciales.
+ */
+@Configuration(proxyBeanMethods = false)
+@EnableMethodSecurity
+class SeguridadHttpConfig {
+
+	private static final String[] RUTAS_SALUD = { "/actuator/health", "/actuator/health/**" };
+
+	private static final List<String> METODOS_CORS = List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS");
+
+	private static final List<String> CABECERAS_CORS = List.of(HttpHeaders.AUTHORIZATION, HttpHeaders.CONTENT_TYPE);
+
+	@Bean
+	SecurityFilterChain cadenaSeguridad(HttpSecurity http) {
+		return http
+			.csrf(AbstractHttpConfigurer::disable)
+			.cors(withDefaults())
+			.sessionManagement(sesion -> sesion.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			.authorizeHttpRequests(peticiones -> peticiones
+				.requestMatchers(HttpMethod.GET, RUTAS_SALUD).permitAll()
+				.requestMatchers("/error").permitAll()
+				.anyRequest().authenticated())
+			.oauth2ResourceServer(recurso -> recurso.jwt(withDefaults()))
+			.build();
+	}
+
+	@Bean
+	CorsConfigurationSource corsConfigurationSource(CorsProperties propiedades) {
+		CorsConfiguration configuracion = new CorsConfiguration();
+		configuracion.setAllowedOrigins(propiedades.origenesPermitidos());
+		configuracion.setAllowedMethods(METODOS_CORS);
+		configuracion.setAllowedHeaders(CABECERAS_CORS);
+		configuracion.setExposedHeaders(List.of(HttpHeaders.LOCATION));
+		UrlBasedCorsConfigurationSource fuente = new UrlBasedCorsConfigurationSource();
+		fuente.registerCorsConfiguration("/**", configuracion);
+		return fuente;
+	}
+
+}
