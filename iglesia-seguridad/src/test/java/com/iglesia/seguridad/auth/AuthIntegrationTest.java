@@ -177,6 +177,15 @@ class AuthIntegrationTest {
 			.andExpect(status().isForbidden());
 	}
 
+	@Test
+	void corsPermiteCredencialesParaQueViajeLaCookieDeRefresco() throws Exception {
+		mvc.perform(options("/api/auth/refresh").header(HttpHeaders.ORIGIN, "http://localhost:4200")
+			.header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST"))
+			.andExpect(status().isOk())
+			.andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:4200"))
+			.andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true"));
+	}
+
 	private MvcResult iniciarSesion(String correo, String contrasena) throws Exception {
 		return mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
 			.content("{\"correo\":\"%s\",\"contrasena\":\"%s\"}".formatted(correo, contrasena)))

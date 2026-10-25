@@ -65,6 +65,8 @@ class SeguridadHttpConfig {
 		configuracion.setAllowedMethods(METODOS_CORS);
 		configuracion.setAllowedHeaders(CABECERAS_CORS);
 		configuracion.setExposedHeaders(List.of(HttpHeaders.LOCATION));
+		// Necesario para que el navegador envíe y acepte la cookie del token de refresco entre orígenes.
+		configuracion.setAllowCredentials(true);
 		UrlBasedCorsConfigurationSource fuente = new UrlBasedCorsConfigurationSource();
 		fuente.registerCorsConfiguration("/**", configuracion);
 		return fuente;
