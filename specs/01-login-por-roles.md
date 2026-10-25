@@ -1,6 +1,6 @@
 # SPEC 01 — Login por roles con perfil activo
 
-> **Estado:** Borrador
+> **Estado:** Aprobado
 > **Depende de:** Ninguna
 > **Fecha:** 2026-10-25
 > **Objetivo:** Que cualquier usuario (administrador o miembro) inicie sesión en `iglesia-web`, entre a la página de inicio de su perfil y navegue solo por lo que su rol permite, con sesión renovada de forma segura.
@@ -44,7 +44,7 @@ Además, el token de refresco hoy viaja en el cuerpo JSON y el frontend tendría
 
 ## Modelo de datos
 
-**Base de datos:** esta spec no agrega migraciones. Reutiliza `usuario`, `usuario_rol` y `token_refresco` de `V1__crear_tablas_seguridad.sql`.
+**Base de datos:** esta spec no agrega migraciones. Reutiliza `usuario`, `usuario_rol` y `token_refresco` de `V1__crear_tablas_seguridad.sql`. Además para hacer la ejecución de scripts y pruebas, usar el mcp disponible para la conexion al servidor de base de datos PostgreSQL tal como lo indica el CLAUDE.md del proyecto.
 
 **Contrato HTTP de `iglesia-seguridad` (cambia):**
 
