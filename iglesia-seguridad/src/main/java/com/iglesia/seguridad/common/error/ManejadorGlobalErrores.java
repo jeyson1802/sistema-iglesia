@@ -20,8 +20,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
-import com.iglesia.seguridad.auth.TokenRefrescoInvalidoException;
-
 /** Traduce las excepciones a respuestas {@link ProblemDetail} (RFC 9457) con mensajes en español. */
 @RestControllerAdvice
 class ManejadorGlobalErrores extends ResponseEntityExceptionHandler {
@@ -50,8 +48,8 @@ class ManejadorGlobalErrores extends ResponseEntityExceptionHandler {
 		return problema(HttpStatus.BAD_REQUEST, "Parámetro inválido", "El campo de ordenación no existe");
 	}
 
-	@ExceptionHandler({ AuthenticationException.class, TokenRefrescoInvalidoException.class })
-	ProblemDetail noAutenticado(RuntimeException ex) {
+	@ExceptionHandler(AuthenticationException.class)
+	ProblemDetail noAutenticado(AuthenticationException ex) {
 		// Mensaje genérico a propósito: no revelar si el correo existe o si la cuenta está inactiva.
 		return problema(HttpStatus.UNAUTHORIZED, "No autenticado", "Credenciales inválidas o sesión expirada");
 	}

@@ -2,6 +2,9 @@ package com.iglesia.seguridad.auth;
 
 import com.jayway.jsonpath.JsonPath;
 
+import jakarta.servlet.http.Cookie;
+
+import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,6 +18,7 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import com.iglesia.seguridad.TestcontainersConfiguration;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -56,12 +60,48 @@ class AuthIntegrationTest {
 			.andExpect(status().isCreated())
 			.andExpect(jsonPath("$.iglesiaId").value(1));
 
-		MvcResult rotado = refrescar(refresco).andExpect(status().isOk()).andReturn();
-		String refrescoNuevo = JsonPath.read(rotado.getResponse().getContentAsString(), "$.tokenRefresco");
+		MvcResult rotado = refrescar(refresco).andExpect(status().isOk())
+			.andExpect(jsonPath("$.tokenAcceso").isNotEmpty())
+			.andExpect(jsonPath("$.tokenRefresco").doesNotExist())
+			.andReturn();
+		String refrescoNuevo = rotado.getResponse().getCookie(COOKIE_REFRESCO).getValue();
+		assertThat(refrescoNuevo).isNotEqualTo(refresco);
 
 		// Reutilizar el token ya rotado invalida también el nuevo (posible robo).
 		refrescar(refresco).andExpect(status().isUnauthorized());
 		refrescar(refrescoNuevo).andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void refrescarSinCookieRespondeNoAutenticado() throws Exception {
+		mvc.perform(post("/api/auth/refresh")).andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void refrescarConUnTokenInvalidoRespondeNoAutenticadoYBorraLaCookie() throws Exception {
+		refrescar("token-inexistente").andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.title").value("No autenticado"))
+			.andExpect(header().string(HttpHeaders.SET_COOKIE, cookieBorrada()));
+	}
+
+	@Test
+	void cerrarSesionBorraLaCookieYRevocaElToken() throws Exception {
+		String refresco = iniciarSesion("admin@sistema.test", CONTRASENA_ADMIN).getResponse()
+			.getCookie(COOKIE_REFRESCO)
+			.getValue();
+
+		mvc.perform(post("/api/auth/logout").cookie(new Cookie(COOKIE_REFRESCO, refresco)))
+			.andExpect(status().isNoContent())
+			.andExpect(header().string(HttpHeaders.SET_COOKIE, cookieBorrada()));
+
+		refrescar(refresco).andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void cerrarSesionSinCookieTambienRespondeSinContenido() throws Exception {
+		mvc.perform(post("/api/auth/logout"))
+			.andExpect(status().isNoContent())
+			.andExpect(header().string(HttpHeaders.SET_COOKIE, cookieBorrada()));
 	}
 
 	@Test
@@ -145,8 +185,13 @@ class AuthIntegrationTest {
 	}
 
 	private ResultActions refrescar(String token) throws Exception {
-		return mvc.perform(post("/api/auth/refresh").contentType(MediaType.APPLICATION_JSON)
-			.content("{\"tokenRefresco\":\"%s\"}".formatted(token)));
+		return mvc.perform(post("/api/auth/refresh").cookie(new Cookie(COOKIE_REFRESCO, token)));
+	}
+
+	private static Matcher<String> cookieBorrada() {
+		return allOf(containsString(COOKIE_REFRESCO + "=;"), containsString("Path=/api/auth"),
+				containsString("Max-Age=0"), containsString("HttpOnly"), containsString("Secure"),
+				containsString("SameSite=Strict"));
 	}
 
 }
