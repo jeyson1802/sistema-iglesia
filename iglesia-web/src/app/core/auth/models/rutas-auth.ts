@@ -9,3 +9,8 @@ export const RUTAS_AUTH = {
 export const MOTIVO_LOGIN = {
     sesionExpirada: 'sesion-expirada'
 } as const;
+
+/** Avisos que muestra la página de login según el parámetro `motivo`. */
+export const AVISO_POR_MOTIVO: Readonly<Record<string, string>> = {
+    [MOTIVO_LOGIN.sesionExpirada]: 'Tu sesión expiró. Inicia sesión de nuevo.'
+};
