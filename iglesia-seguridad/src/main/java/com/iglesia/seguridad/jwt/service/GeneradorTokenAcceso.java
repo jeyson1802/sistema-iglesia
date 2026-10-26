@@ -44,7 +44,7 @@ public class GeneradorTokenAcceso {
 	public TokenAcceso generar(Usuario usuario) {
 		Instant ahora = reloj.instant();
 		Instant expiraEn = ahora.plus(propiedades.duracionTokenAcceso());
-		List<String> roles = usuario.getRoles().stream().map(Enum::name).sorted().toList();
+		List<String> roles = usuario.getRolesBase().stream().map(Enum::name).sorted().toList();
 
 		JwtClaimsSet.Builder claims = JwtClaimsSet.builder()
 			.id(UUID.randomUUID().toString())

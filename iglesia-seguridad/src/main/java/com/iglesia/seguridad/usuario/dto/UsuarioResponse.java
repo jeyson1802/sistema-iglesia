@@ -5,7 +5,7 @@ import java.util.Set;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-import com.iglesia.seguridad.usuario.model.Rol;
+import com.iglesia.seguridad.rol.model.RolBase;
 
 @Schema(description = "Usuario del sistema. Nunca incluye la contraseña ni su hash.")
 public record UsuarioResponse(
@@ -16,6 +16,6 @@ public record UsuarioResponse(
 		@Schema(description = "Miembro de iglesia-api vinculado, si tiene.", example = "25",
 				nullable = true) Long miembroId,
 		@Schema(description = "Si puede iniciar sesión.", example = "true") boolean activo,
-		@Schema(description = "Roles de acceso del usuario.", example = "[\"LIDER\"]") Set<Rol> roles,
+		@Schema(description = "Roles de acceso del usuario.", example = "[\"LIDER\"]") Set<RolBase> roles,
 		@Schema(description = "Fecha y hora de creación (UTC).", example = "2026-10-26T14:30:00Z") Instant creadoEn) {
 }

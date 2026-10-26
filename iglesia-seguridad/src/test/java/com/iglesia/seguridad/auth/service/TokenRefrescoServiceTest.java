@@ -20,8 +20,9 @@ import com.iglesia.seguridad.auth.entity.TokenRefresco;
 import com.iglesia.seguridad.auth.exception.TokenRefrescoInvalidoException;
 import com.iglesia.seguridad.auth.repository.TokenRefrescoRepository;
 import com.iglesia.seguridad.jwt.config.JwtProperties;
+import com.iglesia.seguridad.rol.entity.RolesPrueba;
+import com.iglesia.seguridad.rol.model.RolBase;
 import com.iglesia.seguridad.usuario.entity.Usuario;
-import com.iglesia.seguridad.usuario.model.Rol;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -49,7 +50,7 @@ class TokenRefrescoServiceTest {
 		JwtProperties propiedades = new JwtProperties("e", List.of("a"), "a", Duration.ofMinutes(15), VIGENCIA, null,
 				null);
 		servicio = new TokenRefrescoService(tokens, propiedades, Clock.fixed(AHORA, ZoneOffset.UTC));
-		usuario = Usuario.nuevo("u@i.com", "h", 1L, null, Set.of(Rol.ADMIN_IGLESIA));
+		usuario = Usuario.nuevo("u@i.com", "h", 1L, null, RolesPrueba.bases(RolBase.ADMIN_IGLESIA));
 		ReflectionTestUtils.setField(usuario, "id", 5L);
 	}
 
@@ -94,7 +95,7 @@ class TokenRefrescoServiceTest {
 		given(tokens.findByHashToken(anyString())).willReturn(Optional.of(expirado));
 		assertThatThrownBy(() -> servicio.consumir("x")).isInstanceOf(TokenRefrescoInvalidoException.class);
 
-		usuario.actualizar(Set.of(Rol.ADMIN_IGLESIA), null, false);
+		usuario.actualizar(RolesPrueba.bases(RolBase.ADMIN_IGLESIA), null, false);
 		TokenRefresco deInactivo = new TokenRefresco(usuario, "h", AHORA, AHORA.plus(VIGENCIA));
 		given(tokens.findByHashToken(anyString())).willReturn(Optional.of(deInactivo));
 		assertThatThrownBy(() -> servicio.consumir("x")).isInstanceOf(TokenRefrescoInvalidoException.class);

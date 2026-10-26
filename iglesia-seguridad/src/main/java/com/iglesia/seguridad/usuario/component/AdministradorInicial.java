@@ -10,9 +10,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.iglesia.seguridad.rol.model.RolBase;
+import com.iglesia.seguridad.rol.service.RolService;
 import com.iglesia.seguridad.usuario.config.AdministradorInicialProperties;
 import com.iglesia.seguridad.usuario.entity.Usuario;
-import com.iglesia.seguridad.usuario.model.Rol;
 import com.iglesia.seguridad.usuario.repository.UsuarioRepository;
 
 /**
@@ -30,21 +31,24 @@ class AdministradorInicial implements ApplicationRunner {
 
 	private final PasswordEncoder codificador;
 
+	private final RolService roles;
+
 	AdministradorInicial(AdministradorInicialProperties propiedades, UsuarioRepository usuarios,
-			PasswordEncoder codificador) {
+			PasswordEncoder codificador, RolService roles) {
 		this.propiedades = propiedades;
 		this.usuarios = usuarios;
 		this.codificador = codificador;
+		this.roles = roles;
 	}
 
 	@Override
 	@Transactional
 	public void run(ApplicationArguments argumentos) {
-		if (!propiedades.estaConfigurado() || usuarios.existeConRol(Rol.ADMIN_SISTEMA)) {
+		if (!propiedades.estaConfigurado() || usuarios.existeConRol(RolBase.ADMIN_SISTEMA)) {
 			return;
 		}
 		usuarios.save(Usuario.nuevo(propiedades.correo(), codificador.encode(propiedades.contrasena()), null, null,
-				Set.of(Rol.ADMIN_SISTEMA)));
+				roles.rolesBase(Set.of(RolBase.ADMIN_SISTEMA))));
 		LOG.info("Administrador del sistema inicial creado");
 	}
 

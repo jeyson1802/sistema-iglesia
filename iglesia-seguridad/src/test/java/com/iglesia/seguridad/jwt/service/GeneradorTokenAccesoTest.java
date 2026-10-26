@@ -22,8 +22,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.iglesia.seguridad.jwt.config.JwtProperties;
 import com.iglesia.seguridad.jwt.constant.ClaimsJwt;
 import com.iglesia.seguridad.jwt.model.TokenAcceso;
+import com.iglesia.seguridad.rol.entity.RolesPrueba;
+import com.iglesia.seguridad.rol.model.RolBase;
 import com.iglesia.seguridad.usuario.entity.Usuario;
-import com.iglesia.seguridad.usuario.model.Rol;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -48,7 +49,7 @@ class GeneradorTokenAccesoTest {
 
 	@Test
 	void incluyeRolesIglesiaYMiembroFirmadoConRs256() throws Exception {
-		Usuario usuario = Usuario.nuevo("l@i.com", "h", 3L, 9L, Set.of(Rol.MIEMBRO, Rol.LIDER));
+		Usuario usuario = Usuario.nuevo("l@i.com", "h", 3L, 9L, RolesPrueba.bases(RolBase.MIEMBRO, RolBase.LIDER));
 		ReflectionTestUtils.setField(usuario, "id", 42L);
 
 		TokenAcceso token = generador.generar(usuario);
@@ -66,7 +67,7 @@ class GeneradorTokenAccesoTest {
 
 	@Test
 	void elAdministradorDelSistemaNoLlevaIglesia() throws Exception {
-		Usuario admin = Usuario.nuevo("a@i.com", "h", null, null, Set.of(Rol.ADMIN_SISTEMA));
+		Usuario admin = Usuario.nuevo("a@i.com", "h", null, null, RolesPrueba.bases(RolBase.ADMIN_SISTEMA));
 		ReflectionTestUtils.setField(admin, "id", 1L);
 
 		Jwt jwt = NimbusJwtDecoder.withPublicKey(clave.toRSAPublicKey())

@@ -17,13 +17,15 @@ import com.iglesia.seguridad.common.error.exception.RecursoNoEncontradoException
 import com.iglesia.seguridad.common.error.exception.ReglaNegocioException;
 import com.iglesia.seguridad.common.seguridad.component.ProveedorUsuarioAutenticado;
 import com.iglesia.seguridad.common.seguridad.model.UsuarioAutenticado;
+import com.iglesia.seguridad.rol.entity.RolesPrueba;
+import com.iglesia.seguridad.rol.model.RolBase;
+import com.iglesia.seguridad.rol.service.RolService;
 import com.iglesia.seguridad.usuario.dto.ActualizarUsuarioRequest;
 import com.iglesia.seguridad.usuario.dto.CambiarContrasenaRequest;
 import com.iglesia.seguridad.usuario.dto.CrearUsuarioRequest;
 import com.iglesia.seguridad.usuario.dto.UsuarioResponse;
 import com.iglesia.seguridad.usuario.entity.Usuario;
 import com.iglesia.seguridad.usuario.mapper.UsuarioMapper;
-import com.iglesia.seguridad.usuario.model.Rol;
 import com.iglesia.seguridad.usuario.repository.UsuarioRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,13 +34,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class UsuarioServiceTest {
 
 	private static final UsuarioAutenticado ADMIN_IGLESIA_1 = new UsuarioAutenticado(2L, 1L, null,
-			Set.of(Rol.ADMIN_IGLESIA));
+			Set.of(RolBase.ADMIN_IGLESIA));
 
 	@Mock
 	private UsuarioRepository usuarios;
@@ -52,13 +55,18 @@ class UsuarioServiceTest {
 	@Mock
 	private TokenRefrescoService tokensRefresco;
 
+	@Mock
+	private RolService roles;
+
 	private UsuarioService servicio;
 
 	@BeforeEach
 	void configurar() {
 		servicio = new UsuarioService(usuarios, new PoliticaAdministracionUsuarios(), proveedorUsuario, codificador,
-				tokensRefresco, new UsuarioMapper());
+				tokensRefresco, new UsuarioMapper(), roles);
 		given(proveedorUsuario.actual()).willReturn(ADMIN_IGLESIA_1);
+		lenient().when(roles.rolesBase(any())).thenAnswer(
+				invocacion -> RolesPrueba.bases(invocacion.<Set<RolBase>>getArgument(0).toArray(RolBase[]::new)));
 	}
 
 	@Test
@@ -67,17 +75,17 @@ class UsuarioServiceTest {
 		given(usuarios.save(any(Usuario.class))).willAnswer(invocacion -> invocacion.getArgument(0));
 
 		UsuarioResponse creado = servicio
-			.crear(new CrearUsuarioRequest("Lider@Iglesia.com", "ClaveSegura123", 1L, 7L, Set.of(Rol.LIDER)));
+			.crear(new CrearUsuarioRequest("Lider@Iglesia.com", "ClaveSegura123", 1L, 7L, Set.of(RolBase.LIDER)));
 
 		assertThat(creado.correo()).isEqualTo("lider@iglesia.com");
 		assertThat(creado.iglesiaId()).isEqualTo(1L);
-		assertThat(creado.roles()).containsExactly(Rol.LIDER);
+		assertThat(creado.roles()).containsExactly(RolBase.LIDER);
 	}
 
 	@Test
 	void noCreaUsuariosEnOtraIglesia() {
 		assertThatThrownBy(() -> servicio
-			.crear(new CrearUsuarioRequest("a@b.com", "ClaveSegura123", 2L, null, Set.of(Rol.ADMIN_IGLESIA))))
+			.crear(new CrearUsuarioRequest("a@b.com", "ClaveSegura123", 2L, null, Set.of(RolBase.ADMIN_IGLESIA))))
 			.isInstanceOf(AccessDeniedException.class);
 		then(usuarios).should(never()).save(any());
 	}
@@ -87,13 +95,13 @@ class UsuarioServiceTest {
 		given(usuarios.existsByCorreo("a@b.com")).willReturn(true);
 
 		assertThatThrownBy(() -> servicio
-			.crear(new CrearUsuarioRequest("A@b.com", "ClaveSegura123", 1L, null, Set.of(Rol.ADMIN_IGLESIA))))
+			.crear(new CrearUsuarioRequest("A@b.com", "ClaveSegura123", 1L, null, Set.of(RolBase.ADMIN_IGLESIA))))
 			.isInstanceOf(ConflictoException.class);
 	}
 
 	@Test
 	void unUsuarioDeOtraIglesiaSeTrataComoInexistente() {
-		Usuario ajeno = Usuario.nuevo("x@y.com", "h", 2L, null, Set.of(Rol.ADMIN_IGLESIA));
+		Usuario ajeno = Usuario.nuevo("x@y.com", "h", 2L, null, RolesPrueba.bases(RolBase.ADMIN_IGLESIA));
 		given(usuarios.findConRolesById(50L)).willReturn(Optional.of(ajeno));
 
 		assertThatThrownBy(() -> servicio.obtener(50L)).isInstanceOf(RecursoNoEncontradoException.class);
@@ -101,20 +109,20 @@ class UsuarioServiceTest {
 
 	@Test
 	void revocaSesionesCuandoCambianLosRoles() {
-		Usuario miembro = Usuario.nuevo("m@y.com", "h", 1L, 7L, Set.of(Rol.MIEMBRO));
+		Usuario miembro = Usuario.nuevo("m@y.com", "h", 1L, 7L, RolesPrueba.bases(RolBase.MIEMBRO));
 		given(usuarios.findConRolesById(50L)).willReturn(Optional.of(miembro));
 
-		servicio.actualizar(50L, new ActualizarUsuarioRequest(Set.of(Rol.LIDER), 7L, true));
+		servicio.actualizar(50L, new ActualizarUsuarioRequest(Set.of(RolBase.LIDER), 7L, true));
 
 		then(tokensRefresco).should().revocarTodos(miembro.getId());
 	}
 
 	@Test
 	void noRevocaSesionesSiNoCambiaElAcceso() {
-		Usuario miembro = Usuario.nuevo("m@y.com", "h", 1L, 7L, Set.of(Rol.MIEMBRO));
+		Usuario miembro = Usuario.nuevo("m@y.com", "h", 1L, 7L, RolesPrueba.bases(RolBase.MIEMBRO));
 		given(usuarios.findConRolesById(50L)).willReturn(Optional.of(miembro));
 
-		servicio.actualizar(50L, new ActualizarUsuarioRequest(Set.of(Rol.MIEMBRO), 7L, true));
+		servicio.actualizar(50L, new ActualizarUsuarioRequest(Set.of(RolBase.MIEMBRO), 7L, true));
 
 		then(tokensRefresco).should(never()).revocarTodos(anyLong());
 	}
@@ -122,13 +130,13 @@ class UsuarioServiceTest {
 	@Test
 	void nadiePuedeModificarSuPropioUsuario() {
 		assertThatThrownBy(() -> servicio.actualizar(ADMIN_IGLESIA_1.usuarioId(),
-				new ActualizarUsuarioRequest(Set.of(Rol.ADMIN_IGLESIA), null, false)))
+				new ActualizarUsuarioRequest(Set.of(RolBase.ADMIN_IGLESIA), null, false)))
 			.isInstanceOf(ReglaNegocioException.class);
 	}
 
 	@Test
 	void cambiarContrasenaExigeLaActualYRevocaSesiones() {
-		Usuario propio = Usuario.nuevo("p@y.com", "hash-actual", 1L, null, Set.of(Rol.ADMIN_IGLESIA));
+		Usuario propio = Usuario.nuevo("p@y.com", "hash-actual", 1L, null, RolesPrueba.bases(RolBase.ADMIN_IGLESIA));
 		given(usuarios.findConRolesById(ADMIN_IGLESIA_1.usuarioId())).willReturn(Optional.of(propio));
 		given(codificador.matches("mala", "hash-actual")).willReturn(false);
 		given(codificador.matches("buena", "hash-actual")).willReturn(true);

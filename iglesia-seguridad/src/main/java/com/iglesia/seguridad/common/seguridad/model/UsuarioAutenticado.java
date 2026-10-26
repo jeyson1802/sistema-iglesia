@@ -7,10 +7,10 @@ import java.util.Set;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import com.iglesia.seguridad.jwt.constant.ClaimsJwt;
-import com.iglesia.seguridad.usuario.model.Rol;
+import com.iglesia.seguridad.rol.model.RolBase;
 
 /** Datos del usuario que hace la petición, tomados del JWT ya validado. */
-public record UsuarioAutenticado(Long usuarioId, Long iglesiaId, Long miembroId, Set<Rol> roles) {
+public record UsuarioAutenticado(Long usuarioId, Long iglesiaId, Long miembroId, Set<RolBase> roles) {
 
 	public UsuarioAutenticado {
 		roles = Set.copyOf(roles);
@@ -18,15 +18,15 @@ public record UsuarioAutenticado(Long usuarioId, Long iglesiaId, Long miembroId,
 
 	public static UsuarioAutenticado desde(Jwt jwt) {
 		Collection<String> roles = jwt.getClaimAsStringList(ClaimsJwt.ROLES);
-		Set<Rol> rolesUsuario = EnumSet.noneOf(Rol.class);
+		Set<RolBase> rolesUsuario = EnumSet.noneOf(RolBase.class);
 		if (roles != null) {
-			roles.stream().map(Rol::valueOf).forEach(rolesUsuario::add);
+			roles.stream().map(RolBase::valueOf).forEach(rolesUsuario::add);
 		}
 		return new UsuarioAutenticado(Long.valueOf(jwt.getSubject()), comoLong(jwt.getClaim(ClaimsJwt.IGLESIA_ID)),
 				comoLong(jwt.getClaim(ClaimsJwt.MIEMBRO_ID)), rolesUsuario);
 	}
 
-	public boolean tieneRol(Rol rol) {
+	public boolean tieneRol(RolBase rol) {
 		return roles.contains(rol);
 	}
 

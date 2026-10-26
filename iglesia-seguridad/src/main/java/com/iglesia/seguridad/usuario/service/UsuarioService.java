@@ -14,6 +14,7 @@ import com.iglesia.seguridad.common.error.exception.RecursoNoEncontradoException
 import com.iglesia.seguridad.common.error.exception.ReglaNegocioException;
 import com.iglesia.seguridad.common.seguridad.component.ProveedorUsuarioAutenticado;
 import com.iglesia.seguridad.common.seguridad.model.UsuarioAutenticado;
+import com.iglesia.seguridad.rol.service.RolService;
 import com.iglesia.seguridad.usuario.dto.ActualizarUsuarioRequest;
 import com.iglesia.seguridad.usuario.dto.CambiarContrasenaRequest;
 import com.iglesia.seguridad.usuario.dto.CrearUsuarioRequest;
@@ -43,15 +44,18 @@ public class UsuarioService {
 
 	private final UsuarioMapper mapper;
 
+	private final RolService roles;
+
 	UsuarioService(UsuarioRepository usuarios, PoliticaAdministracionUsuarios politica,
 			ProveedorUsuarioAutenticado proveedorUsuario, PasswordEncoder codificador,
-			TokenRefrescoService tokensRefresco, UsuarioMapper mapper) {
+			TokenRefrescoService tokensRefresco, UsuarioMapper mapper, RolService roles) {
 		this.usuarios = usuarios;
 		this.politica = politica;
 		this.proveedorUsuario = proveedorUsuario;
 		this.codificador = codificador;
 		this.tokensRefresco = tokensRefresco;
 		this.mapper = mapper;
+		this.roles = roles;
 	}
 
 	@Transactional
@@ -67,7 +71,7 @@ public class UsuarioService {
 			throw new ConflictoException("El miembro ya tiene un usuario");
 		}
 		Usuario usuario = Usuario.nuevo(correo, codificador.encode(solicitud.contrasena()), solicitud.iglesiaId(),
-				solicitud.miembroId(), solicitud.roles());
+				solicitud.miembroId(), roles.rolesBase(solicitud.roles()));
 		Usuario guardado = usuarios.save(usuario);
 		LOG.info("Usuario creado id={} iglesiaId={} por usuarioId={}", guardado.getId(), guardado.getIglesiaId(),
 				actor.usuarioId());
@@ -99,7 +103,7 @@ public class UsuarioService {
 				&& usuarios.existsByIglesiaIdAndMiembroIdAndIdNot(usuario.getIglesiaId(), solicitud.miembroId(), id)) {
 			throw new ConflictoException("El miembro ya tiene un usuario");
 		}
-		if (usuario.actualizar(solicitud.roles(), solicitud.miembroId(), solicitud.activo())) {
+		if (usuario.actualizar(roles.rolesBase(solicitud.roles()), solicitud.miembroId(), solicitud.activo())) {
 			// Fuerza a obtener un token nuevo con los datos actualizados (o impide el acceso si se desactivó).
 			tokensRefresco.revocarTodos(usuario.getId());
 		}

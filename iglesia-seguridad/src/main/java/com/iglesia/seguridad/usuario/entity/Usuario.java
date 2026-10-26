@@ -1,21 +1,20 @@
 package com.iglesia.seguridad.usuario.entity;
 
 import java.time.Instant;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
-import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
@@ -23,12 +22,14 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import com.iglesia.seguridad.common.error.exception.ReglaNegocioException;
+import com.iglesia.seguridad.rol.entity.Rol;
+import com.iglesia.seguridad.rol.model.RolBase;
 import com.iglesia.seguridad.usuario.model.Correo;
-import com.iglesia.seguridad.usuario.model.Rol;
 
 /**
- * Cuenta de acceso. Protege sus invariantes: el administrador del sistema no pertenece a ninguna
- * iglesia, el resto sí, y los roles de líder y miembro exigen un miembro vinculado.
+ * Cuenta de acceso. Protege sus invariantes según el rol base efectivo de sus roles: el administrador
+ * del sistema no pertenece a ninguna iglesia, el resto sí, y los roles de líder y miembro (y los que
+ * heredan de ellos) exigen un miembro vinculado.
  */
 @Entity
 @Table(name = "usuario")
@@ -53,10 +54,9 @@ public class Usuario {
 	@Column(nullable = false)
 	private boolean activo;
 
-	@ElementCollection(fetch = FetchType.LAZY)
-	@CollectionTable(name = "usuario_rol", joinColumns = @JoinColumn(name = "usuario_id"))
-	@Enumerated(EnumType.STRING)
-	@Column(name = "rol", nullable = false, length = 30)
+	@ManyToMany(fetch = FetchType.LAZY)
+	@JoinTable(name = "usuario_rol", joinColumns = @JoinColumn(name = "usuario_id"),
+			inverseJoinColumns = @JoinColumn(name = "rol_id"))
 	private Set<Rol> roles = new HashSet<>();
 
 	@CreationTimestamp
@@ -110,16 +110,24 @@ public class Usuario {
 		if (roles == null || roles.isEmpty()) {
 			throw new ReglaNegocioException("El usuario debe tener al menos un rol");
 		}
-		boolean esAdminSistema = roles.contains(Rol.ADMIN_SISTEMA);
+		Set<RolBase> rolesBase = rolesBase(roles);
+		boolean esAdminSistema = rolesBase.contains(RolBase.ADMIN_SISTEMA);
 		if (esAdminSistema && (iglesiaId != null || miembroId != null)) {
 			throw new ReglaNegocioException("El administrador del sistema no pertenece a ninguna iglesia");
 		}
 		if (!esAdminSistema && iglesiaId == null) {
 			throw new ReglaNegocioException("El usuario debe pertenecer a una iglesia");
 		}
-		if (miembroId == null && roles.stream().anyMatch(Rol::requiereMiembro)) {
-			throw new ReglaNegocioException("Los roles de líder y miembro requieren un miembro vinculado");
+		if (miembroId == null && rolesBase.stream().anyMatch(RolBase::requiereMiembro)) {
+			throw new ReglaNegocioException(
+					"Los roles de líder y miembro, y los que heredan de ellos, requieren un miembro vinculado");
 		}
+	}
+
+	private static Set<RolBase> rolesBase(Set<Rol> roles) {
+		Set<RolBase> rolesBase = EnumSet.noneOf(RolBase.class);
+		roles.forEach(rol -> rolesBase.add(rol.rolBaseEfectivo()));
+		return rolesBase;
 	}
 
 	public Long getId() {
@@ -148,6 +156,11 @@ public class Usuario {
 
 	public Set<Rol> getRoles() {
 		return Set.copyOf(roles);
+	}
+
+	/** Roles base efectivos de sus roles, sin repetir. */
+	public Set<RolBase> getRolesBase() {
+		return rolesBase(roles);
 	}
 
 	public Instant getCreadoEn() {

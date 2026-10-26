@@ -10,7 +10,7 @@ public class UsuarioMapper {
 
 	public UsuarioResponse aRespuesta(Usuario usuario) {
 		return new UsuarioResponse(usuario.getId(), usuario.getCorreo(), usuario.getIglesiaId(), usuario.getMiembroId(),
-				usuario.isActivo(), usuario.getRoles(), usuario.getCreadoEn());
+				usuario.isActivo(), usuario.getRolesBase(), usuario.getCreadoEn());
 	}
 
 }

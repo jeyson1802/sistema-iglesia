@@ -13,7 +13,7 @@ import com.iglesia.seguridad.auth.entity.TokenRefresco;
 
 public interface TokenRefrescoRepository extends JpaRepository<TokenRefresco, Long> {
 
-	@EntityGraph(attributePaths = { "usuario", "usuario.roles" })
+	@EntityGraph(attributePaths = { "usuario", "usuario.roles", "usuario.roles.rolBase", "usuario.roles.permisos" })
 	Optional<TokenRefresco> findByHashToken(String hashToken);
 
 	@Modifying(flushAutomatically = true, clearAutomatically = true)

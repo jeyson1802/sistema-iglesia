@@ -11,8 +11,8 @@ import jakarta.validation.constraints.Size;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import com.iglesia.seguridad.rol.model.RolBase;
 import com.iglesia.seguridad.usuario.constant.LimitesUsuario;
-import com.iglesia.seguridad.usuario.model.Rol;
 
 @Schema(description = "Datos para crear un usuario.")
 public record CrearUsuarioRequest(
@@ -25,5 +25,5 @@ public record CrearUsuarioRequest(
 		@Schema(description = "Id del miembro de iglesia-api vinculado. Obligatorio con los roles `LIDER` y `MIEMBRO`; "
 				+ "un miembro solo puede tener un usuario.", example = "25") @Positive Long miembroId,
 		@Schema(description = "Roles de acceso del usuario. Solo `ADMIN_SISTEMA` puede asignar `ADMIN_SISTEMA`.",
-				example = "[\"LIDER\"]") @NotEmpty Set<@NotNull Rol> roles) {
+				example = "[\"LIDER\"]") @NotEmpty Set<@NotNull RolBase> roles) {
 }

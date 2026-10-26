@@ -29,7 +29,7 @@ class UsuarioDetailsService implements UserDetailsService {
 		return User.withUsername(usuario.getCorreo())
 			.password(usuario.getHashContrasena())
 			.disabled(!usuario.isActivo())
-			.roles(usuario.getRoles().stream().map(Enum::name).toArray(String[]::new))
+			.roles(usuario.getRolesBase().stream().map(Enum::name).toArray(String[]::new))
 			.build();
 	}
 
