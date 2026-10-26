@@ -204,8 +204,19 @@ El objetivo es que, ante un error en producción, se pueda rastrear la petición
 - **Nunca** registrar contraseñas, tokens (JWT, refresco), cabeceras `Authorization`/`Cookie` ni cuerpos completos de peticiones con datos personales.
 - **Respuesta al cliente:** los 5xx devuelven un mensaje genérico en español con el `traceId`, nunca el mensaje interno ni el stack trace.
 - **Frontend:** el manejo centralizado de errores HTTP muestra el `traceId` en los errores inesperados («Código de seguimiento: …») para que el usuario pueda reportarlo.
-- **Pruebas:** se verifica que los errores devuelvan `traceId` en el `ProblemDetail` y la cabecera `X-Trace-Id`.
+  - `core/interceptors/errores.interceptor.ts` (registrado después de `auth.interceptor`) avisa los 5xx y la falta de conexión por `NotificadorErroresService` (`core/errores/`), que muestra el toast global `app-toast-errores-globales` con `shared/components/codigo-seguimiento`.
+  - `core/errores/clasificar-error.ts` (`esErrorGlobal`) define qué errores avisa el toast. Las páginas manejan solo los 4xx (mensajes junto al formulario) y no repiten el aviso de un 5xx o de un error de conexión.
+- **Pruebas:** se verifica que los errores devuelvan `traceId` en el `ProblemDetail` y la cabecera `X-Trace-Id`. Los logs se verifican con `OutputCaptureExtension` (p. ej. que un 5xx deja una sola línea `ERROR` con el stack trace, o que un evento no incluye correo ni contraseña).
+- **Perfiles:** `application.properties` es el de producción y seguro por defecto: logs JSON (ECS) y Swagger deshabilitado. `application-local.properties` (perfil `local`, activado por `./gradlew bootRun`) pone logs en texto con `[traceId,spanId,u=usuarioId,i=iglesiaId]` y habilita Swagger UI. Las pruebas corren sin perfil, así que ven el formato JSON de producción.
+- **Piezas comunes** (iguales en ambos backends, en `common/<asunto>/<tipo>`; se reutilizan, no se duplican):
+  - `common/traza/filter/FiltroCabeceraTraza`: agrega `X-Trace-Id` a toda respuesta. El valor lo da `common/traza/component/ProveedorTraceId`, y los nombres de cabecera y propiedad están en `common/traza/constant/TrazaConstantes`.
+  - `common/traza/filter/FiltroContextoUsuario`: pone `usuarioId` e `iglesiaId` en el MDC. No es un `@Component`: se registra en la cadena de seguridad, después de `BearerTokenAuthenticationFilter`.
+  - `common/error/component/FabricaProblemDetail`: crea todo `ProblemDetail` (título y detalle en español y `traceId`). Ningún otro código arma `ProblemDetail` a mano.
+  - `common/error/handler/ManejadorGlobalErrores`: registra el `WARN`/`ERROR` de las respuestas de error. Un manejador propio de un contexto, como `auth/handler/ManejadorErroresAuth`, sigue la misma regla. `EntryPointProblemDetail` (401) y `AccessDeniedProblemDetail` (403) delegan en él los errores de Spring Security.
+  - `common/openapi/config/OpenApiConfig`: esquema `bearerAuth`, información del backend y cabecera `X-Trace-Id` documentada en todas las respuestas. Las rutas de la documentación son públicas (`RUTAS_DOCUMENTACION`).
+  - `common/openapi/model/ProblemDetailEsquema` y `common/openapi/constant/RespuestasOpenApi`: esquema y descripciones comunes de los errores para `@ApiResponse` (`content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetailEsquema.class))`). Se copian a `iglesia-api` con su primer controlador.
 
 ## Comandos
 - Frontend, desde `iglesia-web/`: `ng serve` / `ng build` / `ng test`
 - Backends, desde `iglesia-api/` o `iglesia-seguridad/`: `./gradlew bootRun` / `./gradlew build` / `./gradlew test`
+- Documentación de la API con el backend en perfil `local`: Swagger UI en `http://localhost:<puerto>/swagger-ui.html` y especificación en `/v3/api-docs` (8081 seguridad, 8080 api).
