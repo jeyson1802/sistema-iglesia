@@ -17,6 +17,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -25,6 +26,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import com.iglesia.seguridad.common.error.handler.AccessDeniedProblemDetail;
 import com.iglesia.seguridad.common.error.handler.EntryPointProblemDetail;
 import com.iglesia.seguridad.common.traza.constant.TrazaConstantes;
+import com.iglesia.seguridad.common.traza.filter.FiltroContextoUsuario;
 import com.iglesia.seguridad.jwt.controller.JwksController;
 
 import static org.springframework.security.config.Customizer.withDefaults;
@@ -64,6 +66,8 @@ class SeguridadHttpConfig {
 			.oauth2ResourceServer(recurso -> recurso.jwt(jwt -> jwt.jwtAuthenticationConverter(convertidorJwt))
 				.authenticationEntryPoint(noAutenticado)
 				.accessDeniedHandler(accesoDenegado))
+			// usuarioId e iglesiaId en el MDC en cuanto se valida el JWT, para todos los logs posteriores.
+			.addFilterAfter(new FiltroContextoUsuario(), BearerTokenAuthenticationFilter.class)
 			.build();
 	}
 
