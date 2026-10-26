@@ -76,6 +76,13 @@ Todo el código, tanto de los backends como del frontend, debe aplicar **siempre
   - Carpetas ordenadas semánticamente por recurso o caso de uso (p. ej. «1. Autenticación», «2. Mi cuenta», «3. Administración de usuarios»), en el orden en que se usan.
   - Cada request con descripción, cuerpo de ejemplo válido y pruebas básicas; URLs y tokens como variables (`{{seguridadUrl}}`, `{{tokenAcceso}}`) y scripts que guarden el token tras el login.
   - Nunca contraseñas ni secretos reales en el repositorio: los valores sensibles del entorno van vacíos.
+- **Swagger / OpenAPI:** toda API REST de los backends se documenta con OpenAPI 3 (`springdoc-openapi`), lo más descriptiva posible:
+  - Cada controlador con `@Tag` (nombre y descripción del recurso) y cada endpoint con `@Operation` (`summary` corto y `description` que explique qué hace, reglas de negocio y permisos requeridos).
+  - Todas las respuestas posibles declaradas con `@ApiResponse` (éxito y cada error: 400, 401, 403, 404, 409…), indicando cuándo ocurre cada una y que los errores se devuelven como `ProblemDetail`.
+  - DTOs (`record`) con `@Schema` en la clase y en cada campo: descripción, ejemplo válido, formato y restricciones (las de Bean Validation se reflejan solas; no duplicarlas a mano). Parámetros de ruta y consulta con `@Parameter`.
+  - Esquema de seguridad `bearerAuth` (JWT) declarado una vez en la configuración y aplicado a los endpoints protegidos; los públicos se marcan sin seguridad.
+  - Información general en un bean `OpenAPI` (título, versión, descripción del backend). Swagger UI en `/swagger-ui.html` y especificación en `/v3/api-docs`, habilitados en desarrollo y deshabilitados en producción por propiedad (`springdoc.api-docs.enabled`, `springdoc.swagger-ui.enabled`).
+  - La documentación OpenAPI es parte del endpoint: no se da por terminado un servicio sin ella (igual que con Postman).
 - **Diagrama al cerrar un spec:** al terminar la implementación de cada spec se genera `diagramas/spec-NN-slug.drawio` con el flujo creado: componentes del frontend, servicios REST que consumen, clases del backend que los atienden y tablas que leen o escriben. Debe ser didáctico (técnico pero entendible): varias páginas (arquitectura y flujos principales), colores con leyenda y notas que expliquen las decisiones importantes.
 
 ## Frontend (`iglesia-web/`)
@@ -157,6 +164,21 @@ Todo el código, tanto de los backends como del frontend, debe aplicar **siempre
 - Toda la comunicación por HTTPS; CORS restringido a los orígenes del frontend.
 - Secretos y credenciales por variables de entorno, nunca en el repositorio.
 - Los datos personales de los miembros son sensibles: no exponerlos en logs.
+
+### Trazabilidad y logs (obligatorio en toda API)
+El objetivo es que, ante un error en producción, se pueda rastrear la petición completa (frontend → backend → base de datos) a partir de un solo identificador.
+- **Identificador de traza por petición:** Micrometer Tracing (`micrometer-tracing-bridge-otel`) genera o propaga `traceId`/`spanId` (cabecera W3C `traceparent`). Toda respuesta devuelve la cabecera `X-Trace-Id` y todo `ProblemDetail` de error incluye la propiedad `traceId`, para que el usuario o soporte puedan reportarlo.
+- **Contexto en MDC:** cada línea de log lleva `traceId`, `spanId` y, si hay usuario autenticado, `usuarioId` e `iglesiaId` (de los claims del JWT; nunca correo, nombre ni otros datos personales). El contexto se limpia al terminar la petición.
+- **Formato:** logs estructurados en JSON en producción (logging estructurado de Spring Boot, `logging.structured.format.console=ecs`) y legibles en texto en desarrollo, por perfil. Nombre de la aplicación (`spring.application.name`) en cada línea.
+- **Qué registrar y con qué nivel** (SLF4J con parámetros `{}`, nunca concatenación):
+  - `INFO`: eventos de negocio relevantes (alta, cambio o baja de entidades, login exitoso o fallido, cambios de permisos), con identificadores, no datos personales.
+  - `WARN`: errores del cliente (4xx) y reglas de negocio rechazadas, sin stack trace.
+  - `ERROR`: errores inesperados (5xx) **siempre con la excepción completa** (stack trace), registrados una sola vez en el `@RestControllerAdvice` centralizado; las capas inferiores no registran y relanzan (evitar logs duplicados).
+  - `DEBUG`: detalle técnico (consultas, decisiones internas), desactivado en producción.
+- **Nunca** registrar contraseñas, tokens (JWT, refresco), cabeceras `Authorization`/`Cookie` ni cuerpos completos de peticiones con datos personales.
+- **Respuesta al cliente:** los 5xx devuelven un mensaje genérico en español con el `traceId`, nunca el mensaje interno ni el stack trace.
+- **Frontend:** el manejo centralizado de errores HTTP muestra el `traceId` en los errores inesperados («Código de seguimiento: …») para que el usuario pueda reportarlo.
+- **Pruebas:** se verifica que los errores devuelvan `traceId` en el `ProblemDetail` y la cabecera `X-Trace-Id`.
 
 ## Comandos
 - Frontend, desde `iglesia-web/`: `ng serve` / `ng build` / `ng test`
