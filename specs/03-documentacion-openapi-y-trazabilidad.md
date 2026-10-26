@@ -1,6 +1,6 @@
 # SPEC 03 — Documentación OpenAPI y trazabilidad de logs
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 01
 > **Fecha:** 2026-10-26
 > **Objetivo:** Que ambos backends expongan su API documentada con OpenAPI y que cada petición deje logs estructurados identificados por un `traceId`, el cual llega al usuario en los errores para poder rastrear cualquier fallo en producción.
