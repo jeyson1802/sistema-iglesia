@@ -1,4 +1,4 @@
-package com.iglesia.api.common.multiiglesia;
+package com.iglesia.api.common.multiiglesia.component;
 
 import java.util.List;
 

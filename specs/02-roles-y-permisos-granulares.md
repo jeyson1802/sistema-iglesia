@@ -136,7 +136,7 @@ CREATE INDEX ix_usuario_rol_rol ON usuario_rol (rol_id);
 ### Backend `iglesia-seguridad` (Java)
 
 ```java
-// usuario/Rol.java → se renombra a rol/RolBase.java (el enum de los 4 roles base)
+// usuario/model/Rol.java → se renombra a rol/model/RolBase.java (el enum de los 4 roles base)
 public enum RolBase {
     ADMIN_SISTEMA(Ambito.SISTEMA), ADMIN_IGLESIA(Ambito.IGLESIA), LIDER(Ambito.RED), MIEMBRO(Ambito.PROPIO);
     public Ambito ambito() { ... }
@@ -144,17 +144,17 @@ public enum RolBase {
     public boolean heredable() { ... }         // todos menos ADMIN_SISTEMA
 }
 
-// rol/Ambito.java
+// rol/model/Ambito.java
 public enum Ambito { SISTEMA, IGLESIA, RED, PROPIO }
 
-// rol/Rol.java (@Entity, tabla rol): id, iglesiaId, codigo, nombre, rolBase (ManyToOne LAZY),
+// rol/entity/Rol.java (@Entity, tabla rol): id, iglesiaId, codigo, nombre, rolBase (ManyToOne LAZY),
 //   activo, permisos (ManyToMany LAZY a Permiso vía rol_permiso), version
 //   rolBaseEfectivo(): RolBase   → el suyo si es base, el de rolBase si es personalizado
 //   esBase(): boolean
 
-// rol/Permiso.java (@Entity, tabla permiso, solo lectura): codigo, modulo, descripcion, orden
+// rol/entity/Permiso.java (@Entity, tabla permiso, solo lectura): codigo, modulo, descripcion, orden
 
-// rol/dto
+// rol/dto/
 public record PermisoResponse(String codigo, String modulo, String descripcion) {}
 public record RolResponse(Long id, String nombre, RolBase rolBase, boolean base, boolean activo,
         List<String> permisos, long cantidadUsuarios) {}
@@ -163,7 +163,7 @@ public record CrearRolRequest(@NotBlank @Size(max = 60) String nombre, @NotNull 
 public record ActualizarRolRequest(@NotBlank @Size(max = 60) String nombre, @NotNull Set<@NotBlank String> permisos) {}
 public record CambiarEstadoRolRequest(@NotNull Boolean activo) {}
 
-// usuario/dto (cambian)
+// usuario/dto/ (cambian)
 public record RolAsignadoResponse(Long id, String nombre, RolBase rolBase) {}
 public record UsuarioResponse(Long id, String correo, Long iglesiaId, Long miembroId, boolean activo,
         List<RolAsignadoResponse> roles, Instant creadoEn) {}
@@ -171,9 +171,9 @@ public record PerfilResponse(Long id, String nombre, RolBase rolBase, List<Strin
 public record MiUsuarioResponse(Long id, String correo, Long iglesiaId, Long miembroId, List<PerfilResponse> perfiles) {}
 // CrearUsuarioRequest y ActualizarUsuarioRequest: `Set<Rol> roles` → `@NotEmpty Set<@NotNull @Positive Long> rolIds`
 
-// common/seguridad/UsuarioAutenticado: roles pasa a Set<RolBase> y se agrega Set<String> permisos
+// common/seguridad/model/UsuarioAutenticado: roles pasa a Set<RolBase> y se agrega Set<String> permisos
 
-// jwt/ClaimsJwt: + PERMISOS = "permisos"
+// jwt/constant/ClaimsJwt: + PERMISOS = "permisos"
 ```
 
 **Contrato HTTP nuevo (`iglesia-seguridad`):**
@@ -203,8 +203,8 @@ JWT  roles:    ["ADMIN_IGLESIA"]                       roles base distintos de l
 ### Backend `iglesia-api`
 
 ```java
-// common/seguridad/ClaimsJwt: + PERMISOS = "permisos"
-// common/seguridad/ConvertidorAutoridadesJwt implements Converter<Jwt, AbstractAuthenticationToken>
+// common/seguridad/constant/ClaimsJwt: + PERMISOS = "permisos"
+// common/seguridad/component/ConvertidorAutoridadesJwt implements Converter<Jwt, AbstractAuthenticationToken>
 //   roles → ROLE_<rol>, permisos → <permiso> (sin prefijo)
 ```
 
@@ -285,10 +285,10 @@ Cada paso deja el sistema compilando y con sus pruebas en verde.
 **Backend (`iglesia-seguridad`)**
 
 1. Crear `V2__roles_y_permisos.sql`: tablas, semilla de permisos y roles base, y migración de `usuario_rol`. Aplicar con `./gradlew bootRun` contra la base local y verificar con el MCP de PostgreSQL que las asignaciones previas siguen intactas (mismo número de filas y mismos roles).
-2. Renombrar `usuario/Rol` a `rol/RolBase` con `ambito()`, `requiereMiembro()` y `heredable()`, y crear `Ambito`. Crear las entidades `Permiso` y `Rol` y sus repositorios (con `@EntityGraph` para los permisos, sin N+1). Cambiar `Usuario.roles` a `Set<Rol>` mediante `usuario_rol` y adaptar `Usuario.validar` al rol base efectivo. Pruebas unitarias de `RolBase` y de `Usuario`.
+2. Renombrar `usuario/model/Rol` a `rol/model/RolBase` con `ambito()`, `requiereMiembro()` y `heredable()`, y crear `Ambito`. Crear las entidades `Permiso` y `Rol` y sus repositorios (con `@EntityGraph` para los permisos, sin N+1). Cambiar `Usuario.roles` a `Set<Rol>` mediante `usuario_rol` y adaptar `Usuario.validar` al rol base efectivo. Pruebas unitarias de `RolBase` y de `Usuario`.
 3. Adaptar `GeneradorTokenAcceso`: `roles` con los roles base distintos de los roles activos y `permisos` con la unión ordenada. Adaptar `UsuarioAutenticado` (`Set<RolBase>` y permisos) y el conversor de autoridades del resource server de seguridad (`permisos` sin prefijo). Prueba de integración: los claims del login de un usuario con un rol personalizado.
 4. Cambiar `UsuarioController` a `hasAuthority(...)`. `CrearUsuarioRequest` y `ActualizarUsuarioRequest` pasan a `rolIds`. `UsuarioService` valida que los roles existan, estén activos, sean de la misma iglesia o sean base, y que no otorguen `ADMIN_SISTEMA` sin serlo. `UsuarioResponse` usa `RolAsignadoResponse` y `/me` devuelve `MiUsuarioResponse` con `perfiles`. Actualizar las pruebas de integración de usuarios y la política.
-5. Crear el paquete `rol/`: `RolService`, `PoliticaRoles` (subconjunto del rol base, roles base inmutables, misma iglesia, desactivación que no deja usuarios sin roles), `RolMapper`, `RolController` y `PermisoController` con `ProblemDetail` para 400, 403, 404 y 409. Pruebas unitarias de `PoliticaRoles` y de integración de cada endpoint, incluido el aislamiento entre iglesias (404 al pedir un rol de otra iglesia).
+5. Crear el contexto `rol/` con sus subpaquetes: `service/RolService`, `service/PoliticaRoles` (subconjunto del rol base, roles base inmutables, misma iglesia, desactivación que no deja usuarios sin roles), `mapper/RolMapper`, `controller/RolController` y `controller/PermisoController` con `ProblemDetail` para 400, 403, 404 y 409. Pruebas unitarias de `PoliticaRoles` y de integración de cada endpoint, incluido el aislamiento entre iglesias (404 al pedir un rol de otra iglesia).
 6. Postman: crear la carpeta «4. Roles y permisos» (listar permisos, listar roles, obtener, crear, editar, desactivar, reactivar) con descripción, cuerpo de ejemplo y pruebas, más un script que guarde `{{rolId}}`. Actualizar los bodies de «Crear usuario» y «Actualizar usuario» a `rolIds` y la prueba de «Obtener mi usuario» a `perfiles`. «Infraestructura» pasa a ser la carpeta 5.
 
 **Backend (`iglesia-api`)**
@@ -383,6 +383,7 @@ Cada paso deja el sistema compilando y con sus pruebas en verde.
 - **Sí:** `LIDER` y `MIEMBRO` sin permisos por ahora. Se conserva exactamente el comportamiento de la SPEC 01; cada módulo les dará permisos en su spec.
 - **Sí:** el feature `features/roles/` está en la ruta `/roles` y no bajo `/administracion`, que ya es la página de inicio de `ADMIN_IGLESIA`.
 - **Sí:** esta spec lleva el número 02. La «spec 02 Identidad de la iglesia» que menciona la SPEC 01 tomará el siguiente número libre cuando se escriba, y se corregirá esa referencia.
+- **Sí:** las clases nuevas siguen la organización de paquetes `<contexto>/<tipo>` que fijó `CLAUDE.md` durante la implementación de la SPEC 03 (p. ej. `rol/model/RolBase`, `rol/entity/Rol`, `rol/service/PoliticaRoles`). Las rutas de este documento se actualizaron a esa estructura.
 
 ## Riesgos
 

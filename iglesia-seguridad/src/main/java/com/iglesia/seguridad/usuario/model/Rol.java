@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.usuario;
+package com.iglesia.seguridad.usuario.model;
 
 /** Roles de acceso al sistema. Son técnicos y fijos; los rangos de la iglesia se configuran en iglesia-api. */
 public enum Rol {

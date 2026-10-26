@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.usuario;
+package com.iglesia.seguridad.usuario.service;
 
 import java.util.Optional;
 import java.util.Set;
@@ -11,16 +11,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import com.iglesia.seguridad.auth.TokenRefrescoService;
-import com.iglesia.seguridad.common.error.ConflictoException;
-import com.iglesia.seguridad.common.error.RecursoNoEncontradoException;
-import com.iglesia.seguridad.common.error.ReglaNegocioException;
-import com.iglesia.seguridad.common.seguridad.ProveedorUsuarioAutenticado;
-import com.iglesia.seguridad.common.seguridad.UsuarioAutenticado;
+import com.iglesia.seguridad.auth.service.TokenRefrescoService;
+import com.iglesia.seguridad.common.error.exception.ConflictoException;
+import com.iglesia.seguridad.common.error.exception.RecursoNoEncontradoException;
+import com.iglesia.seguridad.common.error.exception.ReglaNegocioException;
+import com.iglesia.seguridad.common.seguridad.component.ProveedorUsuarioAutenticado;
+import com.iglesia.seguridad.common.seguridad.model.UsuarioAutenticado;
 import com.iglesia.seguridad.usuario.dto.ActualizarUsuarioRequest;
 import com.iglesia.seguridad.usuario.dto.CambiarContrasenaRequest;
 import com.iglesia.seguridad.usuario.dto.CrearUsuarioRequest;
 import com.iglesia.seguridad.usuario.dto.UsuarioResponse;
+import com.iglesia.seguridad.usuario.entity.Usuario;
+import com.iglesia.seguridad.usuario.mapper.UsuarioMapper;
+import com.iglesia.seguridad.usuario.model.Rol;
+import com.iglesia.seguridad.usuario.repository.UsuarioRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

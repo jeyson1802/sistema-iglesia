@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.usuario;
+package com.iglesia.seguridad.usuario.entity;
 
 import java.time.Instant;
 import java.util.HashSet;
@@ -22,7 +22,9 @@ import jakarta.persistence.Version;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import com.iglesia.seguridad.common.error.ReglaNegocioException;
+import com.iglesia.seguridad.common.error.exception.ReglaNegocioException;
+import com.iglesia.seguridad.usuario.model.Correo;
+import com.iglesia.seguridad.usuario.model.Rol;
 
 /**
  * Cuenta de acceso. Protege sus invariantes: el administrador del sistema no pertenece a ninguna

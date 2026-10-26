@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.common.error;
+package com.iglesia.seguridad.common.error.exception;
 
 /** La petición es válida en formato pero incumple una regla del dominio. */
 public class ReglaNegocioException extends RuntimeException {

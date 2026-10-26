@@ -1,4 +1,4 @@
-package com.iglesia.api.common.traza;
+package com.iglesia.api.common.traza.filter;
 
 import java.io.IOException;
 
@@ -11,6 +11,9 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.iglesia.api.common.traza.component.ProveedorTraceId;
+import com.iglesia.api.common.traza.constant.TrazaConstantes;
 
 /**
  * Agrega la cabecera X-Trace-Id a toda respuesta. Se escribe antes de continuar la cadena para que también

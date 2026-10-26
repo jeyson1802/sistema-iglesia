@@ -22,8 +22,10 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import com.iglesia.seguridad.common.traza.TrazaConstantes;
-import com.iglesia.seguridad.jwt.JwksController;
+import com.iglesia.seguridad.common.error.handler.AccessDeniedProblemDetail;
+import com.iglesia.seguridad.common.error.handler.EntryPointProblemDetail;
+import com.iglesia.seguridad.common.traza.constant.TrazaConstantes;
+import com.iglesia.seguridad.jwt.controller.JwksController;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -44,7 +46,8 @@ class SeguridadHttpConfig {
 	private static final List<String> CABECERAS_CORS = List.of(HttpHeaders.AUTHORIZATION, HttpHeaders.CONTENT_TYPE);
 
 	@Bean
-	SecurityFilterChain cadenaSeguridad(HttpSecurity http, JwtAuthenticationConverter convertidorJwt) {
+	SecurityFilterChain cadenaSeguridad(HttpSecurity http, JwtAuthenticationConverter convertidorJwt,
+			EntryPointProblemDetail noAutenticado, AccessDeniedProblemDetail accesoDenegado) {
 		return http
 			.csrf(AbstractHttpConfigurer::disable)
 			.cors(withDefaults())
@@ -55,7 +58,12 @@ class SeguridadHttpConfig {
 				.requestMatchers(HttpMethod.GET, RUTAS_SALUD).permitAll()
 				.requestMatchers("/error").permitAll()
 				.anyRequest().authenticated())
-			.oauth2ResourceServer(recurso -> recurso.jwt(jwt -> jwt.jwtAuthenticationConverter(convertidorJwt)))
+			// 401 y 403 de la cadena de seguridad como ProblemDetail con traceId, igual que el resto de errores.
+			.exceptionHandling(errores -> errores.authenticationEntryPoint(noAutenticado)
+				.accessDeniedHandler(accesoDenegado))
+			.oauth2ResourceServer(recurso -> recurso.jwt(jwt -> jwt.jwtAuthenticationConverter(convertidorJwt))
+				.authenticationEntryPoint(noAutenticado)
+				.accessDeniedHandler(accesoDenegado))
 			.build();
 	}
 

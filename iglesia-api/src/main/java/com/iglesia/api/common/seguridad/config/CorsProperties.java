@@ -1,4 +1,4 @@
-package com.iglesia.api.common.seguridad;
+package com.iglesia.api.common.seguridad.config;
 
 import java.util.List;
 

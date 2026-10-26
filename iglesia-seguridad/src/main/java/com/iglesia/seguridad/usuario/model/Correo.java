@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.usuario;
+package com.iglesia.seguridad.usuario.model;
 
 import java.util.Locale;
 

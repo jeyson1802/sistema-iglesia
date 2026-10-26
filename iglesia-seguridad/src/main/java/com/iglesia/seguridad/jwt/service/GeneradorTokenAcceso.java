@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.jwt;
+package com.iglesia.seguridad.jwt.service;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -14,7 +14,10 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Component;
 
-import com.iglesia.seguridad.usuario.Usuario;
+import com.iglesia.seguridad.jwt.config.JwtProperties;
+import com.iglesia.seguridad.jwt.constant.ClaimsJwt;
+import com.iglesia.seguridad.jwt.model.TokenAcceso;
+import com.iglesia.seguridad.usuario.entity.Usuario;
 
 /**
  * Emite el token de acceso (JWT RS256). El {@code sub} es el id del usuario; los datos personales

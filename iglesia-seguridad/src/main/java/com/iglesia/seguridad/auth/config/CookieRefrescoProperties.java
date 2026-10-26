@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.auth;
+package com.iglesia.seguridad.auth.config;
 
 import jakarta.validation.constraints.NotBlank;
 

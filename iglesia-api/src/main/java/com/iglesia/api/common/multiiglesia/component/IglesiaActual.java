@@ -1,4 +1,4 @@
-package com.iglesia.api.common.multiiglesia;
+package com.iglesia.api.common.multiiglesia.component;
 
 import java.util.Optional;
 
@@ -7,7 +7,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 
-import com.iglesia.api.common.seguridad.ClaimsJwt;
+import com.iglesia.api.common.seguridad.constant.ClaimsJwt;
 
 /**
  * Iglesia (tenant) de la petición actual. Se toma exclusivamente del claim del JWT validado,

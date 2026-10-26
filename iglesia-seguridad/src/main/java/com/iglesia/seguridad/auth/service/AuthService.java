@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.auth;
+package com.iglesia.seguridad.auth.service;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -12,15 +12,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.iglesia.seguridad.auth.dto.LoginRequest;
 import com.iglesia.seguridad.auth.dto.TokenAccesoResponse;
-import com.iglesia.seguridad.jwt.GeneradorTokenAcceso;
-import com.iglesia.seguridad.jwt.TokenAcceso;
-import com.iglesia.seguridad.usuario.Correo;
-import com.iglesia.seguridad.usuario.Usuario;
-import com.iglesia.seguridad.usuario.UsuarioRepository;
+import com.iglesia.seguridad.auth.exception.TokenRefrescoInvalidoException;
+import com.iglesia.seguridad.auth.model.SesionEmitida;
+import com.iglesia.seguridad.jwt.model.TokenAcceso;
+import com.iglesia.seguridad.jwt.service.GeneradorTokenAcceso;
+import com.iglesia.seguridad.usuario.entity.Usuario;
+import com.iglesia.seguridad.usuario.model.Correo;
+import com.iglesia.seguridad.usuario.repository.UsuarioRepository;
 
 /** Inicio de sesión, refresco y cierre de sesión. */
 @Service
-class AuthService {
+public class AuthService {
 
 	private final AuthenticationManager gestorAutenticacion;
 

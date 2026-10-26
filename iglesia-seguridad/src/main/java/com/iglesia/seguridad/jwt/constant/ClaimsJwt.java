@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.jwt;
+package com.iglesia.seguridad.jwt.constant;
 
 /** Nombres de los claims propios incluidos en el token de acceso (contrato con iglesia-api y el frontend). */
 public final class ClaimsJwt {

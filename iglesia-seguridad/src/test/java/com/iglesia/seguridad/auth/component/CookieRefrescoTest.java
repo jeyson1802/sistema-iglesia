@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.auth;
+package com.iglesia.seguridad.auth.component;
 
 import java.time.Duration;
 import java.util.List;
@@ -6,7 +6,8 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseCookie;
 
-import com.iglesia.seguridad.jwt.JwtProperties;
+import com.iglesia.seguridad.auth.config.CookieRefrescoProperties;
+import com.iglesia.seguridad.jwt.config.JwtProperties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

@@ -1,4 +1,4 @@
-package com.iglesia.api.common.multiiglesia;
+package com.iglesia.api.common.multiiglesia.component;
 
 import org.hibernate.context.spi.CurrentTenantIdentifierResolver;
 import org.springframework.stereotype.Component;
@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
  * {@code @TenantId} y lo asigna al insertar.
  */
 @Component
-class ResolutorIglesiaHibernate implements CurrentTenantIdentifierResolver<Long> {
+public class ResolutorIglesiaHibernate implements CurrentTenantIdentifierResolver<Long> {
 
 	/**
 	 * Valor usado cuando no hay iglesia en el contexto (arranque, tareas internas, administrador del

@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
-import com.iglesia.seguridad.usuario.Rol;
+import com.iglesia.seguridad.usuario.model.Rol;
 
 /** La iglesia de un usuario no cambia; el correo tampoco se edita por esta vía. */
 public record ActualizarUsuarioRequest(

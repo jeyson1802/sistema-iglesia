@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.common.traza;
+package com.iglesia.seguridad.common.traza.component;
 
 import java.util.Optional;
 

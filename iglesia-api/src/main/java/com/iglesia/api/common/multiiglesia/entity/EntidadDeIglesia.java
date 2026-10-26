@@ -1,4 +1,4 @@
-package com.iglesia.api.common.multiiglesia;
+package com.iglesia.api.common.multiiglesia.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;

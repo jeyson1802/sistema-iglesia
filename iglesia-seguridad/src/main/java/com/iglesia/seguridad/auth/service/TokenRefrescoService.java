@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.auth;
+package com.iglesia.seguridad.auth.service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -14,8 +14,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.iglesia.seguridad.jwt.JwtProperties;
-import com.iglesia.seguridad.usuario.Usuario;
+import com.iglesia.seguridad.auth.entity.TokenRefresco;
+import com.iglesia.seguridad.auth.exception.TokenRefrescoInvalidoException;
+import com.iglesia.seguridad.auth.repository.TokenRefrescoRepository;
+import com.iglesia.seguridad.jwt.config.JwtProperties;
+import com.iglesia.seguridad.usuario.entity.Usuario;
 
 /**
  * Tokens de refresco opacos con rotación: cada uso revoca el token y emite otro. Si se presenta un

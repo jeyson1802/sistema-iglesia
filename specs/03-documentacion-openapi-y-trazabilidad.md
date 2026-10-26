@@ -91,15 +91,15 @@ tasks.named('bootRun') {
 }
 ```
 
-### Clases nuevas (en cada backend, bajo `common/`)
+### Clases nuevas (en cada backend, bajo `common/<asunto>/<tipo>`, según la organización de paquetes de `CLAUDE.md`)
 
 ```java
-// common/openapi/OpenApiConfig.java
+// common/openapi/config/OpenApiConfig.java
 //   @Bean OpenAPI: info (título, versión, descripción), componente bearerAuth (http, bearer, JWT)
 //   y seguridad global; los endpoints públicos se marcan con @SecurityRequirements() vacío.
 //   Rutas /v3/api-docs/** y /swagger-ui/** con permitAll en SeguridadHttpConfig.
 
-// common/traza/TrazaConstantes.java
+// common/traza/constant/TrazaConstantes.java
 public final class TrazaConstantes {
     public static final String CABECERA_TRACE_ID = "X-Trace-Id";
     public static final String PROPIEDAD_TRACE_ID = "traceId";
@@ -107,21 +107,21 @@ public final class TrazaConstantes {
     public static final String MDC_IGLESIA_ID = "iglesiaId";
 }
 
-// common/traza/FiltroCabeceraTraza.java   (OncePerRequestFilter, antes de la cadena de seguridad)
+// common/traza/filter/FiltroCabeceraTraza.java   (OncePerRequestFilter, antes de la cadena de seguridad)
 //   Agrega X-Trace-Id con el traceId actual (Tracer) antes de continuar, así sale incluso en 401/403.
 
-// common/traza/FiltroContextoUsuario.java (OncePerRequestFilter, después de la autenticación)
+// common/traza/filter/FiltroContextoUsuario.java (OncePerRequestFilter, después de la autenticación)
 //   Si hay un JwtAuthenticationToken: MDC usuarioId (sub) e iglesiaId (claim); en finally, MDC.remove.
 
-// common/traza/ProveedorTraceId.java      (componente con interfaz, inyectable y testeable)
+// common/traza/component/ProveedorTraceId.java      (componente con interfaz, inyectable y testeable)
 //   Optional<String> traceIdActual()
 
-// common/error/FabricaProblemDetail.java
+// common/error/component/FabricaProblemDetail.java
 //   Crea los ProblemDetail con title/detail en español y la propiedad traceId; la usan
 //   ManejadorGlobalErrores, ManejadorErroresAuth, EntryPointProblemDetail y AccessDeniedProblemDetail.
 
-// common/error/EntryPointProblemDetail.java      implements AuthenticationEntryPoint  → 401 ProblemDetail
-// common/error/AccessDeniedProblemDetail.java    implements AccessDeniedHandler       → 403 ProblemDetail
+// common/error/handler/EntryPointProblemDetail.java      implements AuthenticationEntryPoint  → 401 ProblemDetail
+// common/error/handler/AccessDeniedProblemDetail.java    implements AccessDeniedHandler       → 403 ProblemDetail
 ```
 
 Contrato de error (todas las respuestas 4xx y 5xx):
@@ -262,6 +262,7 @@ Cada paso deja el sistema compilando y con sus pruebas en verde. Los pasos 1 a 7
 - **No:** propagar la traza desde el frontend. Por YAGNI: hoy no hay llamadas entre backends dentro de una petición y la traza que nace en el backend basta para rastrear.
 - **Sí:** `X-Trace-Id` en la respuesta y `traceId` en el `ProblemDetail`. La cabecera cubre las respuestas sin cuerpo y la propiedad la ve el usuario sin herramientas.
 - **Sí:** `AuthenticationEntryPoint` y `AccessDeniedHandler` propios. Sin ellos, los 401 y 403 del filtro saldrían sin `ProblemDetail` ni `traceId`.
+- **Sí (implementación):** `EntryPointProblemDetail` y `AccessDeniedProblemDetail` no escriben el cuerpo ellos mismos: agregan la cabecera `WWW-Authenticate` (RFC 6750) y delegan en el `HandlerExceptionResolver` de Spring MVC, de modo que el `ManejadorGlobalErrores` arma el `ProblemDetail` con `FabricaProblemDetail` y registra el `WARN`. Así los 401 y 403 del filtro y los de `@PreAuthorize` salen por el mismo camino, sin duplicar la serialización ni el log.
 - **Sí:** el `ERROR` con stack trace se registra una sola vez, en el manejador global. Evita logs duplicados que confunden el rastreo.
 - **Sí:** el login fallido registra `usuarioId` (o `inexistente`) e IP, nunca el correo. La IP permite detectar fuerza bruta. El correo es un dato personal y, si no existe, sería información que no aporta.
 - **Sí:** interceptor global con toast solo para 5xx y errores de red. Los 4xx ya los manejan las páginas con mensajes junto al campo; un toast global duplicaría los mensajes.
@@ -269,6 +270,9 @@ Cada paso deja el sistema compilando y con sus pruebas en verde. Los pasos 1 a 7
 - **Sí:** cambio en `app.component.ts` y `app.config.ts`. No pertenecen a `layout/`, así que no rompen la regla de no tocar el shell.
 
 - **Sí (cambio de alcance autorizado durante la implementación):** migrar `build.gradle.kts` y `settings.gradle.kts` de ambos backends a Groovy DSL (`build.gradle`, `settings.gradle`), por la nueva regla general de `CLAUDE.md`. Se hizo después del paso 1 y antes del paso 2 para no duplicar trabajo; es una conversión mecánica, sin cambiar dependencias ni versiones.
+
+- **Sí (cambio de alcance autorizado durante la implementación):** reorganizar los paquetes de ambos backends en `<contexto>/<tipo>` (`controller`, `service`, `repository`, `entity`, `dto`, `mapper`, `model`, `exception`, `handler`, `config`, `component`, `filter`, `constant`), por la nueva regla general de `CLAUDE.md`. Se hizo después del paso 2 y antes del paso 3: solo mueve clases y ajusta visibilidad (lo que se usa desde otro subpaquete pasa a `public`), sin cambiar comportamiento; las pruebas siguen el paquete de su clase.
+- **Sí:** además de `micrometer-tracing-bridge-otel`, Boot 4 requiere `spring-boot-micrometer-tracing-opentelemetry` (la autoconfiguración del tracing vive en ese módulo) y, en pruebas, `spring-boot-micrometer-tracing-test` (`@AutoConfigureTracing`), porque el tracing está apagado por defecto en los tests.
 
 ## Riesgos
 

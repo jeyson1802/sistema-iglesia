@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.auth;
+package com.iglesia.seguridad.auth.controller;
 
 import com.jayway.jsonpath.JsonPath;
 

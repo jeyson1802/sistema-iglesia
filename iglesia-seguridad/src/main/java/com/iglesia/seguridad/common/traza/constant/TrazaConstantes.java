@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.common.traza;
+package com.iglesia.seguridad.common.traza.constant;
 
 /** Nombres compartidos de la trazabilidad: cabecera de respuesta, propiedad del ProblemDetail y claves del MDC. */
 public final class TrazaConstantes {

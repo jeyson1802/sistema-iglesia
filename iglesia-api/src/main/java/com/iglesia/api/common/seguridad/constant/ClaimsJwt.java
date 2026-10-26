@@ -1,4 +1,4 @@
-package com.iglesia.api.common.seguridad;
+package com.iglesia.api.common.seguridad.constant;
 
 /** Claims propios del token emitido por iglesia-seguridad (debe coincidir con ese servicio). */
 public final class ClaimsJwt {

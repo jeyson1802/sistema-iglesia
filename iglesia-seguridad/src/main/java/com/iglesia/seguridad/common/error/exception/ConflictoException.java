@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.common.error;
+package com.iglesia.seguridad.common.error.exception;
 
 /** La operación choca con el estado actual (p. ej. un dato que debe ser único ya existe). */
 public class ConflictoException extends RuntimeException {

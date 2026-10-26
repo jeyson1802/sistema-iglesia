@@ -1,10 +1,11 @@
-package com.iglesia.seguridad.usuario;
+package com.iglesia.seguridad.usuario.entity;
 
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
-import com.iglesia.seguridad.common.error.ReglaNegocioException;
+import com.iglesia.seguridad.common.error.exception.ReglaNegocioException;
+import com.iglesia.seguridad.usuario.model.Rol;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

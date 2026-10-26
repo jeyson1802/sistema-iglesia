@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.auth;
+package com.iglesia.seguridad.auth.service;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -16,9 +16,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.iglesia.seguridad.jwt.JwtProperties;
-import com.iglesia.seguridad.usuario.Rol;
-import com.iglesia.seguridad.usuario.Usuario;
+import com.iglesia.seguridad.auth.entity.TokenRefresco;
+import com.iglesia.seguridad.auth.exception.TokenRefrescoInvalidoException;
+import com.iglesia.seguridad.auth.repository.TokenRefrescoRepository;
+import com.iglesia.seguridad.jwt.config.JwtProperties;
+import com.iglesia.seguridad.usuario.entity.Usuario;
+import com.iglesia.seguridad.usuario.model.Rol;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

@@ -1,4 +1,4 @@
-package com.iglesia.api.common.multiiglesia;
+package com.iglesia.api.common.multiiglesia.component;
 
 import java.time.Instant;
 import java.util.List;
@@ -7,7 +7,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
-import com.iglesia.api.common.seguridad.ClaimsJwt;
+import com.iglesia.api.common.seguridad.constant.ClaimsJwt;
 
 /** Simula en pruebas la autenticación que deja el resource server tras validar un JWT. */
 final class ContextoJwt {

@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.auth;
+package com.iglesia.seguridad.auth.model;
 
 import com.iglesia.seguridad.auth.dto.TokenAccesoResponse;
 
@@ -9,7 +9,7 @@ import com.iglesia.seguridad.auth.dto.TokenAccesoResponse;
  * @param acceso        token de acceso tal como se responde al cliente
  * @param tokenRefresco token opaco de refresco en claro
  */
-record SesionEmitida(TokenAccesoResponse acceso, String tokenRefresco) {
+public record SesionEmitida(TokenAccesoResponse acceso, String tokenRefresco) {
 
 	/** Evita que el token de refresco aparezca en logs o trazas por el toString del record. */
 	@Override

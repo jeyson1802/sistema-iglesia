@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.jwt;
+package com.iglesia.seguridad.jwt.config;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,6 +30,8 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+
+import com.iglesia.seguridad.jwt.constant.ClaimsJwt;
 
 /** Claves RSA, codificador/decodificador de JWT y conversión de claims a autoridades. */
 @Configuration(proxyBeanMethods = false)

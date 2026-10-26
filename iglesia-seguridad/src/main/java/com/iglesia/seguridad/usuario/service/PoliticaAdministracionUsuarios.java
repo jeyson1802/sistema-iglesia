@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.usuario;
+package com.iglesia.seguridad.usuario.service;
 
 import java.util.Objects;
 import java.util.Set;
@@ -6,7 +6,9 @@ import java.util.Set;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
-import com.iglesia.seguridad.common.seguridad.UsuarioAutenticado;
+import com.iglesia.seguridad.common.seguridad.model.UsuarioAutenticado;
+import com.iglesia.seguridad.usuario.entity.Usuario;
+import com.iglesia.seguridad.usuario.model.Rol;
 
 /**
  * Quién puede administrar a quién: el administrador del sistema, a todos; el administrador de

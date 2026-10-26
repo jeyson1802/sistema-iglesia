@@ -9,7 +9,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
-import com.iglesia.seguridad.usuario.Rol;
+import com.iglesia.seguridad.usuario.constant.LimitesUsuario;
+import com.iglesia.seguridad.usuario.model.Rol;
 
 public record CrearUsuarioRequest(
 		@NotBlank @Email @Size(max = LimitesUsuario.CORREO_MAX) String correo,

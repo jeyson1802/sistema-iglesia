@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.common.traza;
+package com.iglesia.seguridad.common.traza.filter;
 
 import java.io.IOException;
 
@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.iglesia.seguridad.TestcontainersConfiguration;
+import com.iglesia.seguridad.common.traza.constant.TrazaConstantes;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;

@@ -1,4 +1,4 @@
-package com.iglesia.api.common.multiiglesia;
+package com.iglesia.api.common.multiiglesia.component;
 
 import jakarta.persistence.EntityManagerFactory;
 
@@ -13,13 +13,13 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
  * conexión (equivalente a {@code SET LOCAL}, se descarta al terminar la transacción) para que las
  * políticas de Row-Level Security de PostgreSQL filtren por la iglesia del token.
  */
-class IglesiaJpaTransactionManager extends JpaTransactionManager {
+public class IglesiaJpaTransactionManager extends JpaTransactionManager {
 
 	private static final String FIJAR_IGLESIA = "select set_config('app.iglesia_id', ?, true)";
 
 	private final transient IglesiaActual iglesiaActual;
 
-	IglesiaJpaTransactionManager(EntityManagerFactory fabrica, IglesiaActual iglesiaActual) {
+	public IglesiaJpaTransactionManager(EntityManagerFactory fabrica, IglesiaActual iglesiaActual) {
 		super(fabrica);
 		this.iglesiaActual = iglesiaActual;
 	}

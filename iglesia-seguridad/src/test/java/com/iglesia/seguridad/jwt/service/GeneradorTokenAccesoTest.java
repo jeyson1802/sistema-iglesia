@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.jwt;
+package com.iglesia.seguridad.jwt.service;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -19,8 +19,11 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.iglesia.seguridad.usuario.Rol;
-import com.iglesia.seguridad.usuario.Usuario;
+import com.iglesia.seguridad.jwt.config.JwtProperties;
+import com.iglesia.seguridad.jwt.constant.ClaimsJwt;
+import com.iglesia.seguridad.jwt.model.TokenAcceso;
+import com.iglesia.seguridad.usuario.entity.Usuario;
+import com.iglesia.seguridad.usuario.model.Rol;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

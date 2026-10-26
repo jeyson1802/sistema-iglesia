@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.auth;
+package com.iglesia.seguridad.auth.controller;
 
 import jakarta.validation.Valid;
 
@@ -10,12 +10,16 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.iglesia.seguridad.auth.component.CookieRefresco;
 import com.iglesia.seguridad.auth.dto.LoginRequest;
 import com.iglesia.seguridad.auth.dto.TokenAccesoResponse;
+import com.iglesia.seguridad.auth.exception.TokenRefrescoInvalidoException;
+import com.iglesia.seguridad.auth.model.SesionEmitida;
+import com.iglesia.seguridad.auth.service.AuthService;
 
 @RestController
 @RequestMapping("/api/auth")
-class AuthController {
+public class AuthController {
 
 	private static final String COOKIE_REFRESCO = "${seguridad.cookie-refresco.nombre}";
 

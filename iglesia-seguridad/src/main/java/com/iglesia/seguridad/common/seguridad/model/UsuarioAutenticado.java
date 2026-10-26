@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.common.seguridad;
+package com.iglesia.seguridad.common.seguridad.model;
 
 import java.util.Collection;
 import java.util.EnumSet;
@@ -6,8 +6,8 @@ import java.util.Set;
 
 import org.springframework.security.oauth2.jwt.Jwt;
 
-import com.iglesia.seguridad.jwt.ClaimsJwt;
-import com.iglesia.seguridad.usuario.Rol;
+import com.iglesia.seguridad.jwt.constant.ClaimsJwt;
+import com.iglesia.seguridad.usuario.model.Rol;
 
 /** Datos del usuario que hace la petición, tomados del JWT ya validado. */
 public record UsuarioAutenticado(Long usuarioId, Long iglesiaId, Long miembroId, Set<Rol> roles) {

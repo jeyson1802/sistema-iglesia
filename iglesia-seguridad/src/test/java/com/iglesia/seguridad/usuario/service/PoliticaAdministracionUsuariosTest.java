@@ -1,11 +1,12 @@
-package com.iglesia.seguridad.usuario;
+package com.iglesia.seguridad.usuario.service;
 
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.security.access.AccessDeniedException;
 
-import com.iglesia.seguridad.common.seguridad.UsuarioAutenticado;
+import com.iglesia.seguridad.common.seguridad.model.UsuarioAutenticado;
+import com.iglesia.seguridad.usuario.model.Rol;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

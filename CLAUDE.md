@@ -137,6 +137,32 @@ Todo el código, tanto de los backends como del frontend, debe aplicar **siempre
 - PostgreSQL. Migraciones de esquema versionadas con Flyway.
 - Pruebas unitarias con JUnit 5 + Mockito; pruebas de integración con Testcontainers (PostgreSQL).
 
+### Organización de paquetes (obligatorio)
+Primero por **contexto de negocio** y, dentro de cada contexto, por **capa o tipo técnico**: `com.iglesia.<backend>.<contexto>.<tipo>`. Un desarrollador debe poder ubicar cualquier clase solo por lo que es.
+
+| Subpaquete | Contiene |
+|---|---|
+| `controller` | `@RestController` (solo HTTP: recibir, validar con `@Valid`, delegar y responder) |
+| `service` | Lógica de negocio y casos de uso (`@Service`), incluidas las políticas o reglas de autorización de negocio |
+| `repository` | Interfaces de Spring Data |
+| `entity` | `@Entity` y `@MappedSuperclass` |
+| `dto` | `record` de entrada y salida de la API (`*Request`, `*Response`) |
+| `mapper` | Conversión entre entidades y DTOs |
+| `model` | Tipos de dominio que no son entidades: enums, value objects y `record` internos |
+| `exception` | Excepciones propias del contexto |
+| `handler` | `@RestControllerAdvice` y manejadores de errores |
+| `config` | `@Configuration` y `@ConfigurationProperties` |
+| `component` | Otros `@Component` de infraestructura (proveedores, generadores, inicializadores) |
+| `filter` | Filtros servlet (`OncePerRequestFilter`) |
+| `constant` | Clases de constantes (`final` con constructor privado) |
+| `util` | Funciones utilitarias estáticas y sin estado |
+
+- Solo se crean los subpaquetes que el contexto necesita; nada de paquetes vacíos «por si acaso».
+- Lo transversal va en `common/<asunto>/<tipo>` (p. ej. `common/error/exception`, `common/error/handler`, `common/traza/filter`); la configuración global de la aplicación, en `config/` de la raíz.
+- Los contextos no dependen de las clases internas de otros contextos salvo a través de sus `service`, `dto` o `model`; las dependencias entre contextos nunca son circulares.
+- Visibilidad: al separar por subpaquetes, las clases que se usan desde otro subpaquete son `public`; lo que solo se usa dentro de su subpaquete se deja con visibilidad de paquete.
+- Las pruebas replican el paquete de la clase que prueban.
+
 ### Acceso a datos
 - **Spring Data JPA (Hibernate)** con entidades `@Entity` que mapean las tablas y consultas en **JPQL** (`@Query`) cuando no basten los métodos derivados.
 - Parámetros siempre enlazados (`:parametro`); nunca concatenar texto para armar consultas.

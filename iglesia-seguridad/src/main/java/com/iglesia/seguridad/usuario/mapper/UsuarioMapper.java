@@ -1,13 +1,14 @@
-package com.iglesia.seguridad.usuario;
+package com.iglesia.seguridad.usuario.mapper;
 
 import org.springframework.stereotype.Component;
 
 import com.iglesia.seguridad.usuario.dto.UsuarioResponse;
+import com.iglesia.seguridad.usuario.entity.Usuario;
 
 @Component
-class UsuarioMapper {
+public class UsuarioMapper {
 
-	UsuarioResponse aRespuesta(Usuario usuario) {
+	public UsuarioResponse aRespuesta(Usuario usuario) {
 		return new UsuarioResponse(usuario.getId(), usuario.getCorreo(), usuario.getIglesiaId(), usuario.getMiembroId(),
 				usuario.isActivo(), usuario.getRoles(), usuario.getCreadoEn());
 	}

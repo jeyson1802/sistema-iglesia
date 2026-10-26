@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.auth;
+package com.iglesia.seguridad.auth.entity;
 
 import java.time.Instant;
 
@@ -15,12 +15,12 @@ import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import com.iglesia.seguridad.usuario.Usuario;
+import com.iglesia.seguridad.usuario.entity.Usuario;
 
 /** Token de refresco de un solo uso. Solo se persiste el hash del valor entregado al cliente. */
 @Entity
 @Table(name = "token_refresco")
-class TokenRefresco {
+public class TokenRefresco {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -46,28 +46,28 @@ class TokenRefresco {
 	protected TokenRefresco() {
 	}
 
-	TokenRefresco(Usuario usuario, String hashToken, Instant emitidoEn, Instant expiraEn) {
+	public TokenRefresco(Usuario usuario, String hashToken, Instant emitidoEn, Instant expiraEn) {
 		this.usuario = usuario;
 		this.hashToken = hashToken;
 		this.emitidoEn = emitidoEn;
 		this.expiraEn = expiraEn;
 	}
 
-	boolean estaRevocado() {
+	public boolean estaRevocado() {
 		return revocadoEn != null;
 	}
 
-	boolean estaVigente(Instant ahora) {
+	public boolean estaVigente(Instant ahora) {
 		return !estaRevocado() && ahora.isBefore(expiraEn);
 	}
 
-	void revocar(Instant ahora) {
+	public void revocar(Instant ahora) {
 		if (!estaRevocado()) {
 			revocadoEn = ahora;
 		}
 	}
 
-	Usuario getUsuario() {
+	public Usuario getUsuario() {
 		return usuario;
 	}
 

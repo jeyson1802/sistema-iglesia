@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.usuario;
+package com.iglesia.seguridad.usuario.component;
 
 import java.util.Set;
 
@@ -9,6 +9,11 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.iglesia.seguridad.usuario.config.AdministradorInicialProperties;
+import com.iglesia.seguridad.usuario.entity.Usuario;
+import com.iglesia.seguridad.usuario.model.Rol;
+import com.iglesia.seguridad.usuario.repository.UsuarioRepository;
 
 /**
  * Crea el primer administrador del sistema al arrancar, si no existe ninguno y se configuraron sus

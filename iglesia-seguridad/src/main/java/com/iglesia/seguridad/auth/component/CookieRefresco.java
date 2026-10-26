@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.auth;
+package com.iglesia.seguridad.auth.component;
 
 import java.time.Duration;
 
@@ -6,7 +6,8 @@ import org.springframework.boot.web.server.Cookie.SameSite;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
-import com.iglesia.seguridad.jwt.JwtProperties;
+import com.iglesia.seguridad.auth.config.CookieRefrescoProperties;
+import com.iglesia.seguridad.jwt.config.JwtProperties;
 
 /**
  * Construye la cookie {@code HttpOnly} del token de refresco. {@code Secure} va siempre activo
@@ -14,7 +15,7 @@ import com.iglesia.seguridad.jwt.JwtProperties;
  * pueda quedar desactivada en producción.
  */
 @Component
-class CookieRefresco {
+public class CookieRefresco {
 
 	private final CookieRefrescoProperties propiedades;
 
@@ -26,12 +27,12 @@ class CookieRefresco {
 	}
 
 	/** Cookie que entrega al navegador el token de refresco recién emitido. */
-	ResponseCookie emitir(String tokenRefresco) {
+	public ResponseCookie emitir(String tokenRefresco) {
 		return construir(tokenRefresco, duracion);
 	}
 
 	/** Cookie vacía con {@code Max-Age=0} para que el navegador la elimine. */
-	ResponseCookie borrar() {
+	public ResponseCookie borrar() {
 		return construir("", Duration.ZERO);
 	}
 

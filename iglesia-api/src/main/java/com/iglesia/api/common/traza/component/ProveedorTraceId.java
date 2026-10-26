@@ -1,4 +1,4 @@
-package com.iglesia.api.common.traza;
+package com.iglesia.api.common.traza.component;
 
 import java.util.Optional;
 

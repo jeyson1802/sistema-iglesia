@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.usuario;
+package com.iglesia.seguridad.usuario.controller;
 
 import java.net.URI;
 
@@ -23,6 +23,7 @@ import com.iglesia.seguridad.usuario.dto.ActualizarUsuarioRequest;
 import com.iglesia.seguridad.usuario.dto.CambiarContrasenaRequest;
 import com.iglesia.seguridad.usuario.dto.CrearUsuarioRequest;
 import com.iglesia.seguridad.usuario.dto.UsuarioResponse;
+import com.iglesia.seguridad.usuario.service.UsuarioService;
 
 @RestController
 @RequestMapping("/api/usuarios")

@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.jwt;
+package com.iglesia.seguridad.jwt.model;
 
 import java.time.Instant;
 

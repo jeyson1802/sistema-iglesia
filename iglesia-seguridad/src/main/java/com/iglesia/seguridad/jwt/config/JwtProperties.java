@@ -1,4 +1,4 @@
-package com.iglesia.seguridad.jwt;
+package com.iglesia.seguridad.jwt.config;
 
 import java.time.Duration;
 import java.util.List;
