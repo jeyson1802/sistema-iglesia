@@ -30,6 +30,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-micrometer-tracing-opentelemetry'
 	implementation 'io.micrometer:micrometer-tracing-bridge-otel'
 	implementation 'org.flywaydb:flyway-database-postgresql'
+	// OpenAPI 3 + Swagger UI; la 3.2.x está construida sobre Spring Boot 4.1.2
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0'
 	runtimeOnly 'org.postgresql:postgresql'
 	testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'

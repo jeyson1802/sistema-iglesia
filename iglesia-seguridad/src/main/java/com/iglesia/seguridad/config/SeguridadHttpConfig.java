@@ -25,6 +25,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.iglesia.seguridad.common.error.handler.AccessDeniedProblemDetail;
 import com.iglesia.seguridad.common.error.handler.EntryPointProblemDetail;
+import com.iglesia.seguridad.common.openapi.config.OpenApiConfig;
 import com.iglesia.seguridad.common.traza.constant.TrazaConstantes;
 import com.iglesia.seguridad.common.traza.filter.FiltroContextoUsuario;
 import com.iglesia.seguridad.jwt.controller.JwksController;
@@ -59,6 +60,8 @@ class SeguridadHttpConfig {
 				.requestMatchers(HttpMethod.GET, JwksController.RUTA).permitAll()
 				.requestMatchers(HttpMethod.GET, RUTAS_SALUD).permitAll()
 				.requestMatchers("/error").permitAll()
+				// Solo existen con el perfil local; en producción responden 404
+				.requestMatchers(HttpMethod.GET, OpenApiConfig.RUTAS_DOCUMENTACION).permitAll()
 				.anyRequest().authenticated())
 			// 401 y 403 de la cadena de seguridad como ProblemDetail con traceId, igual que el resto de errores.
 			.exceptionHandling(errores -> errores.authenticationEntryPoint(noAutenticado)

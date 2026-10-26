@@ -84,7 +84,7 @@ springdoc.swagger-ui.path=/swagger-ui.html
 
 ```groovy
 // build.gradle
-implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:<3.x compatible con Boot 4.1>'
+implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0'   // construida sobre Boot 4.1.2
 implementation 'io.micrometer:micrometer-tracing-bridge-otel'
 tasks.named('bootRun') {
     systemProperty 'spring.profiles.active', 'local'
