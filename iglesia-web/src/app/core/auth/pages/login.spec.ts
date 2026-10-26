@@ -100,14 +100,26 @@ describe('LoginComponent', () => {
         expect(navegar).not.toHaveBeenCalled();
     });
 
-    it('ante otro error muestra un mensaje genérico', async () => {
+    it('ante otro error del cliente muestra un mensaje genérico', async () => {
         await crear();
-        sesion.iniciarSesion.and.returnValue(throwError(() => new HttpErrorResponse({ status: 0 })));
+        sesion.iniciarSesion.and.returnValue(throwError(() => new HttpErrorResponse({ status: 403 })));
 
         await enviar('miembro@iglesia.test', 'clave');
 
         expect(texto()).toContain('No se pudo iniciar sesión. Intenta de nuevo.');
     });
+
+    for (const status of [0, 500]) {
+        it(`ante un ${status} no repite el aviso del toast global`, async () => {
+            await crear();
+            sesion.iniciarSesion.and.returnValue(throwError(() => new HttpErrorResponse({ status })));
+
+            await enviar('miembro@iglesia.test', 'clave');
+
+            expect(fixture.nativeElement.querySelector('p-message')).toBeNull();
+            expect(navegar).not.toHaveBeenCalled();
+        });
+    }
 
     it('mientras espera la respuesta muestra el botón en estado de carga', async () => {
         await crear();

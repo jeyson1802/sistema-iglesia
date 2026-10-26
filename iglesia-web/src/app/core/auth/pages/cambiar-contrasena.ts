@@ -10,6 +10,7 @@ import { MensajeErrorCampoComponent, MensajesError } from '@/app/shared/componen
 import { camposCoinciden, ERROR_CAMPOS_NO_COINCIDEN } from '@/app/shared/validators/campos-coinciden';
 import { MOTIVO_LOGIN, RUTAS_AUTH } from '../models/rutas-auth';
 import { SesionService } from '../services/sesion.service';
+import { esErrorGlobal } from '../../errores/clasificar-error';
 
 /** Límites de iglesia-seguridad (`LimitesUsuario`): BCrypt solo considera los primeros 72 bytes. */
 const LONGITUD_MINIMA_CONTRASENA = 8;
@@ -72,8 +73,14 @@ export class CambiarContrasenaComponent {
     }
 }
 
-/** Un 400 trae en `detail` del ProblemDetail el motivo en español (p. ej. «La contraseña actual no es correcta»). */
-function mensajeDeError(error: unknown): string {
+/**
+ * Un 400 trae en `detail` del ProblemDetail el motivo en español (p. ej. «La contraseña actual no es correcta»).
+ * Los 5xx y la falta de conexión ya los avisa el toast global: la página no repite el mensaje.
+ */
+function mensajeDeError(error: unknown): string | null {
+    if (esErrorGlobal(error)) {
+        return null;
+    }
     if (error instanceof HttpErrorResponse && error.status === HttpStatusCode.BadRequest && typeof error.error?.detail === 'string') {
         return error.error.detail;
     }

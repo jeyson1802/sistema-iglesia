@@ -77,13 +77,24 @@ describe('CambiarContrasenaComponent', () => {
         expect(navegar).not.toHaveBeenCalled();
     });
 
-    it('ante otro error muestra un mensaje genérico', async () => {
-        sesion.cambiarContrasena.and.returnValue(throwError(() => new HttpErrorResponse({ status: 0 })));
+    it('ante otro error del cliente muestra un mensaje genérico', async () => {
+        sesion.cambiarContrasena.and.returnValue(throwError(() => new HttpErrorResponse({ status: 403 })));
 
         await enviar('Actual12345', 'Nueva12345', 'Nueva12345');
 
         expect(texto()).toContain('No se pudo actualizar la contraseña. Intenta de nuevo.');
     });
+
+    for (const status of [0, 500]) {
+        it(`ante un ${status} no repite el aviso del toast global`, async () => {
+            sesion.cambiarContrasena.and.returnValue(throwError(() => new HttpErrorResponse({ status })));
+
+            await enviar('Actual12345', 'Nueva12345', 'Nueva12345');
+
+            expect(fixture.nativeElement.querySelector('p-message')).toBeNull();
+            expect(navegar).not.toHaveBeenCalled();
+        });
+    }
 
     it('deshabilita el botón mientras se guarda', async () => {
         const respuesta = new Subject<void>();

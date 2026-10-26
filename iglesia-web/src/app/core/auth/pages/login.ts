@@ -12,6 +12,7 @@ import { TarjetaAccesoComponent } from '../components/tarjeta-acceso/tarjeta-acc
 import { MensajeErrorCampoComponent, MensajesError } from '@/app/shared/components/mensaje-error-campo/mensaje-error-campo';
 import { AVISO_POR_MOTIVO, AvisoLogin } from '../models/rutas-auth';
 import { SesionService } from '../services/sesion.service';
+import { esErrorGlobal } from '../../errores/clasificar-error';
 
 const LONGITUD_MAXIMA_CORREO = 254;
 const LONGITUD_MAXIMA_CONTRASENA = 72;
@@ -70,6 +71,10 @@ function avisoDe(motivo: string | null): AvisoLogin | null {
     return motivo !== null && Object.hasOwn(AVISO_POR_MOTIVO, motivo) ? AVISO_POR_MOTIVO[motivo] : null;
 }
 
-function mensajeDeError(error: unknown): string {
+/** Los 5xx y la falta de conexión ya los avisa el toast global: la página no repite el mensaje. */
+function mensajeDeError(error: unknown): string | null {
+    if (esErrorGlobal(error)) {
+        return null;
+    }
     return error instanceof HttpErrorResponse && error.status === HttpStatusCode.Unauthorized ? MENSAJE_CREDENCIALES_INVALIDAS : MENSAJE_ERROR_GENERICO;
 }
