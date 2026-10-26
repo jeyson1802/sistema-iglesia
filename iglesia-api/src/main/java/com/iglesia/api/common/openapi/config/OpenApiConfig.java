@@ -1,13 +1,21 @@
 package com.iglesia.api.common.openapi.config;
 
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import java.util.List;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.PathItem;
+import io.swagger.v3.oas.models.headers.Header;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+
+import org.springdoc.core.customizers.OpenApiCustomizer;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import com.iglesia.api.common.traza.constant.TrazaConstantes;
 
 /**
  * Información general de la especificación OpenAPI y esquema de seguridad JWT. Todos los endpoints exigen
@@ -49,6 +57,26 @@ public class OpenApiConfig {
 						.description(
 								"Token de acceso emitido por iglesia-seguridad (`POST /api/auth/login` o `POST /api/auth/refresh`).")))
 			.addSecurityItem(new SecurityRequirement().addList(ESQUEMA_SEGURIDAD));
+	}
+
+	/** Documenta en todas las respuestas la cabecera X-Trace-Id que agrega el filtro de traza. */
+	@Bean
+	OpenApiCustomizer cabeceraTraceIdEnTodasLasRespuestas() {
+		Header cabecera = new Header()
+			.description("Código de seguimiento de la petición. Comunicarlo a soporte para rastrear un error.")
+			.schema(new StringSchema().example("4bf92f3577b34da6a3ce929d0e0e4736"));
+		return especificacion -> {
+			if (especificacion.getPaths() == null) {
+				return;
+			}
+			especificacion.getPaths()
+				.values()
+				.stream()
+				.map(PathItem::readOperations)
+				.flatMap(List::stream)
+				.flatMap(operacion -> operacion.getResponses().values().stream())
+				.forEach(respuesta -> respuesta.addHeaderObject(TrazaConstantes.CABECERA_TRACE_ID, cabecera));
+		};
 	}
 
 }
