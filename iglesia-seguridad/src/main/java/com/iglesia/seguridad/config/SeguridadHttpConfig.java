@@ -22,6 +22,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.iglesia.seguridad.common.traza.TrazaConstantes;
 import com.iglesia.seguridad.jwt.JwksController;
 
 import static org.springframework.security.config.Customizer.withDefaults;
@@ -64,7 +65,7 @@ class SeguridadHttpConfig {
 		configuracion.setAllowedOrigins(propiedades.origenesPermitidos());
 		configuracion.setAllowedMethods(METODOS_CORS);
 		configuracion.setAllowedHeaders(CABECERAS_CORS);
-		configuracion.setExposedHeaders(List.of(HttpHeaders.LOCATION));
+		configuracion.setExposedHeaders(List.of(HttpHeaders.LOCATION, TrazaConstantes.CABECERA_TRACE_ID));
 		// Necesario para que el navegador envíe y acepte la cookie del token de refresco entre orígenes.
 		configuracion.setAllowCredentials(true);
 		UrlBasedCorsConfigurationSource fuente = new UrlBasedCorsConfigurationSource();
