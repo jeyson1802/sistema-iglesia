@@ -12,7 +12,7 @@ export type OrientacionLogo = 'horizontal' | 'vertical';
     templateUrl: './logo-iglesia.html',
     host: { '[class]': 'clasesContenedor()' }
 })
-export class LogoIglesia {
+export class LogoIglesiaComponent {
     /** `vertical` para pantallas de acceso; `horizontal` para la topbar, que ya define tamaños y espaciado. */
     readonly orientacion = input<OrientacionLogo>('horizontal');
 

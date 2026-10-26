@@ -106,6 +106,7 @@ Todo el código, tanto de los backends como del frontend, debe aplicar **siempre
 - `app/shared/`: reutilizable entre módulos (`components/`, `pipes/`, `utils/`).
 - `app/features/<modulo>/`: `pages/`, `components/`, `services/`, `models/` y `<modulo>.routes.ts` con `export default` de `Routes`, registrado con `loadChildren` como hijo de `AppLayout` en `src/app.routes.ts`. Ejemplo: `features/miembros/`.
 - Archivos sin sufijo `.component`. Cada componente se divide en **tres archivos** con el mismo nombre base: `<nombre>.ts` (clase, con `templateUrl`), `<nombre>.html` (plantilla) y `<nombre>.spec.ts` (prueba unitaria). No usar plantillas inline (`template:`).
+- Los componentes son standalone (valor por defecto en Angular 21; no declarar `standalone: true` ni usar `NgModule`) y el nombre de su clase termina en `Component` (p. ej. `LoginComponent` en `login.ts`).
 - Servicios de features con `providedIn: 'root'`.
 
 ### Notas importantes

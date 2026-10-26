@@ -1,35 +1,31 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
-import { AppFloatingConfigurator } from '@/app/layout/component/app.floatingconfigurator';
+import { TarjetaAccesoComponent } from '../components/tarjeta-acceso/tarjeta-acceso';
 import { SesionService } from '../services/sesion.service';
-import { Login } from './login';
+import { SIN_CONFIGURADOR_DE_TEMA } from '../testing/sin-configurador-de-tema';
+import { LoginComponent } from './login';
 
-/** Sustituye al configurador de tema de Sakai, que no es parte de lo que se prueba. */
-@Component({ selector: 'app-floating-configurator', template: '' })
-class ConfiguradorFalso {}
-
-describe('Login', () => {
+describe('LoginComponent', () => {
     let sesion: jasmine.SpyObj<SesionService>;
     let navegar: jasmine.Spy;
-    let fixture: ComponentFixture<Login>;
+    let fixture: ComponentFixture<LoginComponent>;
 
     const crear = async (motivo: string | null = null): Promise<void> => {
         sesion = jasmine.createSpyObj<SesionService>('SesionService', ['iniciarSesion', 'rutaInicio']);
         await TestBed.configureTestingModule({
-            imports: [Login],
+            imports: [LoginComponent],
             providers: [
                 provideRouter([]),
                 { provide: SesionService, useValue: sesion },
                 { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap(motivo ? { motivo } : {}) } } }
             ]
         })
-            .overrideComponent(Login, { remove: { imports: [AppFloatingConfigurator] }, add: { imports: [ConfiguradorFalso] } })
+            .overrideComponent(TarjetaAccesoComponent, SIN_CONFIGURADOR_DE_TEMA)
             .compileComponents();
         navegar = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
-        fixture = TestBed.createComponent(Login);
+        fixture = TestBed.createComponent(LoginComponent);
         await fixture.whenStable();
     };
 

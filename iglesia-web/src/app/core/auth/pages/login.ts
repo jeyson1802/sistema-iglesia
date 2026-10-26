@@ -7,8 +7,8 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { PasswordModule } from 'primeng/password';
-import { AppFloatingConfigurator } from '@/app/layout/component/app.floatingconfigurator';
-import { LogoIglesia } from '@/app/shared/components/logo-iglesia/logo-iglesia';
+import { LogoIglesiaComponent } from '@/app/shared/components/logo-iglesia/logo-iglesia';
+import { TarjetaAccesoComponent } from '../components/tarjeta-acceso/tarjeta-acceso';
 import { AVISO_POR_MOTIVO } from '../models/rutas-auth';
 import { SesionService } from '../services/sesion.service';
 
@@ -20,11 +20,11 @@ const MENSAJE_ERROR_GENERICO = 'No se pudo iniciar sesión. Intenta de nuevo.';
 
 @Component({
     selector: 'app-login',
-    imports: [ReactiveFormsModule, ButtonModule, InputTextModule, PasswordModule, MessageModule, AppFloatingConfigurator, LogoIglesia],
+    imports: [ReactiveFormsModule, ButtonModule, InputTextModule, PasswordModule, MessageModule, LogoIglesiaComponent, TarjetaAccesoComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './login.html'
 })
-export class Login {
+export class LoginComponent {
     private readonly sesion = inject(SesionService);
     private readonly router = inject(Router);
 

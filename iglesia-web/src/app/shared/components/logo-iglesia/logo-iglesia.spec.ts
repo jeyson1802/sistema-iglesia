@@ -1,12 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { LogoIglesia } from './logo-iglesia';
+import { LogoIglesiaComponent } from './logo-iglesia';
 
-describe('LogoIglesia', () => {
-    let fixture: ComponentFixture<LogoIglesia>;
+describe('LogoIglesiaComponent', () => {
+    let fixture: ComponentFixture<LogoIglesiaComponent>;
 
     beforeEach(async () => {
-        await TestBed.configureTestingModule({ imports: [LogoIglesia] }).compileComponents();
-        fixture = TestBed.createComponent(LogoIglesia);
+        await TestBed.configureTestingModule({ imports: [LogoIglesiaComponent] }).compileComponents();
+        fixture = TestBed.createComponent(LogoIglesiaComponent);
     });
 
     const host = (): HTMLElement => fixture.nativeElement;
