@@ -33,6 +33,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(OutputCaptureExtension.class)
 class EventosAutenticacionIntegrationTest {
 
+	// Los cuerpos usan rolIds [2]: el id del rol base ADMIN_IGLESIA sembrado por Flyway (V2).
+
 	static final String CORREO_ADMIN = "admin@sistema.test";
 
 	static final String CONTRASENA_ADMIN = "AdminPrueba123";
@@ -76,7 +78,7 @@ class EventosAutenticacionIntegrationTest {
 		Integer id = JsonPath.read(mvc.perform(post("/api/usuarios").header(HttpHeaders.AUTHORIZATION, "Bearer " + acceso)
 			.contentType(MediaType.APPLICATION_JSON)
 			.content("""
-					{"correo":"%s","contrasena":"%s","iglesiaId":1,"roles":["ADMIN_IGLESIA"]}
+					{"correo":"%s","contrasena":"%s","iglesiaId":1,"rolIds":[2]}
 					""".formatted(correo, contrasena)))
 			.andExpect(status().isCreated())
 			.andReturn()
@@ -84,7 +86,7 @@ class EventosAutenticacionIntegrationTest {
 			.getContentAsString(), "$.id");
 		mvc.perform(put("/api/usuarios/{id}", id).header(HttpHeaders.AUTHORIZATION, "Bearer " + acceso)
 			.contentType(MediaType.APPLICATION_JSON)
-			.content("{\"roles\":[\"ADMIN_IGLESIA\"],\"activo\":false}"))
+			.content("{\"rolIds\":[2],\"activo\":false}"))
 			.andExpect(status().isOk());
 
 		iniciarSesion(correo, contrasena).andExpect(status().isUnauthorized());

@@ -1,11 +1,9 @@
 package com.iglesia.seguridad.usuario.dto;
 
 import java.time.Instant;
-import java.util.Set;
+import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-
-import com.iglesia.seguridad.rol.model.RolBase;
 
 @Schema(description = "Usuario del sistema. Nunca incluye la contraseña ni su hash.")
 public record UsuarioResponse(
@@ -16,6 +14,9 @@ public record UsuarioResponse(
 		@Schema(description = "Miembro de iglesia-api vinculado, si tiene.", example = "25",
 				nullable = true) Long miembroId,
 		@Schema(description = "Si puede iniciar sesión.", example = "true") boolean activo,
-		@Schema(description = "Roles de acceso del usuario.", example = "[\"LIDER\"]") Set<RolBase> roles,
+		@Schema(description = "Roles de acceso del usuario (base y personalizados), ordenados por la jerarquía de "
+				+ "su rol base y luego por nombre.",
+				example = "[{\"id\": 7, \"nombre\": \"Secretaría\", \"rolBase\": \"ADMIN_IGLESIA\"}]")
+		List<RolAsignadoResponse> roles,
 		@Schema(description = "Fecha y hora de creación (UTC).", example = "2026-10-26T14:30:00Z") Instant creadoEn) {
 }

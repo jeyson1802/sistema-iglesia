@@ -1,7 +1,10 @@
 package com.iglesia.seguridad.usuario.service;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,12 +20,16 @@ import com.iglesia.seguridad.common.error.exception.RecursoNoEncontradoException
 import com.iglesia.seguridad.common.error.exception.ReglaNegocioException;
 import com.iglesia.seguridad.common.seguridad.component.ProveedorUsuarioAutenticado;
 import com.iglesia.seguridad.common.seguridad.model.UsuarioAutenticado;
+import com.iglesia.seguridad.rol.entity.Rol;
 import com.iglesia.seguridad.rol.entity.RolesPrueba;
 import com.iglesia.seguridad.rol.model.RolBase;
 import com.iglesia.seguridad.rol.service.RolService;
 import com.iglesia.seguridad.usuario.dto.ActualizarUsuarioRequest;
 import com.iglesia.seguridad.usuario.dto.CambiarContrasenaRequest;
 import com.iglesia.seguridad.usuario.dto.CrearUsuarioRequest;
+import com.iglesia.seguridad.usuario.dto.MiUsuarioResponse;
+import com.iglesia.seguridad.usuario.dto.PerfilResponse;
+import com.iglesia.seguridad.usuario.dto.RolAsignadoResponse;
 import com.iglesia.seguridad.usuario.dto.UsuarioResponse;
 import com.iglesia.seguridad.usuario.entity.Usuario;
 import com.iglesia.seguridad.usuario.mapper.UsuarioMapper;
@@ -65,8 +72,15 @@ class UsuarioServiceTest {
 		servicio = new UsuarioService(usuarios, new PoliticaAdministracionUsuarios(), proveedorUsuario, codificador,
 				tokensRefresco, new UsuarioMapper(), roles);
 		given(proveedorUsuario.actual()).willReturn(ADMIN_IGLESIA_1);
-		lenient().when(roles.rolesBase(any())).thenAnswer(
-				invocacion -> RolesPrueba.bases(invocacion.<Set<RolBase>>getArgument(0).toArray(RolBase[]::new)));
+		// Los roles base tienen los mismos ids que les asigna Flyway (1 a 4, en el orden del enum).
+		lenient().when(roles.rolesAsignables(any(), any())).thenAnswer(invocacion -> invocacion.<Set<Long>>getArgument(0)
+			.stream()
+			.map(id -> RolesPrueba.base(RolBase.values()[(int) (id - 1)]))
+			.collect(Collectors.toSet()));
+	}
+
+	private static Set<Long> rolIds(RolBase... rolesBase) {
+		return Arrays.stream(rolesBase).map(rol -> RolesPrueba.base(rol).getId()).collect(Collectors.toSet());
 	}
 
 	@Test
@@ -75,19 +89,54 @@ class UsuarioServiceTest {
 		given(usuarios.save(any(Usuario.class))).willAnswer(invocacion -> invocacion.getArgument(0));
 
 		UsuarioResponse creado = servicio
-			.crear(new CrearUsuarioRequest("Lider@Iglesia.com", "ClaveSegura123", 1L, 7L, Set.of(RolBase.LIDER)));
+			.crear(new CrearUsuarioRequest("Lider@Iglesia.com", "ClaveSegura123", 1L, 7L, rolIds(RolBase.LIDER)));
 
 		assertThat(creado.correo()).isEqualTo("lider@iglesia.com");
 		assertThat(creado.iglesiaId()).isEqualTo(1L);
-		assertThat(creado.roles()).containsExactly(RolBase.LIDER);
+		assertThat(creado.roles()).containsExactly(new RolAsignadoResponse(3L, "LIDER", RolBase.LIDER));
 	}
 
 	@Test
 	void noCreaUsuariosEnOtraIglesia() {
 		assertThatThrownBy(() -> servicio
-			.crear(new CrearUsuarioRequest("a@b.com", "ClaveSegura123", 2L, null, Set.of(RolBase.ADMIN_IGLESIA))))
+			.crear(new CrearUsuarioRequest("a@b.com", "ClaveSegura123", 2L, null, rolIds(RolBase.ADMIN_IGLESIA))))
 			.isInstanceOf(AccessDeniedException.class);
 		then(usuarios).should(never()).save(any());
+	}
+
+	@Test
+	void quienNoEsAdministradorDelSistemaNoLoOtorga() {
+		assertThatThrownBy(() -> servicio.crear(new CrearUsuarioRequest("a@b.com", "ClaveSegura123", 1L, null,
+				rolIds(RolBase.ADMIN_SISTEMA))))
+			.isInstanceOf(AccessDeniedException.class);
+		then(usuarios).should(never()).save(any());
+	}
+
+	@Test
+	void validaLosRolesContraLaIglesiaDelUsuarioAlActualizar() {
+		Usuario miembro = Usuario.nuevo("m@y.com", "h", 1L, 7L, RolesPrueba.bases(RolBase.MIEMBRO));
+		given(usuarios.findConRolesById(50L)).willReturn(Optional.of(miembro));
+
+		servicio.actualizar(50L, new ActualizarUsuarioRequest(rolIds(RolBase.LIDER), 7L, true));
+
+		then(roles).should().rolesAsignables(rolIds(RolBase.LIDER), 1L);
+	}
+
+	@Test
+	void miUsuarioDevuelveUnPerfilPorRolActivoConSusPermisos() {
+		Rol secretaria = RolesPrueba.personalizado(10L, 1L, "Secretaría", RolBase.ADMIN_IGLESIA, "miembros.ver",
+				"miembros.crear");
+		Rol tesoreria = RolesPrueba
+			.desactivado(RolesPrueba.personalizado(11L, 1L, "Tesorería", RolBase.ADMIN_IGLESIA, "usuarios.ver"));
+		Usuario propio = Usuario.nuevo("s@y.com", "h", 1L, 7L,
+				Set.of(RolesPrueba.base(RolBase.MIEMBRO), secretaria, tesoreria));
+		given(usuarios.findConRolesById(ADMIN_IGLESIA_1.usuarioId())).willReturn(Optional.of(propio));
+
+		MiUsuarioResponse yo = servicio.obtenerActual();
+
+		assertThat(yo.perfiles()).containsExactly(
+				new PerfilResponse(10L, "Secretaría", RolBase.ADMIN_IGLESIA, List.of("miembros.crear", "miembros.ver")),
+				new PerfilResponse(4L, "MIEMBRO", RolBase.MIEMBRO, List.of()));
 	}
 
 	@Test
@@ -95,7 +144,7 @@ class UsuarioServiceTest {
 		given(usuarios.existsByCorreo("a@b.com")).willReturn(true);
 
 		assertThatThrownBy(() -> servicio
-			.crear(new CrearUsuarioRequest("A@b.com", "ClaveSegura123", 1L, null, Set.of(RolBase.ADMIN_IGLESIA))))
+			.crear(new CrearUsuarioRequest("A@b.com", "ClaveSegura123", 1L, null, rolIds(RolBase.ADMIN_IGLESIA))))
 			.isInstanceOf(ConflictoException.class);
 	}
 
@@ -112,7 +161,7 @@ class UsuarioServiceTest {
 		Usuario miembro = Usuario.nuevo("m@y.com", "h", 1L, 7L, RolesPrueba.bases(RolBase.MIEMBRO));
 		given(usuarios.findConRolesById(50L)).willReturn(Optional.of(miembro));
 
-		servicio.actualizar(50L, new ActualizarUsuarioRequest(Set.of(RolBase.LIDER), 7L, true));
+		servicio.actualizar(50L, new ActualizarUsuarioRequest(rolIds(RolBase.LIDER), 7L, true));
 
 		then(tokensRefresco).should().revocarTodos(miembro.getId());
 	}
@@ -122,7 +171,7 @@ class UsuarioServiceTest {
 		Usuario miembro = Usuario.nuevo("m@y.com", "h", 1L, 7L, RolesPrueba.bases(RolBase.MIEMBRO));
 		given(usuarios.findConRolesById(50L)).willReturn(Optional.of(miembro));
 
-		servicio.actualizar(50L, new ActualizarUsuarioRequest(Set.of(RolBase.MIEMBRO), 7L, true));
+		servicio.actualizar(50L, new ActualizarUsuarioRequest(rolIds(RolBase.MIEMBRO), 7L, true));
 
 		then(tokensRefresco).should(never()).revocarTodos(anyLong());
 	}
@@ -130,7 +179,7 @@ class UsuarioServiceTest {
 	@Test
 	void nadiePuedeModificarSuPropioUsuario() {
 		assertThatThrownBy(() -> servicio.actualizar(ADMIN_IGLESIA_1.usuarioId(),
-				new ActualizarUsuarioRequest(Set.of(RolBase.ADMIN_IGLESIA), null, false)))
+				new ActualizarUsuarioRequest(rolIds(RolBase.ADMIN_IGLESIA), null, false)))
 			.isInstanceOf(ReglaNegocioException.class);
 	}
 

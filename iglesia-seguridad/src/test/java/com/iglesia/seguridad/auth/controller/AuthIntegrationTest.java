@@ -35,6 +35,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class AuthIntegrationTest {
 
+	// Los cuerpos usan rolIds [2]: el id del rol base ADMIN_IGLESIA sembrado por Flyway (V2).
+
 	static final String CONTRASENA_ADMIN = "AdminPrueba123";
 
 	private static final String COOKIE_REFRESCO = "iglesia_refresco";
@@ -50,12 +52,12 @@ class AuthIntegrationTest {
 
 		mvc.perform(get("/api/usuarios/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + acceso))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.roles[0]").value("ADMIN_SISTEMA"));
+			.andExpect(jsonPath("$.perfiles[0].rolBase").value("ADMIN_SISTEMA"));
 
 		mvc.perform(post("/api/usuarios").header(HttpHeaders.AUTHORIZATION, "Bearer " + acceso)
 			.contentType(MediaType.APPLICATION_JSON)
 			.content("""
-					{"correo":"admin@iglesia1.test","contrasena":"ClaveIglesia123","iglesiaId":1,"roles":["ADMIN_IGLESIA"]}
+					{"correo":"admin@iglesia1.test","contrasena":"ClaveIglesia123","iglesiaId":1,"rolIds":[2]}
 					"""))
 			.andExpect(status().isCreated())
 			.andExpect(jsonPath("$.iglesiaId").value(1));
@@ -127,7 +129,7 @@ class AuthIntegrationTest {
 		mvc.perform(post("/api/usuarios").header(HttpHeaders.AUTHORIZATION, "Bearer " + accesoSistema)
 			.contentType(MediaType.APPLICATION_JSON)
 			.content("""
-					{"correo":"admin@iglesia2.test","contrasena":"ClaveIglesia123","iglesiaId":2,"roles":["ADMIN_IGLESIA"]}
+					{"correo":"admin@iglesia2.test","contrasena":"ClaveIglesia123","iglesiaId":2,"rolIds":[2]}
 					"""))
 			.andExpect(status().isCreated());
 
@@ -138,7 +140,7 @@ class AuthIntegrationTest {
 		mvc.perform(post("/api/usuarios").header(HttpHeaders.AUTHORIZATION, "Bearer " + accesoIglesia)
 			.contentType(MediaType.APPLICATION_JSON)
 			.content("""
-					{"correo":"intruso@iglesia3.test","contrasena":"ClaveIglesia123","iglesiaId":3,"roles":["ADMIN_IGLESIA"]}
+					{"correo":"intruso@iglesia3.test","contrasena":"ClaveIglesia123","iglesiaId":3,"rolIds":[2]}
 					"""))
 			.andExpect(status().isForbidden());
 

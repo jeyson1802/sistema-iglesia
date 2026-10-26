@@ -1,5 +1,8 @@
 package com.iglesia.seguridad.usuario.service;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -14,10 +17,13 @@ import com.iglesia.seguridad.common.error.exception.RecursoNoEncontradoException
 import com.iglesia.seguridad.common.error.exception.ReglaNegocioException;
 import com.iglesia.seguridad.common.seguridad.component.ProveedorUsuarioAutenticado;
 import com.iglesia.seguridad.common.seguridad.model.UsuarioAutenticado;
+import com.iglesia.seguridad.rol.entity.Rol;
+import com.iglesia.seguridad.rol.model.RolBase;
 import com.iglesia.seguridad.rol.service.RolService;
 import com.iglesia.seguridad.usuario.dto.ActualizarUsuarioRequest;
 import com.iglesia.seguridad.usuario.dto.CambiarContrasenaRequest;
 import com.iglesia.seguridad.usuario.dto.CrearUsuarioRequest;
+import com.iglesia.seguridad.usuario.dto.MiUsuarioResponse;
 import com.iglesia.seguridad.usuario.dto.UsuarioResponse;
 import com.iglesia.seguridad.usuario.entity.Usuario;
 import com.iglesia.seguridad.usuario.mapper.UsuarioMapper;
@@ -61,7 +67,8 @@ public class UsuarioService {
 	@Transactional
 	public UsuarioResponse crear(CrearUsuarioRequest solicitud) {
 		UsuarioAutenticado actor = proveedorUsuario.actual();
-		politica.verificarPuedeAdministrar(actor, solicitud.iglesiaId(), solicitud.roles());
+		Set<Rol> rolesAsignados = roles.rolesAsignables(solicitud.rolIds(), solicitud.iglesiaId());
+		politica.verificarPuedeAdministrar(actor, solicitud.iglesiaId(), rolesBase(rolesAsignados));
 		String correo = Correo.normalizar(solicitud.correo());
 		if (usuarios.existsByCorreo(correo)) {
 			throw new ConflictoException("Ya existe un usuario con ese correo");
@@ -71,7 +78,7 @@ public class UsuarioService {
 			throw new ConflictoException("El miembro ya tiene un usuario");
 		}
 		Usuario usuario = Usuario.nuevo(correo, codificador.encode(solicitud.contrasena()), solicitud.iglesiaId(),
-				solicitud.miembroId(), roles.rolesBase(solicitud.roles()));
+				solicitud.miembroId(), rolesAsignados);
 		Usuario guardado = usuarios.save(usuario);
 		LOG.info("Usuario creado id={} iglesiaId={} por usuarioId={}", guardado.getId(), guardado.getIglesiaId(),
 				actor.usuarioId());
@@ -98,12 +105,13 @@ public class UsuarioService {
 			throw new ReglaNegocioException("No puede modificar sus propios roles ni su estado");
 		}
 		Usuario usuario = buscarAdministrable(actor, id);
-		politica.verificarPuedeAdministrar(actor, usuario.getIglesiaId(), solicitud.roles());
+		Set<Rol> rolesAsignados = roles.rolesAsignables(solicitud.rolIds(), usuario.getIglesiaId());
+		politica.verificarPuedeAdministrar(actor, usuario.getIglesiaId(), rolesBase(rolesAsignados));
 		if (solicitud.miembroId() != null
 				&& usuarios.existsByIglesiaIdAndMiembroIdAndIdNot(usuario.getIglesiaId(), solicitud.miembroId(), id)) {
 			throw new ConflictoException("El miembro ya tiene un usuario");
 		}
-		if (usuario.actualizar(roles.rolesBase(solicitud.roles()), solicitud.miembroId(), solicitud.activo())) {
+		if (usuario.actualizar(rolesAsignados, solicitud.miembroId(), solicitud.activo())) {
 			// Fuerza a obtener un token nuevo con los datos actualizados (o impide el acceso si se desactivó).
 			tokensRefresco.revocarTodos(usuario.getId());
 		}
@@ -112,8 +120,8 @@ public class UsuarioService {
 	}
 
 	@Transactional(readOnly = true)
-	public UsuarioResponse obtenerActual() {
-		return mapper.aRespuesta(buscarActual());
+	public MiUsuarioResponse obtenerActual() {
+		return mapper.aMiUsuario(buscarActual());
 	}
 
 	@Transactional
@@ -132,6 +140,10 @@ public class UsuarioService {
 		return usuarios.findConRolesById(id)
 			.filter(usuario -> politica.puedeVer(actor, usuario))
 			.orElseThrow(() -> new RecursoNoEncontradoException(USUARIO_NO_ENCONTRADO));
+	}
+
+	private static Set<RolBase> rolesBase(Set<Rol> roles) {
+		return roles.stream().map(Rol::rolBaseEfectivo).collect(Collectors.toSet());
 	}
 
 	private Usuario buscarActual() {

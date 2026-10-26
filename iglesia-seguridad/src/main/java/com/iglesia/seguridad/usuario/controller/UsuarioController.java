@@ -32,21 +32,22 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.iglesia.seguridad.common.openapi.constant.RespuestasOpenApi;
 import com.iglesia.seguridad.common.openapi.model.ProblemDetailEsquema;
+import com.iglesia.seguridad.common.seguridad.constant.Permisos;
 import com.iglesia.seguridad.usuario.dto.ActualizarUsuarioRequest;
 import com.iglesia.seguridad.usuario.dto.CambiarContrasenaRequest;
 import com.iglesia.seguridad.usuario.dto.CrearUsuarioRequest;
+import com.iglesia.seguridad.usuario.dto.MiUsuarioResponse;
 import com.iglesia.seguridad.usuario.dto.UsuarioResponse;
 import com.iglesia.seguridad.usuario.service.UsuarioService;
 
 @RestController
 @RequestMapping("/api/usuarios")
 @Tag(name = "Usuarios", description = """
-		Administración de los usuarios que acceden al sistema y gestión de la cuenta propia. \
-		`ADMIN_SISTEMA` administra usuarios de todas las iglesias; `ADMIN_IGLESIA`, solo los de su iglesia y sin \
-		poder otorgar `ADMIN_SISTEMA`. Los usuarios fuera de su alcance se responden como inexistentes (404).""")
+		Administración de los usuarios que acceden al sistema y gestión de la cuenta propia. Consultar exige el \
+		permiso `usuarios.ver` y crear o editar, `usuarios.administrar`. `ADMIN_SISTEMA` actúa sobre usuarios de \
+		todas las iglesias; el resto, solo sobre los de su iglesia y sin poder otorgar `ADMIN_SISTEMA`. Los \
+		usuarios fuera de su alcance se responden como inexistentes (404).""")
 class UsuarioController {
-
-	private static final String SOLO_ADMINISTRADORES = "hasAnyRole('ADMIN_SISTEMA', 'ADMIN_IGLESIA')";
 
 	private static final String DESCRIPCION_ID = "Identificador del usuario.";
 
@@ -59,24 +60,27 @@ class UsuarioController {
 	}
 
 	@PostMapping
-	@PreAuthorize(SOLO_ADMINISTRADORES)
+	@PreAuthorize(Permisos.PUEDE_ADMINISTRAR_USUARIOS)
 	@Operation(summary = "Crear un usuario", description = """
-			Crea un usuario con sus roles. Requiere `ADMIN_SISTEMA` o `ADMIN_IGLESIA`.
+			Crea un usuario con sus roles (`rolIds`). Requiere el permiso `usuarios.administrar`.
 
-			Reglas: el correo es único en todo el sistema; `ADMIN_SISTEMA` no pertenece a ninguna iglesia y el \
-			resto de roles sí; `LIDER` y `MIEMBRO` exigen un miembro vinculado, y un miembro solo puede tener un \
-			usuario. Un `ADMIN_IGLESIA` solo crea usuarios de su iglesia y nunca `ADMIN_SISTEMA`.""")
+			Reglas: el correo es único en todo el sistema; cada rol es un rol base o un rol personalizado activo \
+			de la iglesia del usuario; `ADMIN_SISTEMA` no pertenece a ninguna iglesia y el resto de roles sí; \
+			`LIDER`, `MIEMBRO` y los roles que heredan de ellos exigen un miembro vinculado, y un miembro solo \
+			puede tener un usuario. Quien no es `ADMIN_SISTEMA` solo crea usuarios de su iglesia y nunca le \
+			otorga `ADMIN_SISTEMA`.""")
 	@ApiResponse(responseCode = "201", description = "Usuario creado.",
 			headers = @Header(name = HttpHeaders.LOCATION, description = "URL del usuario creado."))
 	@ApiResponse(responseCode = "400", description = RespuestasOpenApi.DATOS_INVALIDOS
-			+ " También si los roles no son coherentes con la iglesia o el miembro indicados.",
+			+ " También si algún rol no existe, es de otra iglesia o está inactivo, o si los roles no son "
+			+ "coherentes con la iglesia o el miembro indicados.",
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
 					schema = @Schema(implementation = ProblemDetailEsquema.class)))
 	@ApiResponse(responseCode = "401", description = RespuestasOpenApi.NO_AUTENTICADO,
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
 					schema = @Schema(implementation = ProblemDetailEsquema.class)))
 	@ApiResponse(responseCode = "403", description = RespuestasOpenApi.SIN_PERMISO
-			+ " También si un `ADMIN_IGLESIA` intenta crear en otra iglesia u otorgar `ADMIN_SISTEMA`.",
+			+ " También si quien no es `ADMIN_SISTEMA` intenta crear en otra iglesia u otorgar `ADMIN_SISTEMA`.",
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
 					schema = @Schema(implementation = ProblemDetailEsquema.class)))
 	@ApiResponse(responseCode = "409", description = "El correo ya está registrado o el miembro ya tiene un usuario.",
@@ -92,13 +96,13 @@ class UsuarioController {
 	}
 
 	@GetMapping
-	@PreAuthorize(SOLO_ADMINISTRADORES)
+	@PreAuthorize(Permisos.PUEDE_VER_USUARIOS)
 	@Operation(summary = "Listar usuarios", description = """
-			Lista paginada de usuarios, ordenada por id por defecto (máximo 100 por página). Requiere \
-			`ADMIN_SISTEMA` o `ADMIN_IGLESIA`.
+			Lista paginada de usuarios, ordenada por id por defecto (máximo 100 por página). Requiere el \
+			permiso `usuarios.ver`.
 
-			`ADMIN_SISTEMA` puede filtrar por `iglesiaId` (sin filtro ve todas las iglesias). `ADMIN_IGLESIA` \
-			siempre ve solo su iglesia, aunque envíe otro `iglesiaId`.""")
+			`ADMIN_SISTEMA` puede filtrar por `iglesiaId` (sin filtro ve todas las iglesias). El resto siempre \
+			ve solo su iglesia, aunque envíe otro `iglesiaId`.""")
 	@ApiResponse(responseCode = "200", description = "Página de usuarios.")
 	@ApiResponse(responseCode = "400", description = "Parámetro inválido, por ejemplo un campo de ordenación que no existe.",
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
@@ -117,10 +121,10 @@ class UsuarioController {
 	}
 
 	@GetMapping("/{id}")
-	@PreAuthorize(SOLO_ADMINISTRADORES)
+	@PreAuthorize(Permisos.PUEDE_VER_USUARIOS)
 	@Operation(summary = "Obtener un usuario", description = """
-			Datos de un usuario. Requiere `ADMIN_SISTEMA` o `ADMIN_IGLESIA`; este último solo ve los de su \
-			iglesia.""")
+			Datos de un usuario con sus roles. Requiere el permiso `usuarios.ver`; quien no es `ADMIN_SISTEMA` \
+			solo ve los de su iglesia.""")
 	@ApiResponse(responseCode = "200", description = "Usuario encontrado.")
 	@ApiResponse(responseCode = "401", description = RespuestasOpenApi.NO_AUTENTICADO,
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
@@ -136,23 +140,24 @@ class UsuarioController {
 	}
 
 	@PutMapping("/{id}")
-	@PreAuthorize(SOLO_ADMINISTRADORES)
+	@PreAuthorize(Permisos.PUEDE_ADMINISTRAR_USUARIOS)
 	@Operation(summary = "Actualizar un usuario", description = """
-			Cambia los roles, el miembro vinculado y el estado de un usuario. Requiere `ADMIN_SISTEMA` o \
-			`ADMIN_IGLESIA`; nadie puede modificar sus propios roles ni su estado.
+			Cambia los roles (`rolIds`), el miembro vinculado y el estado de un usuario. Requiere el permiso \
+			`usuarios.administrar`; nadie puede modificar sus propios roles ni su estado.
 
 			Si algo cambia, se cierran todas las sesiones del usuario para que su próximo token refleje los \
 			cambios (o para impedirle el acceso si se desactivó). Mismas reglas de roles que al crear.""")
 	@ApiResponse(responseCode = "200", description = "Usuario actualizado.")
 	@ApiResponse(responseCode = "400", description = RespuestasOpenApi.DATOS_INVALIDOS
-			+ " También si se intenta modificar el usuario propio o los roles no son coherentes.",
+			+ " También si se intenta modificar el usuario propio, algún rol no existe, es de otra iglesia o está "
+			+ "inactivo, o los roles no son coherentes con el miembro indicado.",
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
 					schema = @Schema(implementation = ProblemDetailEsquema.class)))
 	@ApiResponse(responseCode = "401", description = RespuestasOpenApi.NO_AUTENTICADO,
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
 					schema = @Schema(implementation = ProblemDetailEsquema.class)))
 	@ApiResponse(responseCode = "403", description = RespuestasOpenApi.SIN_PERMISO
-			+ " También si un `ADMIN_IGLESIA` intenta otorgar `ADMIN_SISTEMA`.",
+			+ " También si quien no es `ADMIN_SISTEMA` intenta otorgar `ADMIN_SISTEMA`.",
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
 					schema = @Schema(implementation = ProblemDetailEsquema.class)))
 	@ApiResponse(responseCode = "404", description = NO_ENCONTRADO,
@@ -168,21 +173,22 @@ class UsuarioController {
 
 	@GetMapping("/me")
 	@Operation(summary = "Obtener mi usuario", description = """
-			Datos del usuario autenticado. Disponible para cualquier rol; el frontend lo usa para conocer los \
-			roles y la iglesia del usuario tras iniciar sesión.""")
-	@ApiResponse(responseCode = "200", description = "Usuario autenticado.")
+			Datos del usuario autenticado con sus perfiles: uno por cada rol activo, con su rol base y sus \
+			permisos. Disponible para cualquier usuario autenticado, sin permiso específico; el frontend lo usa \
+			tras iniciar sesión para armar el selector de perfil, el menú y los guards.""")
+	@ApiResponse(responseCode = "200", description = "Usuario autenticado con sus perfiles.")
 	@ApiResponse(responseCode = "401", description = RespuestasOpenApi.NO_AUTENTICADO,
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
 					schema = @Schema(implementation = ProblemDetailEsquema.class)))
-	UsuarioResponse obtenerActual() {
+	MiUsuarioResponse obtenerActual() {
 		return servicio.obtenerActual();
 	}
 
 	@PutMapping("/me/contrasena")
 	@Operation(summary = "Cambiar mi contraseña", description = """
-			Cambia la contraseña del usuario autenticado tras confirmar la actual. Disponible para cualquier rol. \
-			Cierra todas sus sesiones: los tokens de refresco existentes dejan de servir y debe iniciar sesión \
-			de nuevo cuando expire el token de acceso.""")
+			Cambia la contraseña del usuario autenticado tras confirmar la actual. Disponible para cualquier \
+			usuario autenticado. Cierra todas sus sesiones: los tokens de refresco existentes dejan de servir y \
+			debe iniciar sesión de nuevo cuando expire el token de acceso.""")
 	@ApiResponse(responseCode = "204", description = "Contraseña cambiada.")
 	@ApiResponse(responseCode = "400", description = RespuestasOpenApi.DATOS_INVALIDOS
 			+ " También si la contraseña actual no es correcta.",

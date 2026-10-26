@@ -19,7 +19,11 @@ class PoliticaAdministracionUsuariosTest {
 	private static final UsuarioAutenticado ADMIN_IGLESIA_1 = new UsuarioAutenticado(2L, 1L, null,
 			Set.of(RolBase.ADMIN_IGLESIA), Set.of());
 
-	private static final UsuarioAutenticado LIDER = new UsuarioAutenticado(3L, 1L, 5L, Set.of(RolBase.LIDER), Set.of());
+	private static final UsuarioAutenticado SECRETARIA_1 = new UsuarioAutenticado(3L, 1L, null,
+			Set.of(RolBase.ADMIN_IGLESIA), Set.of("usuarios.ver"));
+
+	private static final UsuarioAutenticado SIN_IGLESIA = new UsuarioAutenticado(4L, null, null,
+			Set.of(RolBase.ADMIN_IGLESIA), Set.of());
 
 	private final PoliticaAdministracionUsuarios politica = new PoliticaAdministracionUsuarios();
 
@@ -42,17 +46,26 @@ class PoliticaAdministracionUsuariosTest {
 	}
 
 	@Test
-	void unLiderNoAdministraUsuarios() {
-		assertThatThrownBy(() -> politica.verificarPuedeAdministrar(LIDER, 1L, Set.of(RolBase.MIEMBRO)))
+	void laPoliticaDecideSobreQuienSeActuaNoQueAccionSeHace() {
+		// La acción la decide el permiso del endpoint; aquí solo cuentan la iglesia y los roles otorgados.
+		assertThat(politica.puedeAdministrar(SECRETARIA_1, 1L, Set.of(RolBase.MIEMBRO))).isTrue();
+		assertThat(politica.puedeAdministrar(SECRETARIA_1, 2L, Set.of(RolBase.MIEMBRO))).isFalse();
+	}
+
+	@Test
+	void quienNoTieneIglesiaNiEsAdministradorDelSistemaNoAdministraANadie() {
+		assertThatThrownBy(() -> politica.verificarPuedeAdministrar(SIN_IGLESIA, 1L, Set.of(RolBase.MIEMBRO)))
 			.isInstanceOf(AccessDeniedException.class);
 	}
 
 	@Test
-	void elListadoDelAdministradorDeIglesiaIgnoraElFiltroEnviado() {
+	void elListadoDeQuienTieneIglesiaIgnoraElFiltroEnviado() {
 		assertThat(politica.iglesiaParaListado(ADMIN_IGLESIA_1, 2L)).isEqualTo(1L);
 		assertThat(politica.iglesiaParaListado(ADMIN_SISTEMA, 2L)).isEqualTo(2L);
 		assertThat(politica.iglesiaParaListado(ADMIN_SISTEMA, null)).isNull();
-		assertThatThrownBy(() -> politica.iglesiaParaListado(LIDER, null)).isInstanceOf(AccessDeniedException.class);
+		assertThat(politica.iglesiaParaListado(SECRETARIA_1, null)).isEqualTo(1L);
+		assertThatThrownBy(() -> politica.iglesiaParaListado(SIN_IGLESIA, null))
+			.isInstanceOf(AccessDeniedException.class);
 	}
 
 }

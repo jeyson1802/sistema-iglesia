@@ -165,21 +165,22 @@ public class Usuario {
 		return rolesBase(roles);
 	}
 
-	/** Roles base efectivos de sus roles activos: los que viajan en el claim {@code roles}. */
-	public Set<RolBase> getRolesBaseActivos() {
-		return rolesBase(rolesActivos());
+	/** Roles que dan acceso. Un rol desactivado sigue asignado pero no aporta perfil ni permisos. */
+	public Set<Rol> getRolesActivos() {
+		return roles.stream().filter(Rol::isActivo).collect(Collectors.toUnmodifiableSet());
 	}
 
-	/** Unión de los permisos de sus roles activos. Un rol desactivado sigue asignado pero no aporta nada. */
+	/** Roles base efectivos de sus roles activos: los que viajan en el claim {@code roles}. */
+	public Set<RolBase> getRolesBaseActivos() {
+		return rolesBase(getRolesActivos());
+	}
+
+	/** Unión de los permisos de sus roles activos. */
 	public Set<String> getPermisosActivos() {
-		return rolesActivos().stream()
+		return getRolesActivos().stream()
 			.flatMap(rol -> rol.getPermisos().stream())
 			.map(Permiso::getCodigo)
 			.collect(Collectors.toSet());
-	}
-
-	private Set<Rol> rolesActivos() {
-		return roles.stream().filter(Rol::isActivo).collect(Collectors.toSet());
 	}
 
 	public Instant getCreadoEn() {
