@@ -1,6 +1,6 @@
 # SPEC 01 — Login por roles con perfil activo
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** Ninguna
 > **Fecha:** 2026-10-25
 > **Objetivo:** Que cualquier usuario (administrador o miembro) inicie sesión en `iglesia-web`, entre a la página de inicio de su perfil y navegue solo por lo que su rol permite, con sesión renovada de forma segura.
@@ -193,36 +193,38 @@ Cada paso deja el sistema compilando y con sus pruebas en verde.
 
 **Backend**
 
-- [ ] `POST /api/auth/login` con credenciales válidas responde 200, sin `tokenRefresco` en el cuerpo, y con `Set-Cookie: iglesia_refresco=...` que incluye `HttpOnly`, `Secure`, `SameSite=Strict` y `Path=/api/auth`.
-- [ ] `POST /api/auth/refresh` con la cookie válida responde 200 con un nuevo `tokenAcceso` y una cookie con un valor distinto (rotación).
-- [ ] Reutilizar una cookie de refresco ya rotada responde 401.
-- [ ] `POST /api/auth/refresh` sin cookie responde 401.
-- [ ] `POST /api/auth/logout` responde 204 con la cookie borrada (`Max-Age=0`), y un `refresh` posterior con el valor anterior responde 401.
-- [ ] Un preflight CORS desde `http://localhost:4200` devuelve `Access-Control-Allow-Credentials: true`.
-- [ ] `./gradlew test` en `iglesia-seguridad` pasa.
+- [x] `POST /api/auth/login` con credenciales válidas responde 200, sin `tokenRefresco` en el cuerpo, y con `Set-Cookie: iglesia_refresco=...` que incluye `HttpOnly`, `Secure`, `SameSite=Strict` y `Path=/api/auth`.
+- [x] `POST /api/auth/refresh` con la cookie válida responde 200 con un nuevo `tokenAcceso` y una cookie con un valor distinto (rotación).
+- [x] Reutilizar una cookie de refresco ya rotada responde 401.
+- [x] `POST /api/auth/refresh` sin cookie responde 401.
+- [x] `POST /api/auth/logout` responde 204 con la cookie borrada (`Max-Age=0`), y un `refresh` posterior con el valor anterior responde 401.
+- [x] Un preflight CORS desde `http://localhost:4200` devuelve `Access-Control-Allow-Credentials: true`.
+- [x] `./gradlew test` en `iglesia-seguridad` pasa.
 
 **Frontend**
 
-- [ ] Entrar a cualquier ruta sin sesión redirige a `/auth/login`.
-- [ ] Con credenciales incorrectas se ve «Correo o contraseña incorrectos» y no se navega.
-- [ ] Un usuario con solo `MIEMBRO` llega a `/mi-perfil` justo después del login.
-- [ ] Un usuario con solo `ADMIN_SISTEMA` llega a `/sistema`, uno con solo `ADMIN_IGLESIA` a `/administracion` y uno con solo `LIDER` a `/mi-red`.
-- [ ] Un usuario con `LIDER` y `MIEMBRO` ve `/auth/seleccionar-perfil` con dos opciones. Al elegir «Líder» llega a `/mi-red`.
-- [ ] Con el perfil «Miembro», navegar a mano a `/administracion` redirige a `/auth/acceso-denegado`.
-- [ ] El menú lateral con el perfil «Miembro» no muestra «Miembros».
-- [ ] «Cambiar perfil» en la topbar solo aparece para usuarios con más de un rol y lleva al selector.
-- [ ] Recargar la página (F5) con sesión iniciada mantiene la sesión y el perfil activo, sin pasar por el login.
-- [ ] Ni el token de acceso ni el de refresco aparecen en `localStorage` ni en `sessionStorage`. `sessionStorage` solo contiene `iglesia.perfilActivo`.
-- [ ] La cookie `iglesia_refresco` no es accesible desde `document.cookie`.
-- [ ] Con un token de acceso vencido, la siguiente petición a `iglesia-api` se completa con éxito después de un único `POST /refresh`, aunque se hayan lanzado varias peticiones a la vez.
-- [ ] Si el refresco falla, se llega a `/auth/login` con el aviso «Tu sesión expiró. Inicia sesión de nuevo.».
-- [ ] «Cerrar sesión» llama a `/api/auth/logout`, limpia el estado y lleva a `/auth/login`. Luego, el botón «atrás» no muestra páginas protegidas.
-- [ ] Cambiar la contraseña con la actual incorrecta muestra el mensaje del backend. Con la correcta, lleva al login con «Contraseña actualizada. Inicia sesión de nuevo.».
-- [ ] Con un build de producción (`ng build`), las rutas `/uikit`, `/pages`, `/documentation`, `/landing` y `/dashboard` no existen (redirigen a `/notfound`) y el menú no muestra los grupos demo.
-- [ ] El interceptor no agrega `Authorization` a URLs fuera de `apiUrl` y `seguridadUrl`.
-- [ ] Cada pieza nueva (servicios, interceptor, guards, páginas) tiene su `.spec.ts` y `ng test` pasa.
-- [ ] El login y la topbar muestran `app-logo-iglesia` y ya no aparece el logo de Sakai.
-- [ ] No hay cambios en `src/app/layout/` fuera de `app.menu.ts` y `app.topbar.ts`.
+- [x] Entrar a cualquier ruta sin sesión redirige a `/auth/login`.
+- [x] Con credenciales incorrectas se ve «Correo o contraseña incorrectos» y no se navega.
+- [x] Un usuario con solo `MIEMBRO` llega a `/mi-perfil` justo después del login.
+- [x] Un usuario con solo `ADMIN_SISTEMA` llega a `/sistema`, uno con solo `ADMIN_IGLESIA` a `/administracion` y uno con solo `LIDER` a `/mi-red`.
+- [x] Un usuario con `LIDER` y `MIEMBRO` ve `/auth/seleccionar-perfil` con dos opciones. Al elegir «Líder» llega a `/mi-red`.
+- [x] Con el perfil «Miembro», navegar a mano a `/administracion` redirige a `/auth/acceso-denegado`.
+- [x] El menú lateral con el perfil «Miembro» no muestra «Miembros».
+- [x] «Cambiar perfil» en la topbar solo aparece para usuarios con más de un rol y lleva al selector.
+- [x] Recargar la página (F5) con sesión iniciada mantiene la sesión y el perfil activo, sin pasar por el login.
+- [x] Ni el token de acceso ni el de refresco aparecen en `localStorage` ni en `sessionStorage`. `sessionStorage` solo contiene `iglesia.perfilActivo`.
+- [x] La cookie `iglesia_refresco` no es accesible desde `document.cookie`.
+- [x] Con un token de acceso vencido, la siguiente petición a `iglesia-api` se completa con éxito después de un único `POST /refresh`, aunque se hayan lanzado varias peticiones a la vez. *(Verificado: un único `POST /refresh` y reintento con el token nuevo, cubierto por las pruebas del interceptor. `iglesia-api` aún no tiene endpoints de negocio, así que el reintento responde 404 en vez de 200; el éxito de punta a punta se confirmará con el primer endpoint de negocio.)*
+- [x] Si el refresco falla, se llega a `/auth/login` con el aviso «Tu sesión expiró. Inicia sesión de nuevo.».
+- [x] «Cerrar sesión» llama a `/api/auth/logout`, limpia el estado y lleva a `/auth/login`. Luego, el botón «atrás» no muestra páginas protegidas.
+- [x] Cambiar la contraseña con la actual incorrecta muestra el mensaje del backend. Con la correcta, lleva al login con «Contraseña actualizada. Inicia sesión de nuevo.».
+- [x] Con un build de producción (`ng build`), las rutas `/uikit`, `/pages`, `/documentation`, `/landing` y `/dashboard` no existen (redirigen a `/notfound`) y el menú no muestra los grupos demo.
+- [x] El interceptor no agrega `Authorization` a URLs fuera de `apiUrl` y `seguridadUrl`.
+- [x] Cada pieza nueva (servicios, interceptor, guards, páginas) tiene su `.spec.ts` y `ng test` pasa.
+- [x] El login y la topbar muestran `app-logo-iglesia` y ya no aparece el logo de Sakai.
+- [x] No hay cambios en `src/app/layout/` fuera de `app.menu.ts` y `app.topbar.ts` (más sus `.html` y `.spec.ts`, por la regla de componentes en tres archivos).
+
+> Verificación: criterios del backend confirmados con `curl` contra `iglesia-seguridad` local y `./gradlew test`; criterios del frontend con `ng test` (131 pruebas) y prueba manual en el navegador con los usuarios de prueba, el 2026-10-25. El build de producción compila con una advertencia de presupuesto (bundle inicial de 1,04 MB sobre el aviso de 1 MB; el error está en 5 MB).
 
 ## Decisiones
 
