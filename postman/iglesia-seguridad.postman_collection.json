@@ -1,0 +1,483 @@
+{
+  "info": {
+    "_postman_id": "2c771399-0972-5ae1-a1fa-b410bacccc7f",
+    "name": "iglesia-seguridad",
+    "description": "Backend de seguridad del Sistema Iglesia: autenticación con JWT (RS256), token de refresco en cookie HttpOnly con rotación, cuenta del usuario y administración de usuarios.\n\n**Uso:** selecciona el entorno «Sistema Iglesia - local», completa `correo` y `contrasena` con un usuario de tu base local y ejecuta «1. Autenticación → Iniciar sesión». El token de acceso queda en `{{tokenAcceso}}` y se usa en el resto de la colección.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{tokenAcceso}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "1. Autenticación",
+      "description": "Inicio de sesión, refresco y cierre de sesión. El token de refresco nunca viaja en el cuerpo: va en la cookie `iglesia_refresco` (HttpOnly, Secure, SameSite=Strict, Path=/api/auth).",
+      "auth": {
+        "type": "noauth"
+      },
+      "item": [
+        {
+          "name": "Iniciar sesión",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/auth/login",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Valida correo y contraseña. Responde `{ tokenAcceso, tipo, expiraEn }` y la cabecera `Set-Cookie: iglesia_refresco=...`. Credenciales inválidas: 401 con un mensaje genérico.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('El cuerpo no incluye el token de refresco', () => pm.expect(pm.response.json()).to.not.have.property('tokenRefresco'));",
+                  "pm.test('Entrega la cookie de refresco HttpOnly', () => pm.expect(pm.response.headers.get('Set-Cookie')).to.include('HttpOnly'));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.environment.set('tokenAcceso', cuerpo.tokenAcceso);",
+                  "// El token de refresco llega en una cookie HttpOnly; se guarda para enviarlo explícitamente en /refresh y /logout,",
+                  "// porque algunos clientes no reenvían cookies 'Secure' por http://localhost.",
+                  "const refresco = pm.cookies.get('iglesia_refresco');",
+                  "if (refresco) { pm.environment.set('tokenRefresco', refresco); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refrescar token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "iglesia_refresco={{tokenRefresco}}",
+                "description": "Token de refresco guardado por «Iniciar sesión» o «Refrescar token»."
+              }
+            ],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/auth/refresh",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Sin cuerpo: usa la cookie de refresco. Responde un token de acceso nuevo y rota la cookie (el valor anterior deja de servir). Sin cookie o con un token inválido: 401 y la cookie se borra. Reutilizar un token ya rotado revoca todas las sesiones del usuario."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.environment.set('tokenAcceso', cuerpo.tokenAcceso);",
+                  "// El token de refresco llega en una cookie HttpOnly; se guarda para enviarlo explícitamente en /refresh y /logout,",
+                  "// porque algunos clientes no reenvían cookies 'Secure' por http://localhost.",
+                  "const refresco = pm.cookies.get('iglesia_refresco');",
+                  "if (refresco) { pm.environment.set('tokenRefresco', refresco); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cerrar sesión",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "iglesia_refresco={{tokenRefresco}}",
+                "description": "Token de refresco guardado por «Iniciar sesión» o «Refrescar token»."
+              }
+            ],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/auth/logout",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Sin cuerpo: revoca el token de la cookie (si llega) y siempre responde 204 con la cookie borrada (`Max-Age=0`)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 204', () => pm.response.to.have.status(204));",
+                  "pm.environment.unset('tokenAcceso');",
+                  "pm.environment.unset('tokenRefresco');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Mi cuenta",
+      "description": "Operaciones del usuario autenticado sobre su propia cuenta. Requieren `{{tokenAcceso}}`.",
+      "item": [
+        {
+          "name": "Obtener mi usuario",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/usuarios/me",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "me"
+              ]
+            },
+            "description": "Datos del usuario autenticado: correo, iglesia, miembro y roles. El frontend lo usa para armar la sesión y el selector de perfil."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Incluye los roles', () => pm.expect(pm.response.json().roles).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cambiar mi contraseña",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/usuarios/me/contrasena",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "me",
+                "contrasena"
+              ]
+            },
+            "description": "Cambia la contraseña (8 a 72 caracteres) si la actual es correcta. **Revoca todas las sesiones** del usuario: después hay que iniciar sesión de nuevo. Contraseña actual incorrecta: 400 con `detail` = «La contraseña actual no es correcta».",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contrasenaActual\": \"{{contrasena}}\",\n  \"contrasenaNueva\": \"NuevaClave123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Administración de usuarios",
+      "description": "Alta y mantenimiento de usuarios. Solo `ADMIN_SISTEMA` (todas las iglesias) y `ADMIN_IGLESIA` (solo su iglesia). Un usuario fuera del alcance del administrador responde 404.",
+      "item": [
+        {
+          "name": "Listar usuarios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/usuarios?page=0&size=20&sort=id",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "sort",
+                  "value": "id"
+                },
+                {
+                  "key": "iglesiaId",
+                  "value": "1",
+                  "disabled": true,
+                  "description": "Opcional"
+                }
+              ]
+            },
+            "description": "Paginado (`page`, `size` hasta 100, `sort`). `iglesiaId` filtra por iglesia (para `ADMIN_IGLESIA` siempre se limita a la suya)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear usuario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/usuarios",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios"
+              ]
+            },
+            "description": "Crea un usuario con sus roles. `iglesiaId` es obligatorio salvo para `ADMIN_SISTEMA`; `miembroId` vincula el usuario con su miembro en iglesia-api. Responde 201 con `Location`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"nuevo.miembro@prueba.test\",\n  \"contrasena\": \"ClaveTemporal123\",\n  \"iglesiaId\": 1,\n  \"miembroId\": null,\n  \"roles\": [\n    \"MIEMBRO\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('usuarioId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener usuario",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/usuarios/{{usuarioId}}",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "{{usuarioId}}"
+              ]
+            },
+            "description": "Detalle de un usuario. `{{usuarioId}}` lo guarda «Crear usuario»."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actualizar usuario",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/usuarios/{{usuarioId}}",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "{{usuarioId}}"
+              ]
+            },
+            "description": "Cambia roles, miembro vinculado y estado. La iglesia y el correo no se editan.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roles\": [\n    \"LIDER\",\n    \"MIEMBRO\"\n  ],\n  \"miembroId\": null,\n  \"activo\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Infraestructura",
+      "description": "Endpoints públicos de soporte.",
+      "auth": {
+        "type": "noauth"
+      },
+      "item": [
+        {
+          "name": "Claves públicas (JWKS)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{seguridadUrl}}/oauth2/jwks",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "oauth2",
+                "jwks"
+              ]
+            },
+            "description": "Clave pública RSA con la que iglesia-api valida la firma de los JWT. Nunca incluye la parte privada."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Publica una clave RSA', () => pm.expect(pm.response.json().keys[0].kty).to.eql('RSA'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estado del servicio",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{seguridadUrl}}/actuator/health",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "health"
+              ]
+            },
+            "description": "Salud del servicio (para monitoreo y orquestadores)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Está arriba', () => pm.expect(pm.response.json().status).to.eql('UP'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

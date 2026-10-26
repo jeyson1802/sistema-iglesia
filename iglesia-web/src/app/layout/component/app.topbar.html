@@ -1,0 +1,59 @@
+<div class="layout-topbar">
+    <div class="layout-topbar-logo-container">
+        <button type="button" class="layout-menu-button layout-topbar-action" aria-label="Mostrar u ocultar el menú lateral" (click)="layoutService.onMenuToggle()">
+            <i class="pi pi-bars" aria-hidden="true"></i>
+        </button>
+        <a class="layout-topbar-logo" routerLink="/" aria-label="Ir a la página de inicio">
+            <app-logo-iglesia />
+        </a>
+    </div>
+
+    <div class="layout-topbar-actions">
+        <div class="layout-config-menu">
+            <button type="button" class="layout-topbar-action" [attr.aria-label]="layoutService.isDarkTheme() ? 'Usar modo claro' : 'Usar modo oscuro'" (click)="toggleDarkMode()">
+                <i class="pi" [class.pi-moon]="layoutService.isDarkTheme()" [class.pi-sun]="!layoutService.isDarkTheme()" aria-hidden="true"></i>
+            </button>
+            <div class="relative">
+                <button
+                    type="button"
+                    class="layout-topbar-action layout-topbar-action-highlight"
+                    aria-label="Personalizar colores del tema"
+                    pStyleClass="@next"
+                    enterFromClass="hidden"
+                    enterActiveClass="animate-scalein"
+                    leaveToClass="hidden"
+                    leaveActiveClass="animate-fadeout"
+                    [hideOnOutsideClick]="true"
+                >
+                    <i class="pi pi-palette" aria-hidden="true"></i>
+                </button>
+                <app-configurator />
+            </div>
+        </div>
+
+        <button
+            type="button"
+            id="boton-menu-usuario"
+            class="flex items-center gap-3 px-2 py-1 rounded-border cursor-pointer transition-colors duration-150 hover:bg-emphasis focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            aria-haspopup="menu"
+            aria-controls="menu-usuario"
+            [attr.aria-label]="'Menú de usuario: ' + correo()"
+            (click)="menuUsuario.toggle($event)"
+        >
+            <p-avatar icon="pi pi-user" shape="circle" aria-hidden="true" />
+            <span class="hidden md:flex flex-col items-start leading-tight text-left">
+                <span class="text-sm font-medium text-surface-900 dark:text-surface-0">{{ correo() }}</span>
+                <span class="text-xs text-muted-color">{{ etiquetaPerfil() }}</span>
+            </span>
+            <i class="pi pi-chevron-down text-xs text-muted-color hidden md:inline" aria-hidden="true"></i>
+        </button>
+        <p-menu #menuUsuario id="menu-usuario" [model]="opcionesUsuario()" [popup]="true">
+            <ng-template #start>
+                <div class="px-3 py-2 border-b border-surface md:hidden">
+                    <div class="text-sm font-medium text-surface-900 dark:text-surface-0 break-all">{{ correo() }}</div>
+                    <div class="text-xs text-muted-color">{{ etiquetaPerfil() }}</div>
+                </div>
+            </ng-template>
+        </p-menu>
+    </div>
+</div>

@@ -70,6 +70,14 @@ Todo el código, tanto de los backends como del frontend, debe aplicar **siempre
 - **Pruebas** como parte del trabajo: código diseñado para ser testeable y cubierto por pruebas unitarias (y de integración en los backends).
 - **Seguridad por diseño:** validar toda entrada, mínimo privilegio y nunca confiar en datos del cliente.
 
+## Documentación técnica (obligatorio)
+- **Postman:** todo servicio REST que se cree o modifique se agrega a la colección de Postman de su backend, en la carpeta `postman/` de la raíz del monorepo:
+  - Una colección por backend (`postman/<proyecto>.postman_collection.json`, formato v2.1) y un entorno local (`postman/local.postman_environment.json`).
+  - Carpetas ordenadas semánticamente por recurso o caso de uso (p. ej. «1. Autenticación», «2. Mi cuenta», «3. Administración de usuarios»), en el orden en que se usan.
+  - Cada request con descripción, cuerpo de ejemplo válido y pruebas básicas; URLs y tokens como variables (`{{seguridadUrl}}`, `{{tokenAcceso}}`) y scripts que guarden el token tras el login.
+  - Nunca contraseñas ni secretos reales en el repositorio: los valores sensibles del entorno van vacíos.
+- **Diagrama al cerrar un spec:** al terminar la implementación de cada spec se genera `diagramas/spec-NN-slug.drawio` con el flujo creado: componentes del frontend, servicios REST que consumen, clases del backend que los atienden y tablas que leen o escriben. Debe ser didáctico (técnico pero entendible): varias páginas (arquitectura y flujos principales), colores con leyenda y notas que expliquen las decisiones importantes.
+
 ## Frontend (`iglesia-web/`)
 
 ### Stack
