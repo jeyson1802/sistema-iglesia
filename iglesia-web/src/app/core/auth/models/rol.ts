@@ -11,6 +11,14 @@ export const ETIQUETA_ROL: Record<Rol, string> = {
     MIEMBRO: 'Miembro'
 };
 
+/** Ícono de PrimeIcons que representa a cada perfil en la interfaz. */
+export const ICONO_ROL: Record<Rol, string> = {
+    ADMIN_SISTEMA: 'pi pi-server',
+    ADMIN_IGLESIA: 'pi pi-building-columns',
+    LIDER: 'pi pi-sitemap',
+    MIEMBRO: 'pi pi-user'
+};
+
 /** Página de inicio de cada perfil después de iniciar sesión. */
 export const RUTA_INICIO_POR_ROL: Record<Rol, string> = {
     ADMIN_SISTEMA: '/sistema',

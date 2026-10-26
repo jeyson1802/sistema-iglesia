@@ -5,16 +5,9 @@ import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { LogoIglesiaComponent } from '@/app/shared/components/logo-iglesia/logo-iglesia';
 import { TarjetaAccesoComponent } from '../components/tarjeta-acceso/tarjeta-acceso';
-import { ETIQUETA_ROL, Rol } from '../models/rol';
+import { ETIQUETA_ROL, ICONO_ROL, Rol } from '../models/rol';
 import { RUTAS_AUTH } from '../models/rutas-auth';
 import { SesionService } from '../services/sesion.service';
-
-const ICONO_POR_ROL: Record<Rol, string> = {
-    ADMIN_SISTEMA: 'pi pi-server',
-    ADMIN_IGLESIA: 'pi pi-building-columns',
-    LIDER: 'pi pi-sitemap',
-    MIEMBRO: 'pi pi-user'
-};
 
 const DESCRIPCION_POR_ROL: Record<Rol, string> = {
     ADMIN_SISTEMA: 'Administra las iglesias registradas en el sistema',
@@ -48,7 +41,7 @@ export class SeleccionarPerfilComponent {
             rol,
             etiqueta: ETIQUETA_ROL[rol],
             descripcion: DESCRIPCION_POR_ROL[rol],
-            icono: ICONO_POR_ROL[rol],
+            icono: ICONO_ROL[rol],
             activo: rol === this.sesion.perfilActivo()
         }))
     );
