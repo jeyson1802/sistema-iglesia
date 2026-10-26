@@ -2,6 +2,9 @@ package com.iglesia.seguridad.auth;
 
 import com.jayway.jsonpath.JsonPath;
 
+import jakarta.servlet.http.Cookie;
+
+import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,6 +18,9 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import com.iglesia.seguridad.TestcontainersConfiguration;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -31,6 +37,8 @@ class AuthIntegrationTest {
 
 	static final String CONTRASENA_ADMIN = "AdminPrueba123";
 
+	private static final String COOKIE_REFRESCO = "iglesia_refresco";
+
 	@Autowired
 	private MockMvc mvc;
 
@@ -38,7 +46,7 @@ class AuthIntegrationTest {
 	void flujoCompletoDeSesion() throws Exception {
 		MvcResult login = iniciarSesion("ADMIN@sistema.test", CONTRASENA_ADMIN);
 		String acceso = JsonPath.read(login.getResponse().getContentAsString(), "$.tokenAcceso");
-		String refresco = JsonPath.read(login.getResponse().getContentAsString(), "$.tokenRefresco");
+		String refresco = login.getResponse().getCookie(COOKIE_REFRESCO).getValue();
 
 		mvc.perform(get("/api/usuarios/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + acceso))
 			.andExpect(status().isOk())
@@ -52,12 +60,63 @@ class AuthIntegrationTest {
 			.andExpect(status().isCreated())
 			.andExpect(jsonPath("$.iglesiaId").value(1));
 
-		MvcResult rotado = refrescar(refresco).andExpect(status().isOk()).andReturn();
-		String refrescoNuevo = JsonPath.read(rotado.getResponse().getContentAsString(), "$.tokenRefresco");
+		MvcResult rotado = refrescar(refresco).andExpect(status().isOk())
+			.andExpect(jsonPath("$.tokenAcceso").isNotEmpty())
+			.andExpect(jsonPath("$.tokenRefresco").doesNotExist())
+			.andReturn();
+		String refrescoNuevo = rotado.getResponse().getCookie(COOKIE_REFRESCO).getValue();
+		assertThat(refrescoNuevo).isNotEqualTo(refresco);
 
 		// Reutilizar el token ya rotado invalida también el nuevo (posible robo).
 		refrescar(refresco).andExpect(status().isUnauthorized());
 		refrescar(refrescoNuevo).andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void refrescarSinCookieRespondeNoAutenticado() throws Exception {
+		mvc.perform(post("/api/auth/refresh")).andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void refrescarConUnTokenInvalidoRespondeNoAutenticadoYBorraLaCookie() throws Exception {
+		refrescar("token-inexistente").andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.title").value("No autenticado"))
+			.andExpect(header().string(HttpHeaders.SET_COOKIE, cookieBorrada()));
+	}
+
+	@Test
+	void cerrarSesionBorraLaCookieYRevocaElToken() throws Exception {
+		String refresco = iniciarSesion("admin@sistema.test", CONTRASENA_ADMIN).getResponse()
+			.getCookie(COOKIE_REFRESCO)
+			.getValue();
+
+		mvc.perform(post("/api/auth/logout").cookie(new Cookie(COOKIE_REFRESCO, refresco)))
+			.andExpect(status().isNoContent())
+			.andExpect(header().string(HttpHeaders.SET_COOKIE, cookieBorrada()));
+
+		refrescar(refresco).andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void cerrarSesionSinCookieTambienRespondeSinContenido() throws Exception {
+		mvc.perform(post("/api/auth/logout"))
+			.andExpect(status().isNoContent())
+			.andExpect(header().string(HttpHeaders.SET_COOKIE, cookieBorrada()));
+	}
+
+	@Test
+	void elLoginEntregaElTokenDeRefrescoSoloEnUnaCookieSegura() throws Exception {
+		mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+			.content("{\"correo\":\"admin@sistema.test\",\"contrasena\":\"%s\"}".formatted(CONTRASENA_ADMIN)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.tokenAcceso").isNotEmpty())
+			.andExpect(jsonPath("$.tipo").value("Bearer"))
+			.andExpect(jsonPath("$.expiraEn").isNumber())
+			.andExpect(jsonPath("$.tokenRefresco").doesNotExist())
+			.andExpect(header().string(HttpHeaders.SET_COOKIE,
+					allOf(containsString(COOKIE_REFRESCO + "="), containsString("Path=/api/auth"),
+							containsString("Max-Age=604800"), containsString("HttpOnly"), containsString("Secure"),
+							containsString("SameSite=Strict"))));
 	}
 
 	@Test
@@ -118,6 +177,15 @@ class AuthIntegrationTest {
 			.andExpect(status().isForbidden());
 	}
 
+	@Test
+	void corsPermiteCredencialesParaQueViajeLaCookieDeRefresco() throws Exception {
+		mvc.perform(options("/api/auth/refresh").header(HttpHeaders.ORIGIN, "http://localhost:4200")
+			.header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST"))
+			.andExpect(status().isOk())
+			.andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:4200"))
+			.andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true"));
+	}
+
 	private MvcResult iniciarSesion(String correo, String contrasena) throws Exception {
 		return mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
 			.content("{\"correo\":\"%s\",\"contrasena\":\"%s\"}".formatted(correo, contrasena)))
@@ -126,8 +194,13 @@ class AuthIntegrationTest {
 	}
 
 	private ResultActions refrescar(String token) throws Exception {
-		return mvc.perform(post("/api/auth/refresh").contentType(MediaType.APPLICATION_JSON)
-			.content("{\"tokenRefresco\":\"%s\"}".formatted(token)));
+		return mvc.perform(post("/api/auth/refresh").cookie(new Cookie(COOKIE_REFRESCO, token)));
+	}
+
+	private static Matcher<String> cookieBorrada() {
+		return allOf(containsString(COOKIE_REFRESCO + "=;"), containsString("Path=/api/auth"),
+				containsString("Max-Age=0"), containsString("HttpOnly"), containsString("Secure"),
+				containsString("SameSite=Strict"));
 	}
 
 }

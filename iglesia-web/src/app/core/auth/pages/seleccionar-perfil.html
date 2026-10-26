@@ -1,0 +1,39 @@
+<app-tarjeta-acceso>
+    <header class="text-center mb-8">
+        <app-logo-iglesia orientacion="vertical" class="mb-8" />
+        <h1 class="text-surface-900 dark:text-surface-0 text-3xl font-medium mb-4">Elige tu perfil</h1>
+        <p class="text-muted-color font-medium md:w-120 mx-auto">Tienes acceso con más de un perfil. Podrás cambiarlo después desde el menú de usuario.</p>
+    </header>
+
+    <ul class="flex flex-col gap-4 md:w-120 mx-auto" aria-label="Perfiles disponibles">
+        @for (opcion of opciones(); track opcion.rol) {
+            <li>
+                <button
+                    type="button"
+                    class="w-full flex items-center gap-4 p-4 text-left rounded-border border transition-colors duration-150 cursor-pointer hover:bg-surface-100 dark:hover:bg-surface-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    [class.border-primary]="opcion.activo"
+                    [class.border-surface]="!opcion.activo"
+                    [attr.aria-current]="opcion.activo ? 'true' : null"
+                    (click)="seleccionar(opcion.rol)"
+                >
+                    <span class="flex items-center justify-center w-12 h-12 shrink-0 rounded-full bg-primary-50 dark:bg-primary-400/10 text-primary">
+                        <i class="text-xl" [class]="opcion.icono" aria-hidden="true"></i>
+                    </span>
+                    <span class="flex flex-col gap-1 grow">
+                        <span class="text-surface-900 dark:text-surface-0 text-lg font-medium">{{ opcion.etiqueta }}</span>
+                        <span class="text-muted-color text-sm">{{ opcion.descripcion }}</span>
+                    </span>
+                    @if (opcion.activo) {
+                        <p-tag value="Actual" severity="info" />
+                    } @else {
+                        <i class="pi pi-chevron-right text-muted-color" aria-hidden="true"></i>
+                    }
+                </button>
+            </li>
+        }
+    </ul>
+
+    <div class="text-center mt-8">
+        <p-button label="Cerrar sesión" icon="pi pi-sign-out" [text]="true" severity="secondary" [loading]="saliendo()" (onClick)="cerrarSesion()" />
+    </div>
+</app-tarjeta-acceso>

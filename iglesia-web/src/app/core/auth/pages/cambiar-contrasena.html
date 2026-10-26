@@ -1,0 +1,41 @@
+<div class="card max-w-2xl">
+    <header class="mb-6">
+        <h1 class="font-semibold text-xl text-surface-900 dark:text-surface-0 mb-2">Cambiar contraseña</h1>
+        <p class="text-muted-color m-0">Por seguridad, al cambiarla se cerrarán todas tus sesiones abiertas y tendrás que iniciar sesión de nuevo.</p>
+    </header>
+
+    <div aria-live="polite">
+        @if (error()) {
+            <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-6">{{ error() }}</p-message>
+        }
+    </div>
+
+    <form [formGroup]="formulario" (ngSubmit)="cambiar()" class="flex flex-col gap-2" novalidate>
+        <div class="flex flex-col gap-2">
+            <label for="contrasena-actual" class="font-medium">Contraseña actual</label>
+            <p-password inputId="contrasena-actual" formControlName="contrasenaActual" autocomplete="current-password" [toggleMask]="true" [feedback]="false" [fluid]="true" />
+            <app-mensaje-error-campo [control]="formulario.controls.contrasenaActual" [mensajes]="mensajesActual" />
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <label for="contrasena-nueva" class="font-medium">Nueva contraseña</label>
+            <p-password inputId="contrasena-nueva" formControlName="contrasenaNueva" autocomplete="new-password" [toggleMask]="true" [feedback]="false" [fluid]="true" />
+            <small class="text-muted-color">{{ ayudaNueva }}</small>
+            <app-mensaje-error-campo [control]="formulario.controls.contrasenaNueva" [mensajes]="mensajesNueva" />
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <label for="confirmacion" class="font-medium">Confirmar nueva contraseña</label>
+            <p-password inputId="confirmacion" formControlName="confirmacion" autocomplete="new-password" [toggleMask]="true" [feedback]="false" [fluid]="true" />
+            <app-mensaje-error-campo [control]="formulario.controls.confirmacion" [mensajes]="mensajesConfirmacion" />
+            <app-mensaje-error-campo [control]="formulario" [mensajes]="mensajesCoincidencia" [reservarEspacio]="false" />
+        </div>
+
+        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-4">
+            <a pButton severity="secondary" [outlined]="true" [routerLink]="rutaCancelar">
+                <span pButtonLabel>Cancelar</span>
+            </a>
+            <p-button type="submit" label="Actualizar contraseña" icon="pi pi-check" [loading]="guardando()" />
+        </div>
+    </form>
+</div>

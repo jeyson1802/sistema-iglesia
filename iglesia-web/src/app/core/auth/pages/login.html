@@ -1,0 +1,40 @@
+<app-tarjeta-acceso>
+    <header class="text-center mb-8">
+        <app-logo-iglesia orientacion="vertical" class="mb-8" />
+        <h1 class="text-surface-900 dark:text-surface-0 text-3xl font-medium mb-4">Bienvenido</h1>
+        <p class="text-muted-color font-medium">Inicia sesión con tu correo y contraseña</p>
+    </header>
+
+    <div aria-live="polite">
+        @if (aviso; as avisoLogin) {
+            <p-message [severity]="avisoLogin.severidad" [icon]="avisoLogin.severidad === 'success' ? 'pi pi-check-circle' : 'pi pi-info-circle'" styleClass="mb-6 w-full md:w-120">{{ avisoLogin.mensaje }}</p-message>
+        }
+        @if (error()) {
+            <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-6 w-full md:w-120">{{ error() }}</p-message>
+        }
+    </div>
+
+    <form [formGroup]="formulario" (ngSubmit)="iniciarSesion()" novalidate>
+        <label for="correo" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Correo electrónico</label>
+        <input
+            pInputText
+            id="correo"
+            type="email"
+            inputmode="email"
+            autocomplete="username"
+            placeholder="nombre@ejemplo.com"
+            class="w-full md:w-120"
+            formControlName="correo"
+            aria-describedby="correo-error"
+            [attr.aria-invalid]="formulario.controls.correo.touched && formulario.controls.correo.invalid"
+            autofocus
+        />
+        <app-mensaje-error-campo id="correo-error" class="mb-4" [control]="formulario.controls.correo" [mensajes]="mensajesCorreo" />
+
+        <label for="contrasena" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Contraseña</label>
+        <p-password inputId="contrasena" formControlName="contrasena" placeholder="Tu contraseña" autocomplete="current-password" [toggleMask]="true" [feedback]="false" [fluid]="true" />
+        <app-mensaje-error-campo id="contrasena-error" class="mb-6" [control]="formulario.controls.contrasena" [mensajes]="mensajesContrasena" />
+
+        <p-button type="submit" label="Iniciar sesión" icon="pi pi-sign-in" styleClass="w-full" [loading]="cargando()" />
+    </form>
+</app-tarjeta-acceso>

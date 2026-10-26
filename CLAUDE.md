@@ -70,6 +70,14 @@ Todo el código, tanto de los backends como del frontend, debe aplicar **siempre
 - **Pruebas** como parte del trabajo: código diseñado para ser testeable y cubierto por pruebas unitarias (y de integración en los backends).
 - **Seguridad por diseño:** validar toda entrada, mínimo privilegio y nunca confiar en datos del cliente.
 
+## Documentación técnica (obligatorio)
+- **Postman:** todo servicio REST que se cree o modifique se agrega a la colección de Postman de su backend, en la carpeta `postman/` de la raíz del monorepo:
+  - Una colección por backend (`postman/<proyecto>.postman_collection.json`, formato v2.1) y un entorno local (`postman/local.postman_environment.json`).
+  - Carpetas ordenadas semánticamente por recurso o caso de uso (p. ej. «1. Autenticación», «2. Mi cuenta», «3. Administración de usuarios»), en el orden en que se usan.
+  - Cada request con descripción, cuerpo de ejemplo válido y pruebas básicas; URLs y tokens como variables (`{{seguridadUrl}}`, `{{tokenAcceso}}`) y scripts que guarden el token tras el login.
+  - Nunca contraseñas ni secretos reales en el repositorio: los valores sensibles del entorno van vacíos.
+- **Diagrama al cerrar un spec:** al terminar la implementación de cada spec se genera `diagramas/spec-NN-slug.drawio` con el flujo creado: componentes del frontend, servicios REST que consumen, clases del backend que los atienden y tablas que leen o escriben. Debe ser didáctico (técnico pero entendible): varias páginas (arquitectura y flujos principales), colores con leyenda y notas que expliquen las decisiones importantes.
+
 ## Frontend (`iglesia-web/`)
 
 ### Stack
@@ -84,8 +92,15 @@ Todo el código, tanto de los backends como del frontend, debe aplicar **siempre
 - Inyección con `inject()`; `ChangeDetectionStrategy.OnPush` en los componentes.
 - Lo que se repita entre pantallas se extrae a **componentes reutilizables** en `shared/components/` (p. ej. selector de miembro, selector de nivel, tabla paginada).
 - NO modificar `src/app/layout/` salvo que se pida explícitamente (excepción: `app.menu.ts` para agregar módulos al menú). Si hace falta adaptar otros componentes de la plantilla, se puede hacer.
-- Usar componentes PrimeNG y utilidades Tailwind. Evitar CSS propio.
-- Antes de crear una pantalla, revisar los ejemplos en `src/app/pages/uikit/`.
+- Usar componentes PrimeNG y utilidades Tailwind. Evitar CSS propio (tampoco `style` inline).
+- Antes de crear una pantalla, revisar los ejemplos en `src/app/pages/uikit/` y las páginas de Sakai (`src/app/pages/`), y partir de su estructura, clases y espaciados.
+- **UX/UI en toda plantilla HTML:** aplicar siempre las mejores prácticas de diseño de interfaces con el estilo visual de Sakai:
+  - Jerarquía visual clara (un título, una acción principal destacada, acciones secundarias discretas) y diseño consistente entre pantallas.
+  - Responsivo (móvil primero) y compatible con modo claro y oscuro (tokens `surface`/`primary` de Sakai, nunca colores fijos).
+  - Accesibilidad: `label` asociado a cada campo, `autocomplete` correcto, foco visible, navegación por teclado, `aria-*` donde haga falta y contraste suficiente.
+  - Retroalimentación inmediata: estados de carga, vacíos y de error; mensajes de validación junto al campo, en español y que digan cómo corregir.
+  - Prevenir errores: deshabilitar acciones mientras se procesan y pedir confirmación en acciones destructivas.
+- **Identidad de la iglesia:** nunca se muestra el logo de la plantilla. Logo y nombre salen siempre del componente compartido `app-logo-iglesia` (`shared/components/logo-iglesia/`): en el layout principal, los de la iglesia del usuario autenticado; en el login, la identidad neutra del sistema (antes de autenticarse no se conoce la iglesia).
 - Servicios con `HttpClient` y URL base desde `environment`.
 - Textos de la interfaz en español.
 - Toda pieza nueva (componente, servicio, pipe) lleva su prueba unitaria `.spec.ts`.
@@ -98,7 +113,9 @@ Todo el código, tanto de los backends como del frontend, debe aplicar **siempre
 - `app/core/`: piezas únicas de la app (`auth/` con login, guards y almacenamiento del token; `interceptors/` con el interceptor que agrega el JWT; `models/` globales como `Page<T>`).
 - `app/shared/`: reutilizable entre módulos (`components/`, `pipes/`, `utils/`).
 - `app/features/<modulo>/`: `pages/`, `components/`, `services/`, `models/` y `<modulo>.routes.ts` con `export default` de `Routes`, registrado con `loadChildren` como hijo de `AppLayout` en `src/app.routes.ts`. Ejemplo: `features/miembros/`.
-- Archivos sin sufijo `.component` y plantillas inline. Servicios de features con `providedIn: 'root'`.
+- Archivos sin sufijo `.component`. Cada componente se divide en **tres archivos** con el mismo nombre base: `<nombre>.ts` (clase, con `templateUrl`), `<nombre>.html` (plantilla) y `<nombre>.spec.ts` (prueba unitaria). No usar plantillas inline (`template:`).
+- Los componentes son standalone (valor por defecto en Angular 21; no declarar `standalone: true` ni usar `NgModule`) y el nombre de su clase termina en `Component` (p. ej. `LoginComponent` en `login.ts`).
+- Servicios de features con `providedIn: 'root'`.
 
 ### Notas importantes
 - **App zoneless** (`provideZonelessChangeDetection`): el estado que controla la UI debe usar signals. La detección de cambios no detecta mutaciones simples de campos hechas desde callbacks asíncronos.
