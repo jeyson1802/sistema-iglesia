@@ -2,6 +2,8 @@
 export const ROLES = ['ADMIN_SISTEMA', 'ADMIN_IGLESIA', 'LIDER', 'MIEMBRO'] as const;
 export type Rol = (typeof ROLES)[number];
 
+export const esRol = (valor: string): valor is Rol => (ROLES as readonly string[]).includes(valor);
+
 export const ETIQUETA_ROL: Record<Rol, string> = {
     ADMIN_SISTEMA: 'Administrador del sistema',
     ADMIN_IGLESIA: 'Administrador de iglesia',

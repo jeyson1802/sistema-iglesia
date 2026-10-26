@@ -1,8 +1,6 @@
-import { Rol, ROLES } from '../models/rol';
+import { esRol, Rol, ROLES } from '../models/rol';
 import { UsuarioActual } from '../models/usuario-actual';
 import { UsuarioResponse } from '../models/usuario-response';
-
-const esRol = (valor: string): valor is Rol => (ROLES as readonly string[]).includes(valor);
 
 const porJerarquia = (a: Rol, b: Rol): number => ROLES.indexOf(a) - ROLES.indexOf(b);
 
