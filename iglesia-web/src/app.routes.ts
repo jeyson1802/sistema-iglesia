@@ -25,6 +25,7 @@ export function crearRutasApp(produccion: boolean): Routes {
             children: [
                 { path: '', pathMatch: 'full', redirectTo: inicioRedirect },
                 { path: '', loadChildren: () => import('./app/features/inicio/inicio.routes') },
+                { path: 'cuenta/contrasena', title: 'Cambiar contraseña', loadComponent: () => import('./app/core/auth/pages/cambiar-contrasena').then((m) => m.CambiarContrasenaComponent) },
                 { path: 'miembros', canActivate: [perfilGuard('ADMIN_IGLESIA')], loadChildren: () => import('./app/features/miembros/miembros.routes') },
                 ...soloEnDesarrollo(RUTAS_DEMO_EN_LAYOUT)
             ]

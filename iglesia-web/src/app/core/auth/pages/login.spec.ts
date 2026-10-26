@@ -129,6 +129,12 @@ describe('LoginComponent', () => {
         expect(texto()).toContain('Tu sesión expiró. Inicia sesión de nuevo.');
     });
 
+    it('muestra el aviso de contraseña actualizada', async () => {
+        await crear('contrasena-cambiada');
+
+        expect(texto()).toContain('Contraseña actualizada. Inicia sesión de nuevo.');
+    });
+
     it('ignora motivos desconocidos', async () => {
         await crear('toString');
 

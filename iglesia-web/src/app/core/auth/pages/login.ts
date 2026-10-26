@@ -9,7 +9,8 @@ import { MessageModule } from 'primeng/message';
 import { PasswordModule } from 'primeng/password';
 import { LogoIglesiaComponent } from '@/app/shared/components/logo-iglesia/logo-iglesia';
 import { TarjetaAccesoComponent } from '../components/tarjeta-acceso/tarjeta-acceso';
-import { AVISO_POR_MOTIVO } from '../models/rutas-auth';
+import { MensajeErrorCampoComponent, MensajesError } from '@/app/shared/components/mensaje-error-campo/mensaje-error-campo';
+import { AVISO_POR_MOTIVO, AvisoLogin } from '../models/rutas-auth';
 import { SesionService } from '../services/sesion.service';
 
 const LONGITUD_MAXIMA_CORREO = 254;
@@ -20,7 +21,7 @@ const MENSAJE_ERROR_GENERICO = 'No se pudo iniciar sesión. Intenta de nuevo.';
 
 @Component({
     selector: 'app-login',
-    imports: [ReactiveFormsModule, ButtonModule, InputTextModule, PasswordModule, MessageModule, LogoIglesiaComponent, TarjetaAccesoComponent],
+    imports: [ReactiveFormsModule, ButtonModule, InputTextModule, PasswordModule, MessageModule, LogoIglesiaComponent, MensajeErrorCampoComponent, TarjetaAccesoComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './login.html'
 })
@@ -28,8 +29,15 @@ export class LoginComponent {
     private readonly sesion = inject(SesionService);
     private readonly router = inject(Router);
 
-    protected readonly longitudMaximaCorreo = LONGITUD_MAXIMA_CORREO;
-    protected readonly longitudMaximaContrasena = LONGITUD_MAXIMA_CONTRASENA;
+    protected readonly mensajesCorreo: MensajesError = {
+        required: 'Ingresa tu correo electrónico',
+        maxlength: `El correo no puede superar ${LONGITUD_MAXIMA_CORREO} caracteres`,
+        email: 'Ingresa un correo válido, por ejemplo nombre@ejemplo.com'
+    };
+    protected readonly mensajesContrasena: MensajesError = {
+        required: 'Ingresa tu contraseña',
+        maxlength: `La contraseña no puede superar ${LONGITUD_MAXIMA_CONTRASENA} caracteres`
+    };
 
     protected readonly formulario = inject(NonNullableFormBuilder).group({
         correo: ['', [Validators.required, Validators.email, Validators.maxLength(LONGITUD_MAXIMA_CORREO)]],
@@ -58,7 +66,7 @@ export class LoginComponent {
     }
 }
 
-function avisoDe(motivo: string | null): string | null {
+function avisoDe(motivo: string | null): AvisoLogin | null {
     return motivo !== null && Object.hasOwn(AVISO_POR_MOTIVO, motivo) ? AVISO_POR_MOTIVO[motivo] : null;
 }
 

@@ -1,5 +1,6 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { catchError, defer, finalize, firstValueFrom, map, Observable, of, shareReplay, switchMap, tap } from 'rxjs';
+import { CambioContrasena } from '../models/cambio-contrasena';
 import { Credenciales } from '../models/credenciales';
 import { esRol, Rol, RUTA_INICIO_POR_ROL } from '../models/rol';
 import { RUTAS_AUTH } from '../models/rutas-auth';
@@ -83,6 +84,11 @@ export class SesionService {
             this.limpiar();
             return this.authApi.cerrarSesion().pipe(catchError(() => of(undefined)));
         });
+    }
+
+    /** El backend revoca todas las sesiones al cambiar la contraseña, así que también se cierra la local. */
+    cambiarContrasena(cambio: CambioContrasena): Observable<void> {
+        return this.authApi.cambiarContrasena(cambio).pipe(switchMap(() => this.cerrarSesion()));
     }
 
     /** Página a la que debe ir el usuario según el estado de la sesión. */

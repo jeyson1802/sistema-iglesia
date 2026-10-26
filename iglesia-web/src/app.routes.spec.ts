@@ -62,7 +62,7 @@ describe('Rutas de la aplicación', () => {
     describe('sin sesión', () => {
         beforeEach(() => configurar(true));
 
-        for (const url of ['/', '/mi-perfil', '/administracion', '/miembros']) {
+        for (const url of ['/', '/mi-perfil', '/administracion', '/miembros', '/cuenta/contrasena']) {
             it(`${url} redirige al login`, async () => {
                 expect(await navegarA(url)).toBe('/auth/login');
             });
@@ -89,6 +89,12 @@ describe('Rutas de la aplicación', () => {
 
             expect(await navegarA('/administracion')).toBe('/auth/acceso-denegado');
             expect(await navegarA('/miembros')).toBe('/auth/acceso-denegado');
+        });
+
+        it('cualquier perfil puede abrir el cambio de contraseña', async () => {
+            iniciarSesionCon('MIEMBRO');
+
+            expect(await navegarA('/cuenta/contrasena')).toBe('/cuenta/contrasena');
         });
 
         it('una ruta desconocida lleva a la página no encontrada', async () => {

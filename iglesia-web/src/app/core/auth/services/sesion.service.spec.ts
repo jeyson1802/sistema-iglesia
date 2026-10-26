@@ -18,7 +18,7 @@ describe('SesionService', () => {
 
     beforeEach(() => {
         sessionStorage.clear();
-        api = jasmine.createSpyObj<AuthApiService>('AuthApiService', ['login', 'refrescar', 'cerrarSesion', 'obtenerUsuarioActual']);
+        api = jasmine.createSpyObj<AuthApiService>('AuthApiService', ['login', 'refrescar', 'cerrarSesion', 'obtenerUsuarioActual', 'cambiarContrasena']);
         api.cerrarSesion.and.returnValue(of(undefined));
         TestBed.configureTestingModule({ providers: [{ provide: AuthApiService, useValue: api }] });
         sesion = TestBed.inject(SesionService);
@@ -219,6 +219,32 @@ describe('SesionService', () => {
             await expectAsync(firstValueFrom(sesion.cerrarSesion(), { defaultValue: undefined })).toBeResolved();
 
             expect(sesion.autenticado()).toBeFalse();
+        });
+    });
+
+    describe('cambiarContrasena', () => {
+        const cambio = { contrasenaActual: 'Actual12345', contrasenaNueva: 'Nueva12345' };
+
+        it('cambia la contraseña y cierra la sesión local', async () => {
+            await iniciarSesionCon(usuarioCon('MIEMBRO'));
+            api.cambiarContrasena.and.returnValue(of(undefined));
+
+            await firstValueFrom(sesion.cambiarContrasena(cambio), { defaultValue: undefined });
+
+            expect(api.cambiarContrasena).toHaveBeenCalledOnceWith(cambio);
+            expect(api.cerrarSesion).toHaveBeenCalledTimes(1);
+            expect(sesion.autenticado()).toBeFalse();
+        });
+
+        it('si el backend lo rechaza conserva la sesión y propaga el error', async () => {
+            await iniciarSesionCon(usuarioCon('MIEMBRO'));
+            const rechazo = new HttpErrorResponse({ status: 400 });
+            api.cambiarContrasena.and.returnValue(throwError(() => rechazo));
+
+            await expectAsync(firstValueFrom(sesion.cambiarContrasena(cambio))).toBeRejectedWith(rechazo);
+
+            expect(api.cerrarSesion).not.toHaveBeenCalled();
+            expect(sesion.autenticado()).toBeTrue();
         });
     });
 });

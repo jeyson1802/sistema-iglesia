@@ -6,8 +6,8 @@
     </header>
 
     <div aria-live="polite">
-        @if (aviso) {
-            <p-message severity="info" icon="pi pi-info-circle" styleClass="mb-6 w-full md:w-120">{{ aviso }}</p-message>
+        @if (aviso; as avisoLogin) {
+            <p-message [severity]="avisoLogin.severidad" [icon]="avisoLogin.severidad === 'success' ? 'pi pi-check-circle' : 'pi pi-info-circle'" styleClass="mb-6 w-full md:w-120">{{ avisoLogin.mensaje }}</p-message>
         }
         @if (error()) {
             <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-6 w-full md:w-120">{{ error() }}</p-message>
@@ -29,33 +29,11 @@
             [attr.aria-invalid]="formulario.controls.correo.touched && formulario.controls.correo.invalid"
             autofocus
         />
-        <div id="correo-error" class="min-h-6 mt-1 mb-4">
-            @if (formulario.controls.correo.touched && formulario.controls.correo.errors; as errores) {
-                <p-message severity="error" size="small" variant="simple">
-                    @if (errores['required']) {
-                        Ingresa tu correo electrónico
-                    } @else if (errores['maxlength']) {
-                        El correo no puede superar {{ longitudMaximaCorreo }} caracteres
-                    } @else if (errores['email']) {
-                        Ingresa un correo válido, por ejemplo nombre&#64;ejemplo.com
-                    }
-                </p-message>
-            }
-        </div>
+        <app-mensaje-error-campo id="correo-error" class="mb-4" [control]="formulario.controls.correo" [mensajes]="mensajesCorreo" />
 
         <label for="contrasena" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Contraseña</label>
         <p-password inputId="contrasena" formControlName="contrasena" placeholder="Tu contraseña" autocomplete="current-password" [toggleMask]="true" [feedback]="false" [fluid]="true" />
-        <div id="contrasena-error" class="min-h-6 mt-1 mb-6">
-            @if (formulario.controls.contrasena.touched && formulario.controls.contrasena.errors; as errores) {
-                <p-message severity="error" size="small" variant="simple">
-                    @if (errores['required']) {
-                        Ingresa tu contraseña
-                    } @else if (errores['maxlength']) {
-                        La contraseña no puede superar {{ longitudMaximaContrasena }} caracteres
-                    }
-                </p-message>
-            }
-        </div>
+        <app-mensaje-error-campo id="contrasena-error" class="mb-6" [control]="formulario.controls.contrasena" [mensajes]="mensajesContrasena" />
 
         <p-button type="submit" label="Iniciar sesión" icon="pi pi-sign-in" styleClass="w-full" [loading]="cargando()" />
     </form>
