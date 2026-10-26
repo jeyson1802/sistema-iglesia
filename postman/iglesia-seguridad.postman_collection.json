@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "2c771399-0972-5ae1-a1fa-b410bacccc7f",
     "name": "iglesia-seguridad",
-    "description": "Backend de seguridad del Sistema Iglesia: autenticación con JWT (RS256), token de refresco en cookie HttpOnly con rotación, cuenta del usuario y administración de usuarios.\n\n**Uso:** selecciona el entorno «Sistema Iglesia - local», completa `correo` y `contrasena` con un usuario de tu base local y ejecuta «1. Autenticación → Iniciar sesión». El token de acceso queda en `{{tokenAcceso}}` y se usa en el resto de la colección.",
+    "description": "Backend de seguridad del Sistema Iglesia: autenticación con JWT (RS256), token de refresco en cookie HttpOnly con rotación, cuenta del usuario y administración de usuarios.\n\n**Uso:** selecciona el entorno «Sistema Iglesia - local», completa `correo` y `contrasena` con un usuario de tu base local y ejecuta «1. Autenticación → Iniciar sesión». El token de acceso queda en `{{tokenAcceso}}` y se usa en el resto de la colección.\n\n**Trazabilidad:** la colección verifica en cada respuesta la cabecera `X-Trace-Id`. Ante un error, busca ese valor en los logs del backend para ver la petición completa.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -478,6 +478,68 @@
           ]
         }
       ]
+    },
+    {
+      "name": "5. Documentación",
+      "description": "Especificación OpenAPI 3 del backend. Solo responde con el perfil `local` (en producción está deshabilitada y responde 404). La versión navegable está en `{{seguridadUrl}}/swagger-ui.html`.",
+      "auth": {
+        "type": "noauth"
+      },
+      "item": [
+        {
+          "name": "Especificación OpenAPI",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{seguridadUrl}}/v3/api-docs",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "v3",
+                "api-docs"
+              ]
+            },
+            "description": "Documento OpenAPI 3 en JSON con todos los endpoints, sus respuestas y el esquema de seguridad `bearerAuth`. Se puede importar en Postman u otras herramientas."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const especificacion = pm.response.json();",
+                  "pm.test('Es OpenAPI 3', () => pm.expect(especificacion.openapi).to.match(/^3\\./));",
+                  "pm.test('Declara el esquema bearerAuth', () => pm.expect(especificacion.components.securitySchemes).to.have.property('bearerAuth'));",
+                  "pm.test('Título del backend', () => pm.expect(especificacion.info.title).to.eql('Sistema Iglesia – Seguridad'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Toda respuesta del backend (éxito o error) trae el identificador de traza para rastrearla en los logs.",
+          "pm.test('Trae la cabecera X-Trace-Id', () => {",
+          "  pm.response.to.have.header('X-Trace-Id');",
+          "  pm.expect(pm.response.headers.get('X-Trace-Id')).to.match(/^[0-9a-f]{32}$/);",
+          "});",
+          "// En los errores, el traceId del ProblemDetail coincide con la cabecera.",
+          "if (pm.response.code >= 400 && pm.response.headers.get('Content-Type')?.includes('application/problem+json')) {",
+          "  pm.test('El ProblemDetail incluye el mismo traceId', () =>",
+          "    pm.expect(pm.response.json().traceId).to.eql(pm.response.headers.get('X-Trace-Id')));",
+          "}"
+        ]
+      }
     }
   ]
 }
