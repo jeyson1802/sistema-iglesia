@@ -220,7 +220,7 @@ Cada paso deja el sistema compilando y con sus pruebas en verde. Los pasos 1 a 7
 **Backends (ambos)**
 
 - [ ] `./gradlew bootRun` arranca con el perfil `local`: logs en texto con `[traceId,spanId,u=…,i=…]` y Swagger UI disponible en `/swagger-ui.html`.
-- [ ] El JAR ejecutado sin perfil escribe logs JSON (ECS) con `service.name`, `trace.id`, `span.id` y, en peticiones autenticadas, `usuarioId` e `iglesiaId`. `/swagger-ui.html` y `/v3/api-docs` responden 404.
+- [ ] El JAR ejecutado sin perfil escribe logs JSON (ECS) con `service.name`, `traceId`, `spanId` y, en peticiones autenticadas, `usuarioId` e `iglesiaId`. `/swagger-ui.html` y `/v3/api-docs` responden 404.
 - [ ] Toda respuesta, incluidos 200, 401 sin token y `/actuator/health`, trae la cabecera `X-Trace-Id`.
 - [ ] Los 401 (sin token o con token inválido) y 403 responden `ProblemDetail` en español con `traceId` igual a `X-Trace-Id`.
 - [ ] Un 500 responde «Ocurrió un error inesperado…» con `traceId`, sin el mensaje ni la traza de la excepción. El log tiene una sola línea `ERROR` con el stack trace y el mismo `traceId`.
@@ -271,6 +271,8 @@ Cada paso deja el sistema compilando y con sus pruebas en verde. Los pasos 1 a 7
 - **Sí:** «Sesión cerrada» se registra en `TokenRefrescoService.revocar`, porque es el único punto que conoce al dueño del token. Un logout sin token válido no deja log. «Usuario actualizado» se registra en toda actualización exitosa, aunque no haya revocado sesiones.
 - **No:** variable `{{seguridadBaseUrl}}` en el entorno de Postman. `{{seguridadUrl}}` ya es la URL base del servicio (sin `/api`), así que «5. Documentación» usa `{{seguridadUrl}}/v3/api-docs` directamente.
 - **Sí:** la colección nueva de `iglesia-api` trae «1. Infraestructura» (salud) y «2. Documentación» (`/v3/api-docs`), para que la prueba de colección de `X-Trace-Id` ya tenga algo que verificar. Los módulos de negocio agregan sus carpetas en sus specs.
+- **Sí:** en los logs JSON, el identificador de traza va en `traceId` y `spanId`, en la raíz del JSON, como lo escribe Spring Boot desde el MDC, y no en los campos ECS `trace.id`/`span.id`. Así tiene el mismo nombre que la cabecera, el `ProblemDetail` y el MDC. Si más adelante se usa Elastic/Kibana, se pueden mapear en la ingesta o con un personalizador del JSON.
+- **Sí:** la etiqueta OpenAPI de `JwksController` es «Infraestructura», igual que la carpeta de Postman, y no «Claves públicas».
 - **Sí:** el `<p-toast key="errores-globales">` vive en su propio componente, `core/errores/toast-errores-globales/`, que `AppComponent` incluye. Así la plantilla del toast (mensaje y `app-codigo-seguimiento`) queda en su `.html` con su prueba, y no inline en `app.component.ts`.
 - **Sí:** el toast de error inesperado queda fijo hasta que el usuario lo cierra, para darle tiempo de copiar el código. El de falta de conexión se cierra solo. Un 5xx sin código (p. ej. un proxy sin `X-Trace-Id`) muestra «Intenta de nuevo en unos minutos» en vez de pedir un código que no existe.
 - **Sí:** `core/errores/clasificar-error.ts` (`esErrorGlobal`) es la única regla de qué avisa el toast global. La usan el interceptor y las páginas (`login`, `cambiar-contrasena`), que ante un 5xx o un status 0 ya no muestran su mensaje genérico; lo siguen mostrando ante los demás 4xx.

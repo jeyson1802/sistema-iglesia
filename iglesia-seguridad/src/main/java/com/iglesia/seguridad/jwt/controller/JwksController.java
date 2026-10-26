@@ -16,7 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** Publica las claves públicas (JWKS) con las que iglesia-api valida las firmas de los tokens. */
 @RestController
-@Tag(name = "Claves públicas", description = "Claves para validar la firma de los tokens que emite este servicio.")
+@Tag(name = "Infraestructura", description = "Endpoints públicos de soporte: claves para validar la firma de los tokens "
+		+ "que emite este servicio.")
 @SecurityRequirements
 public class JwksController {
 
