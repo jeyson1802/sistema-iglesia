@@ -84,7 +84,10 @@ public class TokenRefrescoService {
 	/** Revoca el token si existe. Es idempotente para que cerrar sesión nunca falle. */
 	@Transactional
 	public void revocar(String valor) {
-		tokens.findByHashToken(hash(valor)).ifPresent(token -> token.revocar(reloj.instant()));
+		tokens.findByHashToken(hash(valor)).ifPresent(token -> {
+			token.revocar(reloj.instant());
+			LOG.info("Sesión cerrada usuarioId={}", token.getUsuario().getId());
+		});
 	}
 
 	@Transactional

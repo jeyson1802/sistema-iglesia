@@ -1,5 +1,7 @@
 package com.iglesia.seguridad.usuario.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,6 +26,8 @@ import com.iglesia.seguridad.usuario.repository.UsuarioRepository;
 /** Administración de usuarios y gestión de la cuenta propia. */
 @Service
 public class UsuarioService {
+
+	private static final Logger LOG = LoggerFactory.getLogger(UsuarioService.class);
 
 	private static final String USUARIO_NO_ENCONTRADO = "Usuario no encontrado";
 
@@ -52,7 +56,8 @@ public class UsuarioService {
 
 	@Transactional
 	public UsuarioResponse crear(CrearUsuarioRequest solicitud) {
-		politica.verificarPuedeAdministrar(proveedorUsuario.actual(), solicitud.iglesiaId(), solicitud.roles());
+		UsuarioAutenticado actor = proveedorUsuario.actual();
+		politica.verificarPuedeAdministrar(actor, solicitud.iglesiaId(), solicitud.roles());
 		String correo = Correo.normalizar(solicitud.correo());
 		if (usuarios.existsByCorreo(correo)) {
 			throw new ConflictoException("Ya existe un usuario con ese correo");
@@ -63,7 +68,10 @@ public class UsuarioService {
 		}
 		Usuario usuario = Usuario.nuevo(correo, codificador.encode(solicitud.contrasena()), solicitud.iglesiaId(),
 				solicitud.miembroId(), solicitud.roles());
-		return mapper.aRespuesta(usuarios.save(usuario));
+		Usuario guardado = usuarios.save(usuario);
+		LOG.info("Usuario creado id={} iglesiaId={} por usuarioId={}", guardado.getId(), guardado.getIglesiaId(),
+				actor.usuarioId());
+		return mapper.aRespuesta(guardado);
 	}
 
 	@Transactional(readOnly = true)
@@ -95,6 +103,7 @@ public class UsuarioService {
 			// Fuerza a obtener un token nuevo con los datos actualizados (o impide el acceso si se desactivó).
 			tokensRefresco.revocarTodos(usuario.getId());
 		}
+		LOG.info("Usuario actualizado id={} por usuarioId={}", usuario.getId(), actor.usuarioId());
 		return mapper.aRespuesta(usuario);
 	}
 
@@ -111,6 +120,7 @@ public class UsuarioService {
 		}
 		usuario.cambiarContrasena(codificador.encode(solicitud.contrasenaNueva()));
 		tokensRefresco.revocarTodos(usuario.getId());
+		LOG.info("Contraseña cambiada usuarioId={}; sesiones revocadas", usuario.getId());
 	}
 
 	/** Los usuarios fuera del alcance del actor se tratan como inexistentes para no revelar su existencia. */

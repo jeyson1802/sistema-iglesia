@@ -3,10 +3,14 @@ package com.iglesia.seguridad.auth.service;
 import java.time.Clock;
 import java.time.Duration;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +27,11 @@ import com.iglesia.seguridad.usuario.repository.UsuarioRepository;
 /** Inicio de sesión, refresco y cierre de sesión. */
 @Service
 public class AuthService {
+
+	private static final Logger LOG = LoggerFactory.getLogger(AuthService.class);
+
+	/** Valor de {@code usuarioId} en el log cuando el correo del login fallido no existe. */
+	static final String USUARIO_INEXISTENTE = "inexistente";
 
 	private final AuthenticationManager gestorAutenticacion;
 
@@ -43,22 +52,47 @@ public class AuthService {
 		this.reloj = reloj;
 	}
 
+	/** @param ip dirección del cliente, solo para el log de intentos fallidos */
 	@Transactional
-	public SesionEmitida iniciarSesion(LoginRequest solicitud) {
-		Authentication autenticacion = gestorAutenticacion.authenticate(UsernamePasswordAuthenticationToken
-			.unauthenticated(Correo.normalizar(solicitud.correo()), solicitud.contrasena()));
+	public SesionEmitida iniciarSesion(LoginRequest solicitud, String ip) {
+		Authentication autenticacion = autenticar(Correo.normalizar(solicitud.correo()), solicitud.contrasena(), ip);
 		Usuario usuario = usuarios.findByCorreo(autenticacion.getName())
 			.orElseThrow(() -> new BadCredentialsException("Credenciales inválidas"));
-		return emitirTokens(usuario);
+		SesionEmitida sesion = emitirTokens(usuario);
+		LOG.info("Inicio de sesión exitoso usuarioId={}", usuario.getId());
+		return sesion;
 	}
 
 	@Transactional(noRollbackFor = TokenRefrescoInvalidoException.class)
 	public SesionEmitida refrescar(String tokenRefresco) {
-		return emitirTokens(tokensRefresco.consumir(tokenRefresco));
+		Usuario usuario = tokensRefresco.consumir(tokenRefresco);
+		SesionEmitida sesion = emitirTokens(usuario);
+		LOG.info("Token renovado usuarioId={}", usuario.getId());
+		return sesion;
 	}
 
 	public void cerrarSesion(String tokenRefresco) {
 		tokensRefresco.revocar(tokenRefresco);
+	}
+
+	/** Registra los intentos fallidos con el id del usuario (nunca el correo ni la contraseña) y relanza. */
+	private Authentication autenticar(String correo, String contrasena, String ip) {
+		try {
+			return gestorAutenticacion
+				.authenticate(UsernamePasswordAuthenticationToken.unauthenticated(correo, contrasena));
+		}
+		catch (DisabledException ex) {
+			LOG.info("Inicio de sesión rechazado: usuario inactivo usuarioId={} ip={}", idParaLog(correo), ip);
+			throw ex;
+		}
+		catch (AuthenticationException ex) {
+			LOG.info("Inicio de sesión fallido usuarioId={} ip={}", idParaLog(correo), ip);
+			throw ex;
+		}
+	}
+
+	private String idParaLog(String correo) {
+		return usuarios.findByCorreo(correo).map(usuario -> usuario.getId().toString()).orElse(USUARIO_INEXISTENTE);
 	}
 
 	private SesionEmitida emitirTokens(Usuario usuario) {

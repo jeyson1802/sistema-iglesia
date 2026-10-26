@@ -1,5 +1,6 @@
 package com.iglesia.seguridad.auth.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -70,8 +71,10 @@ public class AuthController {
 	@ApiResponse(responseCode = "401", description = "Credenciales inválidas o usuario inactivo.",
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
 					schema = @Schema(implementation = ProblemDetailEsquema.class)))
-	ResponseEntity<TokenAccesoResponse> iniciarSesion(@Valid @RequestBody LoginRequest solicitud) {
-		return responder(servicio.iniciarSesion(solicitud));
+	ResponseEntity<TokenAccesoResponse> iniciarSesion(@Valid @RequestBody LoginRequest solicitud,
+			HttpServletRequest peticion) {
+		// getRemoteAddr ya es la IP real del cliente gracias a server.forward-headers-strategy=framework.
+		return responder(servicio.iniciarSesion(solicitud, peticion.getRemoteAddr()));
 	}
 
 	/** Sin cookie o con un token inválido responde 401 y borra la cookie (ver {@link ManejadorErroresAuth}). */
