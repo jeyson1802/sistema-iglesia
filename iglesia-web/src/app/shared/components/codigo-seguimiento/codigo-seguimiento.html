@@ -1,0 +1,7 @@
+<span class="text-sm">Código de seguimiento:</span>
+<code class="font-mono text-sm font-semibold select-all break-all">{{ codigo() }}</code>
+<p-button [label]="copiado() ? 'Copiado' : 'Copiar'" [icon]="copiado() ? 'pi pi-check' : 'pi pi-copy'" [text]="true" size="small" severity="secondary" ariaLabel="Copiar código de seguimiento" (onClick)="copiar()" />
+<span class="sr-only" aria-live="polite">{{ anuncio() }}</span>
+@if (estado() === 'fallido') {
+<span class="text-sm" aria-hidden="true">No se pudo copiar; selecciona el código.</span>
+}
