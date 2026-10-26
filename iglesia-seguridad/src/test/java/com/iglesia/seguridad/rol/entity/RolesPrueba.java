@@ -42,6 +42,11 @@ public final class RolesPrueba {
 		return rol;
 	}
 
+	public static Rol desactivado(Rol rol) {
+		ReflectionTestUtils.setField(rol, "activo", false);
+		return rol;
+	}
+
 	public static Permiso permiso(String codigo) {
 		Permiso permiso = new Permiso();
 		ReflectionTestUtils.setField(permiso, "codigo", codigo);

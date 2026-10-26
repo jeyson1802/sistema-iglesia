@@ -5,6 +5,7 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -22,6 +23,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import com.iglesia.seguridad.common.error.exception.ReglaNegocioException;
+import com.iglesia.seguridad.rol.entity.Permiso;
 import com.iglesia.seguridad.rol.entity.Rol;
 import com.iglesia.seguridad.rol.model.RolBase;
 import com.iglesia.seguridad.usuario.model.Correo;
@@ -161,6 +163,23 @@ public class Usuario {
 	/** Roles base efectivos de sus roles, sin repetir. */
 	public Set<RolBase> getRolesBase() {
 		return rolesBase(roles);
+	}
+
+	/** Roles base efectivos de sus roles activos: los que viajan en el claim {@code roles}. */
+	public Set<RolBase> getRolesBaseActivos() {
+		return rolesBase(rolesActivos());
+	}
+
+	/** Unión de los permisos de sus roles activos. Un rol desactivado sigue asignado pero no aporta nada. */
+	public Set<String> getPermisosActivos() {
+		return rolesActivos().stream()
+			.flatMap(rol -> rol.getPermisos().stream())
+			.map(Permiso::getCodigo)
+			.collect(Collectors.toSet());
+	}
+
+	private Set<Rol> rolesActivos() {
+		return roles.stream().filter(Rol::isActivo).collect(Collectors.toSet());
 	}
 
 	public Instant getCreadoEn() {

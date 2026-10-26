@@ -21,7 +21,8 @@ import com.iglesia.seguridad.usuario.entity.Usuario;
 
 /**
  * Emite el token de acceso (JWT RS256). El {@code sub} es el id del usuario; los datos personales
- * no viajan en el token. Incluye roles, iglesia (tenant) y miembro vinculado cuando existen.
+ * no viajan en el token. Incluye los roles base y los permisos de sus roles activos, la iglesia (tenant)
+ * y el miembro vinculado cuando existen. La autorización se decide por permiso, nunca por rol.
  */
 @Component
 public class GeneradorTokenAcceso {
@@ -44,7 +45,8 @@ public class GeneradorTokenAcceso {
 	public TokenAcceso generar(Usuario usuario) {
 		Instant ahora = reloj.instant();
 		Instant expiraEn = ahora.plus(propiedades.duracionTokenAcceso());
-		List<String> roles = usuario.getRolesBase().stream().map(Enum::name).sorted().toList();
+		List<String> roles = usuario.getRolesBaseActivos().stream().map(Enum::name).sorted().toList();
+		List<String> permisos = usuario.getPermisosActivos().stream().sorted().toList();
 
 		JwtClaimsSet.Builder claims = JwtClaimsSet.builder()
 			.id(UUID.randomUUID().toString())
@@ -53,7 +55,8 @@ public class GeneradorTokenAcceso {
 			.subject(usuario.getId().toString())
 			.issuedAt(ahora)
 			.expiresAt(expiraEn)
-			.claim(ClaimsJwt.ROLES, roles);
+			.claim(ClaimsJwt.ROLES, roles)
+			.claim(ClaimsJwt.PERMISOS, permisos);
 		if (usuario.getIglesiaId() != null) {
 			claims.claim(ClaimsJwt.IGLESIA_ID, usuario.getIglesiaId());
 		}

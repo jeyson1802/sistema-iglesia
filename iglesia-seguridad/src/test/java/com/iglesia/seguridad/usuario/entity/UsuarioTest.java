@@ -72,6 +72,19 @@ class UsuarioTest {
 	}
 
 	@Test
+	void unRolDesactivadoNoAportaPermisosNiRolBase() {
+		Rol secretaria = RolesPrueba.personalizado(10L, 1L, "Secretaría", RolBase.ADMIN_IGLESIA, "miembros.ver",
+				"miembros.crear");
+		Rol tesoreria = RolesPrueba
+			.desactivado(RolesPrueba.personalizado(11L, 1L, "Tesorería", RolBase.LIDER, "usuarios.ver"));
+		Usuario usuario = Usuario.nuevo("a@b.com", HASH, 1L, 10L, Set.of(secretaria, tesoreria));
+
+		assertThat(usuario.getRolesBaseActivos()).containsExactly(RolBase.ADMIN_IGLESIA);
+		assertThat(usuario.getPermisosActivos()).containsExactlyInAnyOrder("miembros.ver", "miembros.crear");
+		assertThat(usuario.getRolesBase()).containsExactly(RolBase.ADMIN_IGLESIA, RolBase.LIDER);
+	}
+
+	@Test
 	void requiereAlMenosUnRol() {
 		assertThatThrownBy(() -> Usuario.nuevo("a@b.com", HASH, 1L, null, Set.of()))
 			.isInstanceOf(ReglaNegocioException.class);

@@ -10,10 +10,12 @@ import com.iglesia.seguridad.jwt.constant.ClaimsJwt;
 import com.iglesia.seguridad.rol.model.RolBase;
 
 /** Datos del usuario que hace la petición, tomados del JWT ya validado. */
-public record UsuarioAutenticado(Long usuarioId, Long iglesiaId, Long miembroId, Set<RolBase> roles) {
+public record UsuarioAutenticado(Long usuarioId, Long iglesiaId, Long miembroId, Set<RolBase> roles,
+		Set<String> permisos) {
 
 	public UsuarioAutenticado {
 		roles = Set.copyOf(roles);
+		permisos = Set.copyOf(permisos);
 	}
 
 	public static UsuarioAutenticado desde(Jwt jwt) {
@@ -23,11 +25,16 @@ public record UsuarioAutenticado(Long usuarioId, Long iglesiaId, Long miembroId,
 			roles.stream().map(RolBase::valueOf).forEach(rolesUsuario::add);
 		}
 		return new UsuarioAutenticado(Long.valueOf(jwt.getSubject()), comoLong(jwt.getClaim(ClaimsJwt.IGLESIA_ID)),
-				comoLong(jwt.getClaim(ClaimsJwt.MIEMBRO_ID)), rolesUsuario);
+				comoLong(jwt.getClaim(ClaimsJwt.MIEMBRO_ID)), rolesUsuario,
+				comoConjunto(jwt.getClaimAsStringList(ClaimsJwt.PERMISOS)));
 	}
 
 	public boolean tieneRol(RolBase rol) {
 		return roles.contains(rol);
+	}
+
+	private static Set<String> comoConjunto(Collection<String> valores) {
+		return valores == null ? Set.of() : Set.copyOf(valores);
 	}
 
 	private static Long comoLong(Object valor) {

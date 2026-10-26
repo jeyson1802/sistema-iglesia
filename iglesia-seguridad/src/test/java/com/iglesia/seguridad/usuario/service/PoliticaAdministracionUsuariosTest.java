@@ -14,12 +14,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class PoliticaAdministracionUsuariosTest {
 
 	private static final UsuarioAutenticado ADMIN_SISTEMA = new UsuarioAutenticado(1L, null, null,
-			Set.of(RolBase.ADMIN_SISTEMA));
+			Set.of(RolBase.ADMIN_SISTEMA), Set.of());
 
 	private static final UsuarioAutenticado ADMIN_IGLESIA_1 = new UsuarioAutenticado(2L, 1L, null,
-			Set.of(RolBase.ADMIN_IGLESIA));
+			Set.of(RolBase.ADMIN_IGLESIA), Set.of());
 
-	private static final UsuarioAutenticado LIDER = new UsuarioAutenticado(3L, 1L, 5L, Set.of(RolBase.LIDER));
+	private static final UsuarioAutenticado LIDER = new UsuarioAutenticado(3L, 1L, 5L, Set.of(RolBase.LIDER), Set.of());
 
 	private final PoliticaAdministracionUsuarios politica = new PoliticaAdministracionUsuarios();
 

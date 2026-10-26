@@ -28,6 +28,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.server.resource.authentication.DelegatingJwtGrantedAuthoritiesConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 
@@ -38,6 +39,8 @@ import com.iglesia.seguridad.jwt.constant.ClaimsJwt;
 class JwtConfig {
 
 	private static final String PREFIJO_ROL = "ROLE_";
+
+	private static final String SIN_PREFIJO = "";
 
 	@Bean
 	RSAKey claveRsa(JwtProperties propiedades) {
@@ -79,14 +82,20 @@ class JwtConfig {
 		return decodificador;
 	}
 
+	/** Autoridades del JWT: {@code roles} como {@code ROLE_<rol>} y {@code permisos} tal cual, sin prefijo. */
 	@Bean
 	JwtAuthenticationConverter convertidorAutenticacionJwt() {
-		JwtGrantedAuthoritiesConverter autoridades = new JwtGrantedAuthoritiesConverter();
-		autoridades.setAuthoritiesClaimName(ClaimsJwt.ROLES);
-		autoridades.setAuthorityPrefix(PREFIJO_ROL);
 		JwtAuthenticationConverter convertidor = new JwtAuthenticationConverter();
-		convertidor.setJwtGrantedAuthoritiesConverter(autoridades);
+		convertidor.setJwtGrantedAuthoritiesConverter(new DelegatingJwtGrantedAuthoritiesConverter(
+				autoridadesDesde(ClaimsJwt.ROLES, PREFIJO_ROL), autoridadesDesde(ClaimsJwt.PERMISOS, SIN_PREFIJO)));
 		return convertidor;
+	}
+
+	private static JwtGrantedAuthoritiesConverter autoridadesDesde(String claim, String prefijo) {
+		JwtGrantedAuthoritiesConverter autoridades = new JwtGrantedAuthoritiesConverter();
+		autoridades.setAuthoritiesClaimName(claim);
+		autoridades.setAuthorityPrefix(prefijo);
+		return autoridades;
 	}
 
 	private static <T> T leer(Resource recurso, Function<InputStream, T> convertidor) {

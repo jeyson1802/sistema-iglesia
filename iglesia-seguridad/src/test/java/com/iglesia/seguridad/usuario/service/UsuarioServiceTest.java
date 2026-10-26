@@ -41,7 +41,7 @@ import static org.mockito.Mockito.never;
 class UsuarioServiceTest {
 
 	private static final UsuarioAutenticado ADMIN_IGLESIA_1 = new UsuarioAutenticado(2L, 1L, null,
-			Set.of(RolBase.ADMIN_IGLESIA));
+			Set.of(RolBase.ADMIN_IGLESIA), Set.of());
 
 	@Mock
 	private UsuarioRepository usuarios;

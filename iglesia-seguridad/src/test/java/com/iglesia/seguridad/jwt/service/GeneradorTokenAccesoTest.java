@@ -22,6 +22,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.iglesia.seguridad.jwt.config.JwtProperties;
 import com.iglesia.seguridad.jwt.constant.ClaimsJwt;
 import com.iglesia.seguridad.jwt.model.TokenAcceso;
+import com.iglesia.seguridad.rol.entity.Rol;
 import com.iglesia.seguridad.rol.entity.RolesPrueba;
 import com.iglesia.seguridad.rol.model.RolBase;
 import com.iglesia.seguridad.usuario.entity.Usuario;
@@ -66,6 +67,32 @@ class GeneradorTokenAccesoTest {
 	}
 
 	@Test
+	void llevaLosRolesBaseSinRepetirYLaUnionOrdenadaDeLosPermisosDeLosRolesActivos() throws Exception {
+		Rol secretaria = RolesPrueba.personalizado(10L, 3L, "Secretaría", RolBase.ADMIN_IGLESIA, "miembros.ver",
+				"miembros.crear");
+		Rol consejo = RolesPrueba.personalizado(11L, 3L, "Consejo", RolBase.ADMIN_IGLESIA, "miembros.ver",
+				"usuarios.ver");
+		Rol tesoreria = RolesPrueba.desactivado(
+				RolesPrueba.personalizado(12L, 3L, "Tesorería", RolBase.LIDER, "roles.ver"));
+		Usuario usuario = Usuario.nuevo("s@i.com", "h", 3L, 9L, Set.of(secretaria, consejo, tesoreria));
+		ReflectionTestUtils.setField(usuario, "id", 43L);
+
+		Jwt jwt = decodificar(generador.generar(usuario));
+
+		assertThat(jwt.getClaimAsStringList(ClaimsJwt.ROLES)).containsExactly("ADMIN_IGLESIA");
+		assertThat(jwt.getClaimAsStringList(ClaimsJwt.PERMISOS)).containsExactly("miembros.crear", "miembros.ver",
+				"usuarios.ver");
+	}
+
+	@Test
+	void unRolBaseSinPermisosEmiteLaListaDePermisosVacia() throws Exception {
+		Usuario miembro = Usuario.nuevo("m@i.com", "h", 3L, 9L, RolesPrueba.bases(RolBase.MIEMBRO));
+		ReflectionTestUtils.setField(miembro, "id", 44L);
+
+		assertThat(decodificar(generador.generar(miembro)).getClaimAsStringList(ClaimsJwt.PERMISOS)).isEmpty();
+	}
+
+	@Test
 	void elAdministradorDelSistemaNoLlevaIglesia() throws Exception {
 		Usuario admin = Usuario.nuevo("a@i.com", "h", null, null, RolesPrueba.bases(RolBase.ADMIN_SISTEMA));
 		ReflectionTestUtils.setField(admin, "id", 1L);
@@ -76,6 +103,10 @@ class GeneradorTokenAccesoTest {
 
 		assertThat(jwt.hasClaim(ClaimsJwt.IGLESIA_ID)).isFalse();
 		assertThat(jwt.hasClaim(ClaimsJwt.MIEMBRO_ID)).isFalse();
+	}
+
+	private Jwt decodificar(TokenAcceso token) throws Exception {
+		return NimbusJwtDecoder.withPublicKey(clave.toRSAPublicKey()).build().decode(token.valor());
 	}
 
 }
