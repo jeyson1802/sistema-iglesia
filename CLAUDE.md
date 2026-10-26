@@ -133,7 +133,7 @@ Todo el código, tanto de los backends como del frontend, debe aplicar **siempre
 ### Stack
 - Spring Boot: última versión estable al momento de crear el proyecto (verificarla en https://spring.io/projects/spring-boot).
 - Java: la versión LTS compatible con esa versión de Spring Boot.
-- **Gradle** (Kotlin DSL, con Gradle Wrapper). No usar Maven.
+- **Gradle** con **Groovy DSL** (`build.gradle` y `settings.gradle`) y Gradle Wrapper. No usar Kotlin DSL (`.gradle.kts`) ni Maven.
 - PostgreSQL. Migraciones de esquema versionadas con Flyway.
 - Pruebas unitarias con JUnit 5 + Mockito; pruebas de integración con Testcontainers (PostgreSQL).
 

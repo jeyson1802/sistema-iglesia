@@ -82,12 +82,12 @@ springdoc.swagger-ui.enabled=true
 springdoc.swagger-ui.path=/swagger-ui.html
 ```
 
-```kotlin
-// build.gradle.kts
-implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:<3.x compatible con Boot 4.1>")
-implementation("io.micrometer:micrometer-tracing-bridge-otel")
-tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
-    systemProperty("spring.profiles.active", "local")
+```groovy
+// build.gradle
+implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:<3.x compatible con Boot 4.1>'
+implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+tasks.named('bootRun') {
+    systemProperty 'spring.profiles.active', 'local'
 }
 ```
 
@@ -267,6 +267,8 @@ Cada paso deja el sistema compilando y con sus pruebas en verde. Los pasos 1 a 7
 - **Sí:** interceptor global con toast solo para 5xx y errores de red. Los 4xx ya los manejan las páginas con mensajes junto al campo; un toast global duplicaría los mensajes.
 - **Sí:** `ProveedorTraceId` como componente inyectable, para que las fábricas y los filtros se prueben sin depender del tracer real.
 - **Sí:** cambio en `app.component.ts` y `app.config.ts`. No pertenecen a `layout/`, así que no rompen la regla de no tocar el shell.
+
+- **Sí (cambio de alcance autorizado durante la implementación):** migrar `build.gradle.kts` y `settings.gradle.kts` de ambos backends a Groovy DSL (`build.gradle`, `settings.gradle`), por la nueva regla general de `CLAUDE.md`. Se hizo después del paso 1 y antes del paso 2 para no duplicar trabajo; es una conversión mecánica, sin cambiar dependencias ni versiones.
 
 ## Riesgos
 
