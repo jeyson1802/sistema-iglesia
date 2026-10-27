@@ -43,7 +43,7 @@
             <p-avatar icon="pi pi-user" shape="circle" aria-hidden="true" />
             <span class="hidden md:flex flex-col items-start leading-tight text-left">
                 <span class="text-sm font-medium text-surface-900 dark:text-surface-0">{{ correo() }}</span>
-                <span class="text-xs text-muted-color">{{ etiquetaPerfil() }}</span>
+                <span class="text-xs text-muted-color">{{ nombrePerfil() }}</span>
             </span>
             <i class="pi pi-chevron-down text-xs text-muted-color hidden md:inline" aria-hidden="true"></i>
         </button>
@@ -51,7 +51,7 @@
             <ng-template #start>
                 <div class="px-3 py-2 border-b border-surface md:hidden">
                     <div class="text-sm font-medium text-surface-900 dark:text-surface-0 break-all">{{ correo() }}</div>
-                    <div class="text-xs text-muted-color">{{ etiquetaPerfil() }}</div>
+                    <div class="text-xs text-muted-color">{{ nombrePerfil() }}</div>
                 </div>
             </ng-template>
         </p-menu>

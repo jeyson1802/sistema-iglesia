@@ -5,20 +5,22 @@ import { of } from 'rxjs';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
 import { AppConfigurator } from './app.configurator';
 import { AppTopbar } from './app.topbar';
-import { perfilBase } from '@/app/core/auth/testing/perfiles-prueba';
+import { perfilBase, perfilPersonalizado } from '@/app/core/auth/testing/perfiles-prueba';
 import { Perfil } from '@/app/core/auth/models/perfil';
 
 describe('AppTopbar', () => {
     const tieneVariosPerfiles = signal(false);
+    const perfilActivo = signal<Perfil | null>(null);
     let sesion: jasmine.SpyObj<SesionService>;
     let navegar: jasmine.Spy;
     let fixture: ComponentFixture<AppTopbar>;
 
     beforeEach(async () => {
         tieneVariosPerfiles.set(false);
+        perfilActivo.set(perfilBase('LIDER'));
         sesion = jasmine.createSpyObj<SesionService>('SesionService', ['cerrarSesion'], {
             usuarioActual: signal({ id: 1, correo: 'lider@iglesia.test', iglesiaId: 1, miembroId: 2, perfiles: [perfilBase('LIDER'), perfilBase('MIEMBRO')] }),
-            perfilActivo: signal<Perfil | null>(perfilBase('LIDER')),
+            perfilActivo,
             tieneVariosPerfiles
         });
         sesion.cerrarSesion.and.returnValue(of(undefined));
@@ -45,11 +47,20 @@ describe('AppTopbar', () => {
         expect(html().querySelector('svg[viewBox="0 0 54 40"]')).toBeNull();
     });
 
-    it('muestra el correo y la etiqueta del perfil activo', () => {
+    it('muestra el correo y el nombre del perfil activo', () => {
         const boton = html().querySelector('#boton-menu-usuario')!;
 
         expect(boton.textContent).toContain('lider@iglesia.test');
         expect(boton.textContent).toContain('Líder');
+    });
+
+    it('con un perfil personalizado muestra su nombre, no el del rol base', async () => {
+        perfilActivo.set(perfilPersonalizado(10, 'Secretaría', 'ADMIN_IGLESIA', ['miembros.ver']));
+        await fixture.whenStable();
+        const boton = html().querySelector('#boton-menu-usuario')!;
+
+        expect(boton.textContent).toContain('Secretaría');
+        expect(boton.textContent).not.toContain('Administrador de iglesia');
     });
 
     it('ya no muestra los botones demo de calendario, mensajes y perfil', () => {

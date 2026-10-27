@@ -6,7 +6,7 @@
     </header>
 
     <ul class="flex flex-col gap-4 md:w-120 mx-auto" aria-label="Perfiles disponibles">
-        @for (opcion of opciones(); track opcion.rol) {
+        @for (opcion of opciones(); track opcion.id) {
             <li>
                 <button
                     type="button"
@@ -14,14 +14,14 @@
                     [class.border-primary]="opcion.activo"
                     [class.border-surface]="!opcion.activo"
                     [attr.aria-current]="opcion.activo ? 'true' : null"
-                    (click)="seleccionar(opcion.rol)"
+                    (click)="seleccionar(opcion.id)"
                 >
                     <span class="flex items-center justify-center w-12 h-12 shrink-0 rounded-full bg-primary-50 dark:bg-primary-400/10 text-primary">
                         <i class="text-xl" [class]="opcion.icono" aria-hidden="true"></i>
                     </span>
                     <span class="flex flex-col gap-1 grow">
-                        <span class="text-surface-900 dark:text-surface-0 text-lg font-medium">{{ opcion.etiqueta }}</span>
-                        <span class="text-muted-color text-sm">{{ opcion.descripcion }}</span>
+                        <span class="text-surface-900 dark:text-surface-0 text-lg font-medium">{{ opcion.titulo }}</span>
+                        <span class="text-muted-color text-sm">{{ opcion.subtitulo }}</span>
                     </span>
                     @if (opcion.activo) {
                         <p-tag value="Actual" severity="info" />

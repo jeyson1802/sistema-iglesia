@@ -5,6 +5,7 @@ import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { LogoIglesiaComponent } from '@/app/shared/components/logo-iglesia/logo-iglesia';
 import { TarjetaAccesoComponent } from '../components/tarjeta-acceso/tarjeta-acceso';
+import { Perfil } from '../models/perfil';
 import { ETIQUETA_ROL, ICONO_ROL, Rol } from '../models/rol';
 import { RUTAS_AUTH } from '../models/rutas-auth';
 import { SesionService } from '../services/sesion.service';
@@ -17,14 +18,29 @@ const DESCRIPCION_POR_ROL: Record<Rol, string> = {
 };
 
 interface OpcionPerfil {
-    readonly rol: Rol;
-    readonly etiqueta: string;
-    readonly descripcion: string;
+    readonly id: number;
+    readonly titulo: string;
+    readonly subtitulo: string;
     readonly icono: string;
     readonly activo: boolean;
 }
 
-/** Permite al usuario con varios roles elegir con qué perfil navegar. */
+/**
+ * Un rol base se llama igual que su etiqueta (así lo siembra Flyway). En un perfil personalizado, el subtítulo es el
+ * rol base del que hereda («Secretaría» → «Administrador de iglesia»); en uno base, la descripción de lo que permite.
+ */
+function aOpcion(perfil: Perfil, activo: Perfil | null): OpcionPerfil {
+    const etiquetaRolBase = ETIQUETA_ROL[perfil.rolBase];
+    return {
+        id: perfil.id,
+        titulo: perfil.nombre,
+        subtitulo: perfil.nombre === etiquetaRolBase ? DESCRIPCION_POR_ROL[perfil.rolBase] : etiquetaRolBase,
+        icono: ICONO_ROL[perfil.rolBase],
+        activo: perfil.id === activo?.id
+    };
+}
+
+/** Permite al usuario con varios perfiles elegir con cuál navegar. */
 @Component({
     selector: 'app-seleccionar-perfil',
     imports: [ButtonModule, TagModule, LogoIglesiaComponent, TarjetaAccesoComponent],
@@ -35,24 +51,16 @@ export class SeleccionarPerfilComponent {
     private readonly sesion = inject(SesionService);
     private readonly router = inject(Router);
 
-    /** Los perfiles ya llegan ordenados por jerarquía. Puente temporal (SPEC 02, paso 11): una opción por rol base. */
-    protected readonly opciones = computed<readonly OpcionPerfil[]>(() =>
-        [...new Set((this.sesion.usuarioActual()?.perfiles ?? []).map((perfil) => perfil.rolBase))].map((rol) => ({
-            rol,
-            etiqueta: ETIQUETA_ROL[rol],
-            descripcion: DESCRIPCION_POR_ROL[rol],
-            icono: ICONO_ROL[rol],
-            activo: rol === this.sesion.perfilActivo()?.rolBase
-        }))
-    );
+    /** Los perfiles ya llegan ordenados por la jerarquía de su rol base y luego por nombre. */
+    protected readonly opciones = computed<readonly OpcionPerfil[]>(() => {
+        const activo = this.sesion.perfilActivo();
+        return (this.sesion.usuarioActual()?.perfiles ?? []).map((perfil) => aOpcion(perfil, activo));
+    });
 
     protected readonly saliendo = signal(false);
 
-    protected seleccionar(rol: Rol): void {
-        const perfil = this.sesion.usuarioActual()?.perfiles.find((candidato) => candidato.rolBase === rol);
-        if (perfil) {
-            this.sesion.seleccionarPerfil(perfil.id);
-        }
+    protected seleccionar(id: number): void {
+        this.sesion.seleccionarPerfil(id);
         void this.router.navigateByUrl(this.sesion.rutaInicio());
     }
 

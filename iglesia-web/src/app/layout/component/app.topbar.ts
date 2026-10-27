@@ -4,7 +4,6 @@ import { MenuItem } from 'primeng/api';
 import { AvatarModule } from 'primeng/avatar';
 import { MenuModule } from 'primeng/menu';
 import { StyleClassModule } from 'primeng/styleclass';
-import { ETIQUETA_ROL } from '@/app/core/auth/models/rol';
 import { RUTAS_AUTH } from '@/app/core/auth/models/rutas-auth';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
 import { LayoutService } from '@/app/layout/service/layout.service';
@@ -26,13 +25,10 @@ export class AppTopbar {
     readonly layoutService = inject(LayoutService);
 
     protected readonly correo = computed(() => this.sesion.usuarioActual()?.correo ?? '');
-    protected readonly etiquetaPerfil = computed(() => {
-        const perfil = this.sesion.perfilActivo();
-        // Puente temporal (SPEC 02, paso 11): etiqueta del rol base en lugar del nombre del perfil.
-        return perfil ? ETIQUETA_ROL[perfil.rolBase] : '';
-    });
+    /** Nombre del perfil activo: el del rol personalizado («Secretaría») o el del rol base. */
+    protected readonly nombrePerfil = computed(() => this.sesion.perfilActivo()?.nombre ?? '');
 
-    /** Opciones del menú de usuario; «Cambiar perfil» solo tiene sentido con más de un rol. */
+    /** Opciones del menú de usuario; «Cambiar perfil» solo tiene sentido con más de un perfil. */
     protected readonly opcionesUsuario = computed<MenuItem[]>(() => [
         ...(this.sesion.tieneVariosPerfiles() ? [{ label: 'Cambiar perfil', icon: 'pi pi-users', routerLink: RUTAS_AUTH.seleccionarPerfil }] : []),
         { label: 'Cambiar contraseña', icon: 'pi pi-key', routerLink: RUTA_CAMBIAR_CONTRASENA },

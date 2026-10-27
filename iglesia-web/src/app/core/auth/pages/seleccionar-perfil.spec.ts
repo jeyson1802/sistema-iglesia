@@ -6,7 +6,7 @@ import { TarjetaAccesoComponent } from '../components/tarjeta-acceso/tarjeta-acc
 import { Rol } from '../models/rol';
 import { UsuarioActual } from '../models/usuario-actual';
 import { SesionService } from '../services/sesion.service';
-import { perfilBase, usuarioCon } from '../testing/perfiles-prueba';
+import { perfilBase, perfilPersonalizado, usuarioCon } from '../testing/perfiles-prueba';
 import { SIN_CONFIGURADOR_DE_TEMA } from '../testing/sin-configurador-de-tema';
 import { SeleccionarPerfilComponent } from './seleccionar-perfil';
 import { Perfil } from '@/app/core/auth/models/perfil';
@@ -18,9 +18,11 @@ describe('SeleccionarPerfilComponent', () => {
     let navegar: jasmine.Spy;
     let fixture: ComponentFixture<SeleccionarPerfilComponent>;
 
-    const crear = async (roles: Rol[], perfil: Rol | null = null): Promise<void> => {
-        usuarioActual.set(usuarioCon(...roles));
-        perfilActivo.set(perfil ? perfilBase(perfil) : null);
+    const secretaria = perfilPersonalizado(10, 'Secretaría', 'ADMIN_IGLESIA', ['miembros.ver', 'miembros.crear']);
+
+    const crear = async (perfiles: (Rol | Perfil)[], perfil: Rol | Perfil | null = null): Promise<void> => {
+        usuarioActual.set(usuarioCon(...perfiles));
+        perfilActivo.set(typeof perfil === 'string' ? perfilBase(perfil) : perfil);
         sesion = jasmine.createSpyObj<SesionService>('SesionService', ['seleccionarPerfil', 'rutaInicio', 'cerrarSesion'], { usuarioActual, perfilActivo });
         await TestBed.configureTestingModule({ imports: [SeleccionarPerfilComponent], providers: [provideRouter([]), { provide: SesionService, useValue: sesion }] })
             .overrideComponent(TarjetaAccesoComponent, SIN_CONFIGURADOR_DE_TEMA)
@@ -32,12 +34,46 @@ describe('SeleccionarPerfilComponent', () => {
 
     const opciones = (): HTMLButtonElement[] => Array.from(fixture.nativeElement.querySelectorAll('ul button'));
 
-    it('muestra una opción por cada rol del usuario con su etiqueta', async () => {
+    it('muestra una opción por cada perfil del usuario con su nombre', async () => {
         await crear(['LIDER', 'MIEMBRO']);
 
         expect(opciones().length).toBe(2);
         expect(opciones()[0].textContent).toContain('Líder');
         expect(opciones()[1].textContent).toContain('Miembro');
+    });
+
+    it('un perfil base lleva como subtítulo la descripción de lo que permite', async () => {
+        await crear(['LIDER', 'MIEMBRO']);
+
+        expect(opciones()[1].textContent).toContain('Consulta tu información personal');
+    });
+
+    it('un perfil personalizado lleva su nombre como título y su rol base como subtítulo', async () => {
+        await crear([secretaria, 'MIEMBRO']);
+
+        expect(opciones().length).toBe(2);
+        expect(opciones()[0].textContent).toContain('Secretaría');
+        expect(opciones()[0].textContent).toContain('Administrador de iglesia');
+        expect(opciones()[0].querySelector('i.pi-building-columns')).not.toBeNull();
+        expect(opciones()[1].textContent).toContain('Miembro');
+    });
+
+    it('dos perfiles con el mismo rol base son dos opciones distintas', async () => {
+        const tesoreria = perfilPersonalizado(11, 'Tesorería', 'ADMIN_IGLESIA', ['usuarios.ver']);
+        await crear([secretaria, tesoreria]);
+
+        expect(opciones().map((opcion) => opcion.querySelector('.text-lg')?.textContent?.trim())).toEqual(['Secretaría', 'Tesorería']);
+
+        opciones()[1].click();
+
+        expect(sesion.seleccionarPerfil).toHaveBeenCalledOnceWith(11);
+    });
+
+    it('marca como actual solo el perfil personalizado activo', async () => {
+        await crear([secretaria, 'ADMIN_IGLESIA'], secretaria);
+
+        expect(opciones()[0].getAttribute('aria-current')).toBe('true');
+        expect(opciones()[1].hasAttribute('aria-current')).toBeFalse();
     });
 
     it('al elegir un perfil lo guarda y navega a su página de inicio', async () => {
