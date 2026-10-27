@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "2c771399-0972-5ae1-a1fa-b410bacccc7f",
     "name": "iglesia-seguridad",
-    "description": "Backend de seguridad del Sistema Iglesia: autenticación con JWT (RS256), token de refresco en cookie HttpOnly con rotación, cuenta del usuario y administración de usuarios.\n\n**Uso:** selecciona el entorno «Sistema Iglesia - local», completa `correo` y `contrasena` con un usuario de tu base local y ejecuta «1. Autenticación → Iniciar sesión». El token de acceso queda en `{{tokenAcceso}}` y se usa en el resto de la colección.\n\n**Trazabilidad:** la colección verifica en cada respuesta la cabecera `X-Trace-Id`. Ante un error, busca ese valor en los logs del backend para ver la petición completa.",
+    "description": "Backend de seguridad del Sistema Iglesia: autenticación con JWT (RS256), token de refresco en cookie HttpOnly con rotación, cuenta del usuario, administración de usuarios y roles de acceso con permisos granulares.\n\n**Uso:** selecciona el entorno «Sistema Iglesia - local», completa `correo` y `contrasena` con un usuario `ADMIN_IGLESIA` de tu base local y ejecuta «1. Autenticación → Iniciar sesión». El token de acceso queda en `{{tokenAcceso}}` y se usa en el resto de la colección. Con `ADMIN_SISTEMA` la carpeta de roles responde 403 al crear y editar (no pertenece a ninguna iglesia).\n\n**Autorización:** cada endpoint exige un permiso (`usuarios.ver`, `usuarios.administrar`, `roles.ver`, `roles.administrar`), que viaja en el claim `permisos` del JWT. Un cambio de roles o permisos llega al token en el siguiente refresco.\n\n**Trazabilidad:** la colección verifica en cada respuesta la cabecera `X-Trace-Id`. Ante un error, busca ese valor en los logs del backend para ver la petición completa.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -116,44 +116,6 @@
               }
             }
           ]
-        },
-        {
-          "name": "Cerrar sesión",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Cookie",
-                "value": "iglesia_refresco={{tokenRefresco}}",
-                "description": "Token de refresco guardado por «Iniciar sesión» o «Refrescar token»."
-              }
-            ],
-            "url": {
-              "raw": "{{seguridadUrl}}/api/auth/logout",
-              "host": [
-                "{{seguridadUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "logout"
-              ]
-            },
-            "description": "Sin cuerpo: revoca el token de la cookie (si llega) y siempre responde 204 con la cookie borrada (`Max-Age=0`)."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Responde 204', () => pm.response.to.have.status(204));",
-                  "pm.environment.unset('tokenAcceso');",
-                  "pm.environment.unset('tokenRefresco');"
-                ]
-              }
-            }
-          ]
         }
       ]
     },
@@ -177,7 +139,7 @@
                 "me"
               ]
             },
-            "description": "Datos del usuario autenticado: correo, iglesia, miembro y roles. El frontend lo usa para armar la sesión y el selector de perfil."
+            "description": "Datos del usuario autenticado con sus `perfiles`: uno por cada rol activo, con `id`, `nombre`, `rolBase` y `permisos`. El frontend lo usa para el selector de perfil, el menú y los guards. Guarda `{{iglesiaId}}` para crear usuarios en la misma iglesia."
           },
           "event": [
             {
@@ -186,52 +148,16 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Responde 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Incluye los roles', () => pm.expect(pm.response.json().roles).to.be.an('array'));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Cambiar mi contraseña",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{seguridadUrl}}/api/usuarios/me/contrasena",
-              "host": [
-                "{{seguridadUrl}}"
-              ],
-              "path": [
-                "api",
-                "usuarios",
-                "me",
-                "contrasena"
-              ]
-            },
-            "description": "Cambia la contraseña (8 a 72 caracteres) si la actual es correcta. **Revoca todas las sesiones** del usuario: después hay que iniciar sesión de nuevo. Contraseña actual incorrecta: 400 con `detail` = «La contraseña actual no es correcta».",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"contrasenaActual\": \"{{contrasena}}\",\n  \"contrasenaNueva\": \"NuevaClave123\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Responde 204', () => pm.response.to.have.status(204));"
+                  "const yo = pm.response.json();",
+                  "pm.test('Incluye al menos un perfil con su rol base y sus permisos', () => {",
+                  "  pm.expect(yo.perfiles).to.be.an('array').that.is.not.empty;",
+                  "  yo.perfiles.forEach(perfil => {",
+                  "    pm.expect(perfil).to.include.keys('id', 'nombre', 'rolBase', 'permisos');",
+                  "    pm.expect(perfil.permisos).to.be.an('array');",
+                  "  });",
+                  "});",
+                  "pm.test('Ya no devuelve la lista plana de roles', () => pm.expect(yo).to.not.have.property('roles'));",
+                  "if (yo.iglesiaId) { pm.environment.set('iglesiaId', yo.iglesiaId); }"
                 ]
               }
             }
@@ -241,7 +167,7 @@
     },
     {
       "name": "3. Administración de usuarios",
-      "description": "Alta y mantenimiento de usuarios. Solo `ADMIN_SISTEMA` (todas las iglesias) y `ADMIN_IGLESIA` (solo su iglesia). Un usuario fuera del alcance del administrador responde 404.",
+      "description": "Alta y mantenimiento de usuarios. Consultar exige `usuarios.ver` y crear o editar, `usuarios.administrar`. `ADMIN_SISTEMA` actúa sobre todas las iglesias; el resto, solo sobre la suya y sin otorgar `ADMIN_SISTEMA`. Los roles se asignan por id (`rolIds`): roles base (1 `ADMIN_SISTEMA`, 2 `ADMIN_IGLESIA`, 3 `LIDER`, 4 `MIEMBRO`) o roles personalizados activos de la iglesia del usuario. Un usuario fuera del alcance responde 404.",
       "item": [
         {
           "name": "Listar usuarios",
@@ -312,10 +238,10 @@
                 "usuarios"
               ]
             },
-            "description": "Crea un usuario con sus roles. `iglesiaId` es obligatorio salvo para `ADMIN_SISTEMA`; `miembroId` vincula el usuario con su miembro en iglesia-api. Responde 201 con `Location`.",
+            "description": "Crea un usuario en la iglesia de `{{iglesiaId}}` (la guarda «Obtener mi usuario») con el rol base `ADMIN_IGLESIA` (id 2). `miembroId` es obligatorio con `LIDER`, `MIEMBRO` y los roles que heredan de ellos. Un rol de otra iglesia, inexistente o inactivo responde 400. Responde 201 con `Location`. El correo lleva `{{$timestamp}}` para poder repetir la ejecución.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"correo\": \"nuevo.miembro@prueba.test\",\n  \"contrasena\": \"ClaveTemporal123\",\n  \"iglesiaId\": 1,\n  \"miembroId\": null,\n  \"roles\": [\n    \"MIEMBRO\"\n  ]\n}",
+              "raw": "{\n  \"correo\": \"secretaria.{{$timestamp}}@prueba.test\",\n  \"contrasena\": \"ClaveTemporal123\",\n  \"iglesiaId\": {{iglesiaId}},\n  \"miembroId\": null,\n  \"rolIds\": [\n    2\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -330,7 +256,10 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Responde 201', () => pm.response.to.have.status(201));",
-                  "pm.environment.set('usuarioId', pm.response.json().id);"
+                  "const creado = pm.response.json();",
+                  "pm.test('Devuelve los roles con id, nombre y rol base', () =>",
+                  "  pm.expect(creado.roles[0]).to.include({ id: 2, rolBase: 'ADMIN_IGLESIA' }));",
+                  "pm.environment.set('usuarioId', creado.id);"
                 ]
               }
             }
@@ -387,10 +316,10 @@
                 "{{usuarioId}}"
               ]
             },
-            "description": "Cambia roles, miembro vinculado y estado. La iglesia y el correo no se editan.",
+            "description": "Cambia roles (`rolIds`), miembro vinculado y estado. La iglesia y el correo no se editan. Si cambia algo, se cierran las sesiones del usuario. Para asignar un rol personalizado, usa su id (p. ej. `{{rolId}}` tras «4. Roles y permisos → Crear rol»).",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"roles\": [\n    \"LIDER\",\n    \"MIEMBRO\"\n  ],\n  \"miembroId\": null,\n  \"activo\": true\n}",
+              "raw": "{\n  \"rolIds\": [\n    2\n  ],\n  \"miembroId\": null,\n  \"activo\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -404,7 +333,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Responde 200', () => pm.response.to.have.status(200));"
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Usa los roles enviados', () => pm.expect(pm.response.json().roles.map(rol => rol.id)).to.eql([2]));"
                 ]
               }
             }
@@ -413,7 +343,304 @@
       ]
     },
     {
-      "name": "4. Infraestructura",
+      "name": "4. Roles y permisos",
+      "description": "Catálogo fijo de permisos y roles de acceso. Los 4 roles base son globales y de solo lectura (`PUT` y `PATCH` responden 403). Cada iglesia crea roles personalizados que heredan de `ADMIN_IGLESIA`, `LIDER` o `MIEMBRO` su ámbito y página de inicio, con un subconjunto de sus permisos. Consultar exige `roles.ver` y modificar, `roles.administrar` (inicia sesión con un `ADMIN_IGLESIA`). Los roles de otra iglesia responden 404. Ejecutar en orden: «Listar roles» guarda `{{rolBaseId}}` y «Crear rol» guarda `{{rolId}}`.",
+      "item": [
+        {
+          "name": "Listar permisos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/permisos",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "permisos"
+              ]
+            },
+            "description": "Catálogo fijo de permisos (`<modulo>.<accion>`), ordenado por módulo y orden. Sirve para armar el formulario de roles agrupando por `modulo`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const permisos = pm.response.json();",
+                  "pm.test('Cada permiso tiene código, módulo y descripción', () => {",
+                  "  pm.expect(permisos).to.be.an('array').that.is.not.empty;",
+                  "  permisos.forEach(permiso => pm.expect(permiso).to.include.keys('codigo', 'modulo', 'descripcion'));",
+                  "});",
+                  "pm.test('Incluye los permisos de roles', () =>",
+                  "  pm.expect(permisos.map(permiso => permiso.codigo)).to.include.members(['roles.ver', 'roles.administrar']));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/roles",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "roles"
+              ]
+            },
+            "description": "Roles base y personalizados de mi iglesia (activos e inactivos): primero los base y luego los personalizados. `cantidadUsuarios` cuenta solo los usuarios de mi iglesia. `ADMIN_SISTEMA` solo ve los roles base. Guarda en `{{rolBaseId}}` el id de `ADMIN_IGLESIA`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const roles = pm.response.json();",
+                  "pm.test('Incluye los 4 roles base', () =>",
+                  "  pm.expect(roles.filter(rol => rol.base).map(rol => rol.rolBase))",
+                  "    .to.have.members(['ADMIN_SISTEMA', 'ADMIN_IGLESIA', 'LIDER', 'MIEMBRO']));",
+                  "pm.test('Cada rol trae sus datos', () => roles.forEach(rol => pm.expect(rol).to.include.keys('id', 'nombre', 'rolBase', 'base', 'activo', 'permisos', 'cantidadUsuarios')));",
+                  "const adminIglesia = roles.find(rol => rol.base && rol.rolBase === 'ADMIN_IGLESIA');",
+                  "pm.environment.set('rolBaseId', adminIglesia.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear rol",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/roles",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "roles"
+              ]
+            },
+            "description": "Crea un rol personalizado activo en mi iglesia que hereda de `{{rolBaseId}}` (`ADMIN_IGLESIA`). Los permisos deben ser un subconjunto de los del rol base (si no, 400) y el nombre, único en la iglesia sin distinguir mayúsculas (si no, 409). El nombre lleva `{{$timestamp}}` para poder repetir la ejecución. Responde 201 con `Location` y guarda `{{rolId}}`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Secretaría {{$timestamp}}\",\n  \"rolBaseId\": {{rolBaseId}},\n  \"permisos\": [\n    \"miembros.ver\",\n    \"miembros.crear\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Trae la cabecera Location', () => pm.response.to.have.header('Location'));",
+                  "const rol = pm.response.json();",
+                  "pm.test('Es un rol personalizado activo con base ADMIN_IGLESIA', () => {",
+                  "  pm.expect(rol).to.include({ base: false, activo: true, rolBase: 'ADMIN_IGLESIA', cantidadUsuarios: 0 });",
+                  "  pm.expect(rol.permisos).to.eql(['miembros.crear', 'miembros.ver']);",
+                  "});",
+                  "pm.environment.set('rolId', rol.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener rol",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/roles/{{rolId}}",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "roles",
+                "{{rolId}}"
+              ]
+            },
+            "description": "Datos de un rol con sus permisos y la cantidad de usuarios que lo tienen en mi iglesia. Un rol personalizado de otra iglesia responde 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Es el rol pedido', () => pm.expect(pm.response.json().id).to.eql(pm.environment.get('rolId')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actualizar rol",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/roles/{{rolId}}",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "roles",
+                "{{rolId}}"
+              ]
+            },
+            "description": "Cambia el nombre y los permisos de un rol personalizado (reemplazan a los actuales); el rol base no cambia. Sobre un rol base responde 403. Los usuarios del rol reciben los nuevos permisos en el siguiente refresco del token.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Secretaría general {{$timestamp}}\",\n  \"permisos\": [\n    \"miembros.ver\",\n    \"miembros.crear\",\n    \"miembros.editar\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Reemplaza los permisos', () =>",
+                  "  pm.expect(pm.response.json().permisos).to.eql(['miembros.crear', 'miembros.editar', 'miembros.ver']));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Desactivar rol",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/roles/{{rolId}}/estado",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "roles",
+                "{{rolId}}",
+                "estado"
+              ]
+            },
+            "description": "Desactiva un rol personalizado: sigue asignado, pero deja de aportar permisos y de aparecer en los perfiles desde el siguiente refresco, y no se puede asignar. Responde 409 si algún usuario se quedaría sin roles activos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Queda inactivo', () => pm.expect(pm.response.json().activo).to.be.false);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reactivar rol",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/roles/{{rolId}}/estado",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "roles",
+                "{{rolId}}",
+                "estado"
+              ]
+            },
+            "description": "Reactiva un rol personalizado desactivado: vuelve a aportar sus permisos en el siguiente refresco y se puede asignar de nuevo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Queda activo', () => pm.expect(pm.response.json().activo).to.be.true);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Infraestructura",
       "description": "Endpoints públicos de soporte.",
       "auth": {
         "type": "noauth"
@@ -480,7 +707,7 @@
       ]
     },
     {
-      "name": "5. Documentación",
+      "name": "6. Documentación",
       "description": "Especificación OpenAPI 3 del backend. Solo responde con el perfil `local` (en producción está deshabilitada y responde 404). La versión navegable está en `{{seguridadUrl}}/swagger-ui.html`.",
       "auth": {
         "type": "noauth"
@@ -514,6 +741,95 @@
                   "pm.test('Es OpenAPI 3', () => pm.expect(especificacion.openapi).to.match(/^3\\./));",
                   "pm.test('Declara el esquema bearerAuth', () => pm.expect(especificacion.components.securitySchemes).to.have.property('bearerAuth'));",
                   "pm.test('Título del backend', () => pm.expect(especificacion.info.title).to.eql('Sistema Iglesia – Seguridad'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Cierre",
+      "description": "Requests que terminan la sesión: van al final para que la colección se pueda ejecutar completa de una vez. «Cerrar sesión» borra `{{tokenAcceso}}` y `{{tokenRefresco}}` del entorno.\n\n**Aviso:** «Cambiar mi contraseña» cambia la clave del usuario de `{{correo}}` a `NuevaClave123` y cierra todas sus sesiones. Antes de volver a ejecutar la colección, actualiza `contrasena` en el entorno (o restablece la clave del usuario).",
+      "item": [
+        {
+          "name": "Cambiar mi contraseña",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/usuarios/me/contrasena",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "me",
+                "contrasena"
+              ]
+            },
+            "description": "Cambia la contraseña (8 a 72 caracteres) si la actual es correcta. **Revoca todas las sesiones** del usuario: después hay que iniciar sesión de nuevo. Contraseña actual incorrecta: 400 con `detail` = «La contraseña actual no es correcta».",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contrasenaActual\": \"{{contrasena}}\",\n  \"contrasenaNueva\": \"NuevaClave123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cerrar sesión",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "iglesia_refresco={{tokenRefresco}}",
+                "description": "Token de refresco guardado por «Iniciar sesión» o «Refrescar token»."
+              }
+            ],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/auth/logout",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Sin cuerpo: revoca el token de la cookie (si llega) y siempre responde 204 con la cookie borrada (`Max-Age=0`)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 204', () => pm.response.to.have.status(204));",
+                  "pm.environment.unset('tokenAcceso');",
+                  "pm.environment.unset('tokenRefresco');"
                 ]
               }
             }
