@@ -1,6 +1,6 @@
 # SPEC 02 — Roles configurables con permisos granulares y menú por permiso
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 01, SPEC 03 (los endpoints nuevos se documentan con OpenAPI y siguen las reglas de trazabilidad de `CLAUDE.md`)
 > **Fecha:** 2026-10-26
 > **Objetivo:** Que cada iglesia cree sus propios roles de acceso a partir de un catálogo fijo de permisos por acción, y que el menú, los guards del frontend y la autorización de ambos backends se decidan por permisos en lugar de por los cuatro roles fijos.
