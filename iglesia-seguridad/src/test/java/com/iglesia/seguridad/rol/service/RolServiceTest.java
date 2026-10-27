@@ -9,9 +9,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.iglesia.seguridad.common.error.exception.ReglaNegocioException;
+import com.iglesia.seguridad.common.seguridad.component.ProveedorUsuarioAutenticado;
 import com.iglesia.seguridad.rol.entity.Rol;
 import com.iglesia.seguridad.rol.entity.RolesPrueba;
+import com.iglesia.seguridad.rol.mapper.RolMapper;
 import com.iglesia.seguridad.rol.model.RolBase;
+import com.iglesia.seguridad.rol.repository.PermisoRepository;
 import com.iglesia.seguridad.rol.repository.RolRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,8 +29,14 @@ class RolServiceTest {
 	@Mock
 	private RolRepository repositorio;
 
+	@Mock
+	private PermisoRepository permisos;
+
+	@Mock
+	private ProveedorUsuarioAutenticado proveedorUsuario;
+
 	private RolService servicio() {
-		return new RolService(repositorio);
+		return new RolService(repositorio, permisos, new PoliticaRoles(), proveedorUsuario, new RolMapper());
 	}
 
 	@Test

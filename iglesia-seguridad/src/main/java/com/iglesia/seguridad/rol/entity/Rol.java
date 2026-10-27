@@ -2,6 +2,7 @@ package com.iglesia.seguridad.rol.entity;
 
 import java.time.Instant;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 import jakarta.persistence.Column;
@@ -72,6 +73,35 @@ public class Rol {
 	protected Rol() {
 	}
 
+	private Rol(Long iglesiaId, String nombre, Rol rolBase, Set<Permiso> permisos) {
+		this.iglesiaId = Objects.requireNonNull(iglesiaId);
+		this.nombre = nombre.strip();
+		this.rolBase = Objects.requireNonNull(rolBase);
+		this.permisos.addAll(permisos);
+		this.activo = true;
+	}
+
+	/**
+	 * Rol personalizado de una iglesia. Las reglas sobre el rol base y los permisos las aplica
+	 * {@code PoliticaRoles}.
+	 */
+	public static Rol personalizado(Long iglesiaId, String nombre, Rol rolBase, Set<Permiso> permisos) {
+		return new Rol(iglesiaId, nombre, rolBase, permisos);
+	}
+
+	public void actualizar(String nuevoNombre, Set<Permiso> nuevosPermisos) {
+		nombre = nuevoNombre.strip();
+		permisos.clear();
+		permisos.addAll(nuevosPermisos);
+	}
+
+	/** @return {@code true} si el estado cambió */
+	public boolean cambiarEstado(boolean nuevoActivo) {
+		boolean cambio = activo != nuevoActivo;
+		activo = nuevoActivo;
+		return cambio;
+	}
+
 	/** El rol base que define el ámbito y la página de inicio: el propio si es base, o del que hereda. */
 	public RolBase rolBaseEfectivo() {
 		return esBase() ? codigo : rolBase.rolBaseEfectivo();
@@ -91,6 +121,11 @@ public class Rol {
 
 	public String getNombre() {
 		return nombre;
+	}
+
+	/** El rol del que hereda; nulo si es un rol base. */
+	public Rol getRolBase() {
+		return rolBase;
 	}
 
 	public boolean isActivo() {

@@ -1,6 +1,7 @@
 package com.iglesia.seguridad.rol.entity;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -17,12 +18,13 @@ public final class RolesPrueba {
 	private RolesPrueba() {
 	}
 
-	public static Rol base(RolBase codigo) {
+	public static Rol base(RolBase codigo, String... permisos) {
 		Rol rol = new Rol();
 		ReflectionTestUtils.setField(rol, "id", (long) codigo.ordinal() + 1);
 		ReflectionTestUtils.setField(rol, "codigo", codigo);
 		ReflectionTestUtils.setField(rol, "nombre", codigo.name());
 		ReflectionTestUtils.setField(rol, "activo", true);
+		ReflectionTestUtils.setField(rol, "permisos", permisos(permisos));
 		return rol;
 	}
 
@@ -37,8 +39,7 @@ public final class RolesPrueba {
 		ReflectionTestUtils.setField(rol, "nombre", nombre);
 		ReflectionTestUtils.setField(rol, "rolBase", base(rolBase));
 		ReflectionTestUtils.setField(rol, "activo", true);
-		ReflectionTestUtils.setField(rol, "permisos",
-				Arrays.stream(permisos).map(RolesPrueba::permiso).collect(Collectors.toSet()));
+		ReflectionTestUtils.setField(rol, "permisos", permisos(permisos));
 		return rol;
 	}
 
@@ -51,6 +52,10 @@ public final class RolesPrueba {
 		Permiso permiso = new Permiso();
 		ReflectionTestUtils.setField(permiso, "codigo", codigo);
 		return permiso;
+	}
+
+	private static Set<Permiso> permisos(String... codigos) {
+		return Arrays.stream(codigos).map(RolesPrueba::permiso).collect(Collectors.toCollection(HashSet::new));
 	}
 
 }
