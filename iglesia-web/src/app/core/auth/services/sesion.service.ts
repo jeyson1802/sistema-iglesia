@@ -2,17 +2,20 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { catchError, defer, finalize, firstValueFrom, map, Observable, of, shareReplay, switchMap, tap } from 'rxjs';
 import { CambioContrasena } from '../models/cambio-contrasena';
 import { Credenciales } from '../models/credenciales';
-import { esRol, Rol, RUTA_INICIO_POR_ROL } from '../models/rol';
+import { Perfil } from '../models/perfil';
+import { Permiso } from '../models/permiso';
+import { RUTA_INICIO_POR_ROL } from '../models/rol';
 import { RUTAS_AUTH } from '../models/rutas-auth';
 import { UsuarioActual } from '../models/usuario-actual';
 import { AuthApiService } from './auth-api.service';
 
-/** Clave de sessionStorage: solo guarda el nombre del rol, nunca tokens ni datos personales. */
+/** Clave de sessionStorage: solo guarda el id del rol del perfil activo, nunca tokens ni datos personales. */
 const CLAVE_PERFIL = 'iglesia.perfilActivo';
 
 /**
  * Fachada de la sesión. El token de acceso vive solo en memoria; el de refresco, en una cookie HttpOnly
- * que la UI no puede leer. El perfil activo limita la navegación, no los permisos del backend.
+ * que la UI no puede leer. El perfil activo limita la navegación (menú y guards usan solo sus permisos); el
+ * backend autoriza con todos los permisos del token.
  */
 @Injectable({ providedIn: 'root' })
 export class SesionService {
@@ -20,7 +23,7 @@ export class SesionService {
 
     private readonly token = signal<string | null>(null);
     private readonly usuario = signal<UsuarioActual | null>(null);
-    private readonly perfil = signal<Rol | null>(null);
+    private readonly perfil = signal<Perfil | null>(null);
 
     /** Petición de refresco en curso, compartida para que varios 401 simultáneos hagan un solo `POST /refresh`. */
     private refrescoEnCurso: Observable<string> | null = null;
@@ -29,9 +32,10 @@ export class SesionService {
     readonly usuarioActual = this.usuario.asReadonly();
     readonly perfilActivo = this.perfil.asReadonly();
     readonly autenticado = computed(() => this.token() !== null && this.usuario() !== null);
-    readonly tieneVariosPerfiles = computed(() => rolesBase(this.usuario()).length > 1);
+    readonly permisosActivos = computed<ReadonlySet<Permiso>>(() => new Set(this.perfil()?.permisos ?? []));
+    readonly tieneVariosPerfiles = computed(() => (this.usuario()?.perfiles.length ?? 0) > 1);
 
-    /** Con un solo rol, el perfil queda seleccionado; con varios, el usuario debe elegirlo. */
+    /** Con un solo perfil, queda seleccionado; con varios, el usuario debe elegirlo. */
     iniciarSesion(credenciales: Credenciales): Observable<void> {
         return this.authApi.login(credenciales).pipe(
             tap(({ tokenAcceso }) => this.token.set(tokenAcceso)),
@@ -68,11 +72,17 @@ export class SesionService {
         return this.refrescoEnCurso;
     }
 
-    seleccionarPerfil(rol: Rol): void {
-        if (!rolesBase(this.usuario()).includes(rol)) {
-            throw new Error(`El usuario no tiene el perfil ${rol}`);
+    /** ¿El perfil activo tiene el permiso? Decide qué se muestra y a dónde se navega, no lo que autoriza el backend. */
+    tienePermiso(permiso: Permiso): boolean {
+        return this.permisosActivos().has(permiso);
+    }
+
+    seleccionarPerfil(id: number): void {
+        const perfil = buscarPerfil(this.usuario(), id);
+        if (!perfil) {
+            throw new Error(`El usuario no tiene el perfil ${id}`);
         }
-        this.establecerPerfil(rol);
+        this.establecerPerfil(perfil);
     }
 
     /**
@@ -97,10 +107,10 @@ export class SesionService {
         if (!this.autenticado()) {
             return RUTAS_AUTH.login;
         }
-        return perfil ? RUTA_INICIO_POR_ROL[perfil] : RUTAS_AUTH.seleccionarPerfil;
+        return perfil ? RUTA_INICIO_POR_ROL[perfil.rolBase] : RUTAS_AUTH.seleccionarPerfil;
     }
 
-    private cargarUsuario(perfilPreferido: Rol | null): Observable<void> {
+    private cargarUsuario(perfilPreferido: number | null): Observable<void> {
         return this.authApi.obtenerUsuarioActual().pipe(
             map((usuario) => {
                 this.usuario.set(usuario);
@@ -109,9 +119,9 @@ export class SesionService {
         );
     }
 
-    private establecerPerfil(rol: Rol | null): void {
-        this.perfil.set(rol);
-        guardarPerfil(rol);
+    private establecerPerfil(perfil: Perfil | null): void {
+        this.perfil.set(perfil);
+        guardarPerfil(perfil);
     }
 
     private limpiar(): void {
@@ -121,36 +131,33 @@ export class SesionService {
     }
 }
 
-/** El perfil guardado solo vale si el usuario aún tiene ese rol; con un único rol, se selecciona solo. */
-function elegirPerfil(usuario: UsuarioActual, preferido: Rol | null): Rol | null {
-    const roles = rolesBase(usuario);
-    if (preferido && roles.includes(preferido)) {
-        return preferido;
-    }
-    return roles.length === 1 ? roles[0] : null;
+function buscarPerfil(usuario: UsuarioActual | null, id: number | null): Perfil | null {
+    return usuario?.perfiles.find((perfil) => perfil.id === id) ?? null;
 }
 
-/** Puente temporal hasta que el perfil activo sea un `Perfil` (SPEC 02, paso 9): roles base sin repetir. */
-function rolesBase(usuario: UsuarioActual | null): Rol[] {
-    return [...new Set(usuario?.perfiles.map((perfil) => perfil.rolBase) ?? [])];
+/** El perfil guardado solo vale si el usuario aún tiene ese rol activo; con un único perfil, se selecciona solo. */
+function elegirPerfil(usuario: UsuarioActual, preferido: number | null): Perfil | null {
+    const { perfiles } = usuario;
+    return buscarPerfil(usuario, preferido) ?? (perfiles.length === 1 ? perfiles[0] : null);
 }
 
 // sessionStorage puede lanzar excepciones (modo privado o almacenamiento bloqueado). Sin él, la sesión
-// funciona igual y el usuario con varios roles vuelve a elegir perfil al recargar.
+// funciona igual y el usuario con varios perfiles vuelve a elegir al recargar.
 
-function leerPerfilGuardado(): Rol | null {
+/** Un valor que no es un id (p. ej. el nombre de rol que guardaba la SPEC 01) se descarta. */
+function leerPerfilGuardado(): number | null {
     try {
-        const valor = sessionStorage.getItem(CLAVE_PERFIL);
-        return valor !== null && esRol(valor) ? valor : null;
+        const id = Number(sessionStorage.getItem(CLAVE_PERFIL) ?? Number.NaN);
+        return Number.isSafeInteger(id) && id > 0 ? id : null;
     } catch {
         return null;
     }
 }
 
-function guardarPerfil(rol: Rol | null): void {
+function guardarPerfil(perfil: Perfil | null): void {
     try {
-        if (rol) {
-            sessionStorage.setItem(CLAVE_PERFIL, rol);
+        if (perfil) {
+            sessionStorage.setItem(CLAVE_PERFIL, String(perfil.id));
         } else {
             sessionStorage.removeItem(CLAVE_PERFIL);
         }

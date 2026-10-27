@@ -6,9 +6,10 @@ import { Rol } from '@/app/core/auth/models/rol';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
 import inicioRoutes from './inicio.routes';
 import { perfilBase } from '@/app/core/auth/testing/perfiles-prueba';
+import { Perfil } from '@/app/core/auth/models/perfil';
 
 describe('Rutas de inicio', () => {
-    const perfilActivo = signal<Rol | null>(null);
+    const perfilActivo = signal<Perfil | null>(null);
     let harness: RouterTestingHarness | undefined;
 
     beforeEach(() => {
@@ -36,14 +37,14 @@ describe('Rutas de inicio', () => {
 
     for (const [rol, ruta] of casos) {
         it(`con el perfil ${rol} abre ${ruta}`, async () => {
-            perfilActivo.set(rol);
+            perfilActivo.set(perfilBase(rol));
 
             expect(await navegarA(ruta)).toBe(ruta);
         });
     }
 
     it('con el perfil Miembro, /administracion redirige a acceso denegado', async () => {
-        perfilActivo.set('MIEMBRO');
+        perfilActivo.set(perfilBase('MIEMBRO'));
 
         expect(await navegarA('/administracion')).toBe('/auth/acceso-denegado');
     });

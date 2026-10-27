@@ -5,6 +5,8 @@ import { MenuItem } from 'primeng/api';
 import { Rol } from '@/app/core/auth/models/rol';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
 import { AppMenu, construirMenu } from './app.menu';
+import { Perfil } from '@/app/core/auth/models/perfil';
+import { perfilBase } from '@/app/core/auth/testing/perfiles-prueba';
 
 describe('Menú lateral', () => {
     const GRUPOS_DEMO = ['UI Components', 'Pages', 'Hierarchy', 'Get Started'];
@@ -56,11 +58,11 @@ describe('Menú lateral', () => {
     });
 
     describe('AppMenu', () => {
-        const perfilActivo = signal<Rol | null>('MIEMBRO');
+        const perfilActivo = signal<Perfil | null>(perfilBase('MIEMBRO'));
         let fixture: ComponentFixture<AppMenu>;
 
         beforeEach(async () => {
-            perfilActivo.set('MIEMBRO');
+            perfilActivo.set(perfilBase('MIEMBRO'));
             await TestBed.configureTestingModule({ imports: [AppMenu], providers: [provideRouter([]), { provide: SesionService, useValue: { perfilActivo } }] }).compileComponents();
             fixture = TestBed.createComponent(AppMenu);
             await fixture.whenStable();
@@ -71,7 +73,7 @@ describe('Menú lateral', () => {
         it('se actualiza al cambiar el perfil activo', async () => {
             expect(texto()).not.toContain('Miembros');
 
-            perfilActivo.set('ADMIN_IGLESIA');
+            perfilActivo.set(perfilBase('ADMIN_IGLESIA'));
             await fixture.whenStable();
 
             expect(texto()).toContain('Miembros');

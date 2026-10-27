@@ -6,20 +6,21 @@ import { TarjetaAccesoComponent } from '../components/tarjeta-acceso/tarjeta-acc
 import { Rol } from '../models/rol';
 import { UsuarioActual } from '../models/usuario-actual';
 import { SesionService } from '../services/sesion.service';
-import { usuarioCon } from '../testing/perfiles-prueba';
+import { perfilBase, usuarioCon } from '../testing/perfiles-prueba';
 import { SIN_CONFIGURADOR_DE_TEMA } from '../testing/sin-configurador-de-tema';
 import { SeleccionarPerfilComponent } from './seleccionar-perfil';
+import { Perfil } from '@/app/core/auth/models/perfil';
 
 describe('SeleccionarPerfilComponent', () => {
     const usuarioActual = signal<UsuarioActual | null>(null);
-    const perfilActivo = signal<Rol | null>(null);
+    const perfilActivo = signal<Perfil | null>(null);
     let sesion: jasmine.SpyObj<SesionService>;
     let navegar: jasmine.Spy;
     let fixture: ComponentFixture<SeleccionarPerfilComponent>;
 
     const crear = async (roles: Rol[], perfil: Rol | null = null): Promise<void> => {
         usuarioActual.set(usuarioCon(...roles));
-        perfilActivo.set(perfil);
+        perfilActivo.set(perfil ? perfilBase(perfil) : null);
         sesion = jasmine.createSpyObj<SesionService>('SesionService', ['seleccionarPerfil', 'rutaInicio', 'cerrarSesion'], { usuarioActual, perfilActivo });
         await TestBed.configureTestingModule({ imports: [SeleccionarPerfilComponent], providers: [provideRouter([]), { provide: SesionService, useValue: sesion }] })
             .overrideComponent(TarjetaAccesoComponent, SIN_CONFIGURADOR_DE_TEMA)
@@ -45,7 +46,7 @@ describe('SeleccionarPerfilComponent', () => {
 
         opciones()[0].click();
 
-        expect(sesion.seleccionarPerfil).toHaveBeenCalledOnceWith('LIDER');
+        expect(sesion.seleccionarPerfil).toHaveBeenCalledOnceWith(3);
         expect(navegar).toHaveBeenCalledOnceWith('/mi-red');
     });
 

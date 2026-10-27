@@ -1,10 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom, of, Subject, throwError } from 'rxjs';
-import { Rol } from '../models/rol';
 import { TokenAcceso } from '../models/token-acceso';
 import { UsuarioActual } from '../models/usuario-actual';
-import { usuarioCon } from '../testing/perfiles-prueba';
+import { perfilBase, perfilPersonalizado, usuarioCon } from '../testing/perfiles-prueba';
 import { AuthApiService } from './auth-api.service';
 import { SesionService } from './sesion.service';
 
@@ -12,6 +11,7 @@ describe('SesionService', () => {
     const CLAVE_PERFIL = 'iglesia.perfilActivo';
     const token = (valor: string): TokenAcceso => ({ tokenAcceso: valor, tipo: 'Bearer', expiraEn: 900 });
     const noAutorizado = new HttpErrorResponse({ status: 401 });
+    const secretaria = perfilPersonalizado(10, 'Secretaría', 'ADMIN_IGLESIA', ['miembros.ver', 'miembros.crear']);
 
     let api: jasmine.SpyObj<AuthApiService>;
     let sesion: SesionService;
@@ -33,19 +33,27 @@ describe('SesionService', () => {
     };
 
     describe('iniciarSesion', () => {
-        it('con un solo rol guarda el token y el usuario y selecciona el perfil', async () => {
+        it('con un solo perfil guarda el token y el usuario y selecciona el perfil', async () => {
             await iniciarSesionCon(usuarioCon('MIEMBRO'));
 
             expect(sesion.autenticado()).toBeTrue();
             expect(sesion.tokenAcceso()).toBe('acceso');
             expect(sesion.usuarioActual()?.correo).toBe('u@i.test');
-            expect(sesion.perfilActivo()).toBe('MIEMBRO');
+            expect(sesion.perfilActivo()).toEqual(perfilBase('MIEMBRO'));
             expect(sesion.tieneVariosPerfiles()).toBeFalse();
             expect(sesion.rutaInicio()).toBe('/mi-perfil');
-            expect(sessionStorage.getItem(CLAVE_PERFIL)).toBe('MIEMBRO');
+            expect(sessionStorage.getItem(CLAVE_PERFIL)).toBe('4');
         });
 
-        it('con varios roles deja el perfil sin elegir y apunta al selector', async () => {
+        it('con un perfil personalizado va al inicio de su rol base', async () => {
+            await iniciarSesionCon(usuarioCon(secretaria));
+
+            expect(sesion.perfilActivo()).toEqual(secretaria);
+            expect(sesion.rutaInicio()).toBe('/administracion');
+            expect(sessionStorage.getItem(CLAVE_PERFIL)).toBe('10');
+        });
+
+        it('con varios perfiles deja el perfil sin elegir y apunta al selector', async () => {
             await iniciarSesionCon(usuarioCon('LIDER', 'MIEMBRO'));
 
             expect(sesion.perfilActivo()).toBeNull();
@@ -123,8 +131,8 @@ describe('SesionService', () => {
     });
 
     describe('restaurar', () => {
-        it('recupera la sesión y el perfil guardado si el usuario aún lo tiene', async () => {
-            sessionStorage.setItem(CLAVE_PERFIL, 'LIDER');
+        it('recupera la sesión y el perfil guardado por id si el usuario aún lo tiene', async () => {
+            sessionStorage.setItem(CLAVE_PERFIL, '3');
             api.refrescar.and.returnValue(of(token('restaurado')));
             api.obtenerUsuarioActual.and.returnValue(of(usuarioCon('LIDER', 'MIEMBRO')));
 
@@ -132,12 +140,22 @@ describe('SesionService', () => {
 
             expect(sesion.autenticado()).toBeTrue();
             expect(sesion.tokenAcceso()).toBe('restaurado');
-            expect(sesion.perfilActivo()).toBe('LIDER');
+            expect(sesion.perfilActivo()).toEqual(perfilBase('LIDER'));
             expect(sesion.rutaInicio()).toBe('/mi-red');
         });
 
-        it('descarta el perfil guardado si el usuario ya no tiene ese rol', async () => {
-            sessionStorage.setItem(CLAVE_PERFIL, 'ADMIN_IGLESIA');
+        it('recupera un perfil personalizado guardado', async () => {
+            sessionStorage.setItem(CLAVE_PERFIL, '10');
+            api.refrescar.and.returnValue(of(token('restaurado')));
+            api.obtenerUsuarioActual.and.returnValue(of(usuarioCon(secretaria, 'MIEMBRO')));
+
+            await sesion.restaurar();
+
+            expect(sesion.perfilActivo()).toEqual(secretaria);
+        });
+
+        it('descarta el perfil guardado si el usuario ya no tiene ese rol activo', async () => {
+            sessionStorage.setItem(CLAVE_PERFIL, '2');
             api.refrescar.and.returnValue(of(token('restaurado')));
             api.obtenerUsuarioActual.and.returnValue(of(usuarioCon('LIDER', 'MIEMBRO')));
 
@@ -147,18 +165,43 @@ describe('SesionService', () => {
             expect(sessionStorage.getItem(CLAVE_PERFIL)).toBeNull();
         });
 
-        it('descarta un valor guardado que no es un rol', async () => {
-            sessionStorage.setItem(CLAVE_PERFIL, 'HACKER');
+        it('descarta sin errores el nombre de rol que guardaba la versión anterior', async () => {
+            sessionStorage.setItem(CLAVE_PERFIL, 'LIDER');
             api.refrescar.and.returnValue(of(token('restaurado')));
             api.obtenerUsuarioActual.and.returnValue(of(usuarioCon('LIDER', 'MIEMBRO')));
 
+            await expectAsync(sesion.restaurar()).toBeResolved();
+
+            expect(sesion.autenticado()).toBeTrue();
+            expect(sesion.perfilActivo()).toBeNull();
+            expect(sessionStorage.getItem(CLAVE_PERFIL)).toBeNull();
+        });
+
+        it('descarta un valor guardado que no es un id válido', async () => {
+            for (const valor of ['', '0', '-3', '2.5', 'HACKER']) {
+                sessionStorage.setItem(CLAVE_PERFIL, valor);
+                api.refrescar.and.returnValue(of(token('restaurado')));
+                api.obtenerUsuarioActual.and.returnValue(of(usuarioCon('LIDER', 'MIEMBRO')));
+
+                await sesion.restaurar();
+
+                expect(sesion.perfilActivo()).withContext(valor).toBeNull();
+            }
+        });
+
+        it('con un solo perfil lo selecciona aunque el valor guardado no sirva', async () => {
+            sessionStorage.setItem(CLAVE_PERFIL, 'MIEMBRO');
+            api.refrescar.and.returnValue(of(token('restaurado')));
+            api.obtenerUsuarioActual.and.returnValue(of(usuarioCon('MIEMBRO')));
+
             await sesion.restaurar();
 
-            expect(sesion.perfilActivo()).toBeNull();
+            expect(sesion.perfilActivo()).toEqual(perfilBase('MIEMBRO'));
+            expect(sessionStorage.getItem(CLAVE_PERFIL)).toBe('4');
         });
 
         it('sin cookie de refresco termina sin sesión y sin fallar', async () => {
-            sessionStorage.setItem(CLAVE_PERFIL, 'MIEMBRO');
+            sessionStorage.setItem(CLAVE_PERFIL, '4');
             api.refrescar.and.returnValue(throwError(() => noAutorizado));
 
             await expectAsync(sesion.restaurar()).toBeResolved();
@@ -176,26 +219,56 @@ describe('SesionService', () => {
             await sesion.restaurar();
 
             expect(sesion.autenticado()).toBeTrue();
-            expect(sesion.perfilActivo()).toBe('MIEMBRO');
+            expect(sesion.perfilActivo()).toEqual(perfilBase('MIEMBRO'));
         });
     });
 
     describe('seleccionarPerfil', () => {
-        it('activa y recuerda un perfil del usuario', async () => {
+        it('activa y recuerda por id un perfil del usuario', async () => {
             await iniciarSesionCon(usuarioCon('LIDER', 'MIEMBRO'));
 
-            sesion.seleccionarPerfil('LIDER');
+            sesion.seleccionarPerfil(3);
 
-            expect(sesion.perfilActivo()).toBe('LIDER');
-            expect(sessionStorage.getItem(CLAVE_PERFIL)).toBe('LIDER');
+            expect(sesion.perfilActivo()).toEqual(perfilBase('LIDER'));
+            expect(sessionStorage.getItem(CLAVE_PERFIL)).toBe('3');
             expect(sesion.rutaInicio()).toBe('/mi-red');
         });
 
         it('rechaza un perfil que el usuario no tiene', async () => {
             await iniciarSesionCon(usuarioCon('MIEMBRO'));
 
-            expect(() => sesion.seleccionarPerfil('ADMIN_IGLESIA')).toThrowError(/ADMIN_IGLESIA/);
-            expect(sesion.perfilActivo()).toBe('MIEMBRO');
+            expect(() => sesion.seleccionarPerfil(2)).toThrowError(/2/);
+            expect(sesion.perfilActivo()).toEqual(perfilBase('MIEMBRO'));
+        });
+    });
+
+    describe('permisos del perfil activo', () => {
+        it('solo cuentan los permisos del perfil activo, no la unión de todos', async () => {
+            await iniciarSesionCon(usuarioCon(secretaria, 'MIEMBRO'));
+
+            sesion.seleccionarPerfil(10);
+            expect(sesion.permisosActivos()).toEqual(new Set(['miembros.ver', 'miembros.crear']));
+            expect(sesion.tienePermiso('miembros.crear')).toBeTrue();
+            expect(sesion.tienePermiso('roles.ver')).toBeFalse();
+
+            sesion.seleccionarPerfil(4);
+            expect(sesion.permisosActivos().size).toBe(0);
+            expect(sesion.tienePermiso('miembros.ver')).toBeFalse();
+        });
+
+        it('sin perfil activo no hay permisos', async () => {
+            await iniciarSesionCon(usuarioCon(secretaria, 'MIEMBRO'));
+
+            expect(sesion.perfilActivo()).toBeNull();
+            expect(sesion.tienePermiso('miembros.ver')).toBeFalse();
+        });
+
+        it('al cerrar sesión se pierden los permisos', async () => {
+            await iniciarSesionCon(usuarioCon(secretaria));
+
+            await firstValueFrom(sesion.cerrarSesion(), { defaultValue: undefined });
+
+            expect(sesion.tienePermiso('miembros.ver')).toBeFalse();
         });
     });
 

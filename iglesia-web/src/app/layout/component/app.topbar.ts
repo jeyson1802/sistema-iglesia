@@ -28,7 +28,8 @@ export class AppTopbar {
     protected readonly correo = computed(() => this.sesion.usuarioActual()?.correo ?? '');
     protected readonly etiquetaPerfil = computed(() => {
         const perfil = this.sesion.perfilActivo();
-        return perfil ? ETIQUETA_ROL[perfil] : '';
+        // Puente temporal (SPEC 02, paso 11): etiqueta del rol base en lugar del nombre del perfil.
+        return perfil ? ETIQUETA_ROL[perfil.rolBase] : '';
     });
 
     /** Opciones del menú de usuario; «Cambiar perfil» solo tiene sentido con más de un rol. */

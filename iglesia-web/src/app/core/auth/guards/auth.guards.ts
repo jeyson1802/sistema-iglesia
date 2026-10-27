@@ -16,12 +16,12 @@ export const invitadoGuard: CanActivateFn = () => {
 /** Sin perfil activo, redirige al selector de perfil. */
 export const perfilSeleccionadoGuard: CanActivateFn = () => inject(SesionService).perfilActivo() !== null || inject(Router).parseUrl(RUTAS_AUTH.seleccionarPerfil);
 
-/** Solo deja pasar si el perfil activo es uno de los indicados; si no, redirige a acceso denegado. */
+/** Solo deja pasar si el rol base del perfil activo es uno de los indicados; si no, redirige a acceso denegado. */
 export const perfilGuard =
     (...roles: Rol[]): CanActivateFn =>
     () => {
         const perfil = inject(SesionService).perfilActivo();
-        return (perfil !== null && roles.includes(perfil)) || inject(Router).parseUrl(RUTAS_AUTH.accesoDenegado);
+        return (perfil !== null && roles.includes(perfil.rolBase)) || inject(Router).parseUrl(RUTAS_AUTH.accesoDenegado);
     };
 
 /** Redirige la ruta raíz a la página de inicio del perfil activo. */

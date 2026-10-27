@@ -42,14 +42,17 @@ export class SeleccionarPerfilComponent {
             etiqueta: ETIQUETA_ROL[rol],
             descripcion: DESCRIPCION_POR_ROL[rol],
             icono: ICONO_ROL[rol],
-            activo: rol === this.sesion.perfilActivo()
+            activo: rol === this.sesion.perfilActivo()?.rolBase
         }))
     );
 
     protected readonly saliendo = signal(false);
 
     protected seleccionar(rol: Rol): void {
-        this.sesion.seleccionarPerfil(rol);
+        const perfil = this.sesion.usuarioActual()?.perfiles.find((candidato) => candidato.rolBase === rol);
+        if (perfil) {
+            this.sesion.seleccionarPerfil(perfil.id);
+        }
         void this.router.navigateByUrl(this.sesion.rutaInicio());
     }
 

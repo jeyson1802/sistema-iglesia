@@ -4,10 +4,10 @@ import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import authRoutes from './auth.routes';
 import { TarjetaAccesoComponent } from './components/tarjeta-acceso/tarjeta-acceso';
-import { Rol } from './models/rol';
 import { SesionService } from './services/sesion.service';
 import { SIN_CONFIGURADOR_DE_TEMA } from './testing/sin-configurador-de-tema';
 import { perfilBase } from '@/app/core/auth/testing/perfiles-prueba';
+import { Perfil } from '@/app/core/auth/models/perfil';
 
 describe('Rutas de autenticación', () => {
     const autenticado = signal(false);
@@ -17,7 +17,7 @@ describe('Rutas de autenticación', () => {
         const sesion = {
             autenticado,
             usuarioActual: signal({ id: 1, correo: 'u@i.test', iglesiaId: 1, miembroId: 2, perfiles: [perfilBase('MIEMBRO')] }),
-            perfilActivo: signal<Rol | null>('MIEMBRO'),
+            perfilActivo: signal<Perfil | null>(perfilBase('MIEMBRO')),
             tieneVariosPerfiles: signal(false),
             rutaInicio: () => '/mi-perfil'
         };

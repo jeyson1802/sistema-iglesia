@@ -1,13 +1,14 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, CanActivateFn, provideRouter, RedirectFunction, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
-import { Rol } from '../models/rol';
 import { SesionService } from '../services/sesion.service';
 import { autenticadoGuard, inicioRedirect, invitadoGuard, perfilGuard, perfilSeleccionadoGuard } from './auth.guards';
+import { Perfil } from '@/app/core/auth/models/perfil';
+import { perfilBase } from '@/app/core/auth/testing/perfiles-prueba';
 
 describe('Guards de autenticación', () => {
     const autenticado = signal(false);
-    const perfilActivo = signal<Rol | null>(null);
+    const perfilActivo = signal<Perfil | null>(null);
     const rutaInicio = jasmine.createSpy('rutaInicio');
 
     beforeEach(() => {
@@ -53,7 +54,7 @@ describe('Guards de autenticación', () => {
 
     describe('perfilSeleccionadoGuard', () => {
         it('deja pasar con perfil activo', () => {
-            perfilActivo.set('LIDER');
+            perfilActivo.set(perfilBase('LIDER'));
 
             expect(ejecutar(perfilSeleccionadoGuard)).toBeTrue();
         });
@@ -65,13 +66,13 @@ describe('Guards de autenticación', () => {
 
     describe('perfilGuard', () => {
         it('deja pasar si el perfil activo está permitido', () => {
-            perfilActivo.set('LIDER');
+            perfilActivo.set(perfilBase('LIDER'));
 
             expect(ejecutar(perfilGuard('ADMIN_IGLESIA', 'LIDER'))).toBeTrue();
         });
 
         it('con otro perfil redirige a acceso denegado', () => {
-            perfilActivo.set('MIEMBRO');
+            perfilActivo.set(perfilBase('MIEMBRO'));
 
             expect(urlDe(ejecutar(perfilGuard('ADMIN_IGLESIA')))).toBe('/auth/acceso-denegado');
         });

@@ -7,7 +7,9 @@ import { RouterTestingHarness } from '@angular/router/testing';
 import { crearRutasApp } from './app.routes';
 import { TarjetaAccesoComponent } from './app/core/auth/components/tarjeta-acceso/tarjeta-acceso';
 import { Rol, RUTA_INICIO_POR_ROL } from './app/core/auth/models/rol';
+import { Perfil } from './app/core/auth/models/perfil';
 import { SesionService } from './app/core/auth/services/sesion.service';
+import { perfilBase } from './app/core/auth/testing/perfiles-prueba';
 import { SIN_CONFIGURADOR_DE_TEMA } from './app/core/auth/testing/sin-configurador-de-tema';
 import { AppLayout } from './app/layout/component/app.layout';
 import { Notfound } from './app/pages/notfound/notfound';
@@ -15,19 +17,19 @@ import { Notfound } from './app/pages/notfound/notfound';
 describe('Rutas de la aplicación', () => {
     const RUTAS_DEMO = ['dashboard', 'uikit', 'documentation', 'pages', 'landing'];
     const autenticado = signal(false);
-    const perfilActivo = signal<Rol | null>(null);
+    const perfilActivo = signal<Perfil | null>(null);
     let harness: RouterTestingHarness | undefined;
 
     const configurar = (produccion: boolean): void => {
         const sesion = {
             autenticado,
             perfilActivo,
-            usuarioActual: signal({ id: 1, correo: 'u@i.test', iglesiaId: 1, miembroId: 2, roles: ['MIEMBRO', 'LIDER'] }),
+            usuarioActual: signal({ id: 1, correo: 'u@i.test', iglesiaId: 1, miembroId: 2, perfiles: [perfilBase('LIDER'), perfilBase('MIEMBRO')] }),
             tieneVariosPerfiles: signal(true),
             rutaInicio: () => {
                 const perfil = perfilActivo();
                 if (!autenticado()) return '/auth/login';
-                return perfil ? RUTA_INICIO_POR_ROL[perfil] : '/auth/seleccionar-perfil';
+                return perfil ? RUTA_INICIO_POR_ROL[perfil.rolBase] : '/auth/seleccionar-perfil';
             }
         };
         TestBed.configureTestingModule({
@@ -52,9 +54,9 @@ describe('Rutas de la aplicación', () => {
         return TestBed.inject(Router).url;
     };
 
-    const iniciarSesionCon = (perfil: Rol | null): void => {
+    const iniciarSesionCon = (rol: Rol | null): void => {
         autenticado.set(true);
-        perfilActivo.set(perfil);
+        perfilActivo.set(rol ? perfilBase(rol) : null);
     };
 
     const rutasDe = (rutas: Routes): string[] => rutas.flatMap((ruta) => [ruta.path ?? '', ...rutasDe(ruta.children ?? [])]);

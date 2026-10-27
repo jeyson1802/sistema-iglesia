@@ -2,11 +2,11 @@ import { CUSTOM_ELEMENTS_SCHEMA, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
-import { Rol } from '@/app/core/auth/models/rol';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
 import { AppConfigurator } from './app.configurator';
 import { AppTopbar } from './app.topbar';
 import { perfilBase } from '@/app/core/auth/testing/perfiles-prueba';
+import { Perfil } from '@/app/core/auth/models/perfil';
 
 describe('AppTopbar', () => {
     const tieneVariosPerfiles = signal(false);
@@ -18,7 +18,7 @@ describe('AppTopbar', () => {
         tieneVariosPerfiles.set(false);
         sesion = jasmine.createSpyObj<SesionService>('SesionService', ['cerrarSesion'], {
             usuarioActual: signal({ id: 1, correo: 'lider@iglesia.test', iglesiaId: 1, miembroId: 2, perfiles: [perfilBase('LIDER'), perfilBase('MIEMBRO')] }),
-            perfilActivo: signal<Rol | null>('LIDER'),
+            perfilActivo: signal<Perfil | null>(perfilBase('LIDER')),
             tieneVariosPerfiles
         });
         sesion.cerrarSesion.and.returnValue(of(undefined));

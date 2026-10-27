@@ -161,5 +161,6 @@ function filtrarPorPerfil(entradas: readonly EntradaMenu[], perfil: Rol | null):
 export class AppMenu {
     private readonly sesion = inject(SesionService);
 
-    protected readonly model = computed(() => construirMenu(this.sesion.perfilActivo(), environment.production));
+    // Puente temporal (SPEC 02, paso 12): el menú aún filtra por el rol base del perfil activo.
+    protected readonly model = computed(() => construirMenu(this.sesion.perfilActivo()?.rolBase ?? null, environment.production));
 }
