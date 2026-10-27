@@ -19,6 +19,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import com.iglesia.api.common.error.handler.AccessDeniedProblemDetail;
 import com.iglesia.api.common.error.handler.EntryPointProblemDetail;
 import com.iglesia.api.common.openapi.config.OpenApiConfig;
+import com.iglesia.api.common.seguridad.component.ConvertidorAutoridadesJwt;
 import com.iglesia.api.common.traza.constant.TrazaConstantes;
 import com.iglesia.api.common.traza.filter.FiltroContextoUsuario;
 
@@ -39,8 +40,8 @@ class SeguridadHttpConfig {
 	private static final List<String> CABECERAS_CORS = List.of(HttpHeaders.AUTHORIZATION, HttpHeaders.CONTENT_TYPE);
 
 	@Bean
-	SecurityFilterChain cadenaSeguridad(HttpSecurity http, EntryPointProblemDetail noAutenticado,
-			AccessDeniedProblemDetail accesoDenegado) {
+	SecurityFilterChain cadenaSeguridad(HttpSecurity http, ConvertidorAutoridadesJwt convertidorJwt,
+			EntryPointProblemDetail noAutenticado, AccessDeniedProblemDetail accesoDenegado) {
 		return http
 			.csrf(AbstractHttpConfigurer::disable)
 			.cors(withDefaults())
@@ -54,7 +55,7 @@ class SeguridadHttpConfig {
 			// 401 y 403 de la cadena de seguridad como ProblemDetail con traceId, igual que el resto de errores.
 			.exceptionHandling(errores -> errores.authenticationEntryPoint(noAutenticado)
 				.accessDeniedHandler(accesoDenegado))
-			.oauth2ResourceServer(recurso -> recurso.jwt(withDefaults())
+			.oauth2ResourceServer(recurso -> recurso.jwt(jwt -> jwt.jwtAuthenticationConverter(convertidorJwt))
 				.authenticationEntryPoint(noAutenticado)
 				.accessDeniedHandler(accesoDenegado))
 			// usuarioId e iglesiaId en el MDC en cuanto se valida el JWT, para todos los logs posteriores.
