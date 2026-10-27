@@ -1,13 +1,15 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { MenuItem } from 'primeng/api';
 import { environment } from '@/environments/environment';
-import { Rol, RUTA_INICIO_POR_ROL } from '@/app/core/auth/models/rol';
+import { Perfil } from '@/app/core/auth/models/perfil';
+import { Permiso } from '@/app/core/auth/models/permiso';
+import { RUTA_INICIO_POR_ROL } from '@/app/core/auth/models/rol';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
 import { AppMenuitem } from './app.menuitem';
 
-/** Entrada del menú con los perfiles que pueden verla; sin `roles`, la ven todos. */
+/** Entrada del menú con el permiso que exige; sin `permiso`, la ven todos. */
 export interface EntradaMenu extends MenuItem {
-    readonly roles?: readonly Rol[];
+    readonly permiso?: Permiso;
     readonly items?: EntradaMenu[];
 }
 
@@ -15,7 +17,11 @@ export interface EntradaMenu extends MenuItem {
 const ENTRADAS_APP: EntradaMenu[] = [
     {
         label: 'Iglesia',
-        items: [{ label: 'Miembros', icon: 'pi pi-fw pi-users', routerLink: ['/miembros'], roles: ['ADMIN_IGLESIA'] }]
+        items: [{ label: 'Miembros', icon: 'pi pi-fw pi-users', routerLink: ['/miembros'], permiso: 'miembros.ver' }]
+    },
+    {
+        label: 'Administración',
+        items: [{ label: 'Roles', icon: 'pi pi-fw pi-shield', routerLink: ['/roles'], permiso: 'roles.ver' }]
     }
 ];
 
@@ -138,17 +144,20 @@ const ENTRADAS_DEMO: EntradaMenu[] = [
     }
 ];
 
-/** Arma el menú del perfil activo: filtra por `roles`, quita grupos vacíos y en producción omite las demos. */
-export function construirMenu(perfil: Rol | null, produccion: boolean): MenuItem[] {
-    const inicio: EntradaMenu[] = perfil ? [{ label: 'Principal', items: [{ label: 'Inicio', icon: 'pi pi-fw pi-home', routerLink: [RUTA_INICIO_POR_ROL[perfil]] }] }] : [];
+/**
+ * Arma el menú del perfil activo: filtra por los permisos de ese perfil (no por la unión de todos los del usuario),
+ * quita grupos vacíos y en producción omite las demos. «Inicio» apunta a la página del rol base.
+ */
+export function construirMenu(perfil: Perfil | null, produccion: boolean): MenuItem[] {
+    const inicio: EntradaMenu[] = perfil ? [{ label: 'Principal', items: [{ label: 'Inicio', icon: 'pi pi-fw pi-home', routerLink: [RUTA_INICIO_POR_ROL[perfil.rolBase]] }] }] : [];
     const entradas = [...inicio, ...ENTRADAS_APP, ...(produccion ? [] : ENTRADAS_DEMO)];
-    return filtrarPorPerfil(entradas, perfil);
+    return filtrarPorPermisos(entradas, new Set(perfil?.permisos ?? []));
 }
 
-function filtrarPorPerfil(entradas: readonly EntradaMenu[], perfil: Rol | null): MenuItem[] {
+function filtrarPorPermisos(entradas: readonly EntradaMenu[], permisos: ReadonlySet<Permiso>): MenuItem[] {
     return entradas
-        .filter(({ roles }) => !roles || (perfil !== null && roles.includes(perfil)))
-        .map(({ roles: _roles, items, ...entrada }): MenuItem => (items ? { ...entrada, items: filtrarPorPerfil(items, perfil) } : entrada))
+        .filter(({ permiso }) => !permiso || permisos.has(permiso))
+        .map(({ permiso: _permiso, items, ...entrada }): MenuItem => (items ? { ...entrada, items: filtrarPorPermisos(items, permisos) } : entrada))
         .filter((entrada) => !entrada.items || entrada.items.length > 0);
 }
 
@@ -161,6 +170,5 @@ function filtrarPorPerfil(entradas: readonly EntradaMenu[], perfil: Rol | null):
 export class AppMenu {
     private readonly sesion = inject(SesionService);
 
-    // Puente temporal (SPEC 02, paso 12): el menú aún filtra por el rol base del perfil activo.
-    protected readonly model = computed(() => construirMenu(this.sesion.perfilActivo()?.rolBase ?? null, environment.production));
+    protected readonly model = computed(() => construirMenu(this.sesion.perfilActivo(), environment.production));
 }
