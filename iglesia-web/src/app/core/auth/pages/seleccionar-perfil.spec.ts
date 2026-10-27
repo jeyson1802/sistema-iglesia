@@ -6,6 +6,7 @@ import { TarjetaAccesoComponent } from '../components/tarjeta-acceso/tarjeta-acc
 import { Rol } from '../models/rol';
 import { UsuarioActual } from '../models/usuario-actual';
 import { SesionService } from '../services/sesion.service';
+import { usuarioCon } from '../testing/perfiles-prueba';
 import { SIN_CONFIGURADOR_DE_TEMA } from '../testing/sin-configurador-de-tema';
 import { SeleccionarPerfilComponent } from './seleccionar-perfil';
 
@@ -17,7 +18,7 @@ describe('SeleccionarPerfilComponent', () => {
     let fixture: ComponentFixture<SeleccionarPerfilComponent>;
 
     const crear = async (roles: Rol[], perfil: Rol | null = null): Promise<void> => {
-        usuarioActual.set({ id: 1, correo: 'u@i.test', iglesiaId: 1, miembroId: 2, roles });
+        usuarioActual.set(usuarioCon(...roles));
         perfilActivo.set(perfil);
         sesion = jasmine.createSpyObj<SesionService>('SesionService', ['seleccionarPerfil', 'rutaInicio', 'cerrarSesion'], { usuarioActual, perfilActivo });
         await TestBed.configureTestingModule({ imports: [SeleccionarPerfilComponent], providers: [provideRouter([]), { provide: SesionService, useValue: sesion }] })

@@ -42,7 +42,13 @@ describe('authInterceptor', () => {
     const conSesion = async (tokenAcceso: string): Promise<void> => {
         const restaurada = sesion.restaurar();
         backend.expectOne(URL_REFRESH).flush(token(tokenAcceso));
-        backend.expectOne(URL_ME).flush({ id: 1, correo: 'u@i.test', iglesiaId: 1, miembroId: 2, roles: ['MIEMBRO'] });
+        backend.expectOne(URL_ME).flush({
+            id: 1,
+            correo: 'u@i.test',
+            iglesiaId: 1,
+            miembroId: 2,
+            perfiles: [{ id: 4, nombre: 'Miembro', rolBase: 'MIEMBRO', permisos: [] }]
+        });
         await restaurada;
     };
 

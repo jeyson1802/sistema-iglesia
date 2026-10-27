@@ -5,6 +5,7 @@ import { RouterTestingHarness } from '@angular/router/testing';
 import { Rol } from '@/app/core/auth/models/rol';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
 import inicioRoutes from './inicio.routes';
+import { perfilBase } from '@/app/core/auth/testing/perfiles-prueba';
 
 describe('Rutas de inicio', () => {
     const perfilActivo = signal<Rol | null>(null);
@@ -12,7 +13,7 @@ describe('Rutas de inicio', () => {
 
     beforeEach(() => {
         perfilActivo.set(null);
-        const sesion = { perfilActivo, usuarioActual: signal({ id: 1, correo: 'u@i.test', iglesiaId: 1, miembroId: 2, roles: ['MIEMBRO'] }) };
+        const sesion = { perfilActivo, usuarioActual: signal({ id: 1, correo: 'u@i.test', iglesiaId: 1, miembroId: 2, perfiles: [perfilBase('MIEMBRO')] }) };
         TestBed.configureTestingModule({
             providers: [provideRouter([...inicioRoutes, { path: '**', children: [] }]), { provide: SesionService, useValue: sesion }]
         });

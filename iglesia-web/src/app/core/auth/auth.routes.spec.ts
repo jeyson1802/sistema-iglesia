@@ -7,6 +7,7 @@ import { TarjetaAccesoComponent } from './components/tarjeta-acceso/tarjeta-acce
 import { Rol } from './models/rol';
 import { SesionService } from './services/sesion.service';
 import { SIN_CONFIGURADOR_DE_TEMA } from './testing/sin-configurador-de-tema';
+import { perfilBase } from '@/app/core/auth/testing/perfiles-prueba';
 
 describe('Rutas de autenticación', () => {
     const autenticado = signal(false);
@@ -15,7 +16,7 @@ describe('Rutas de autenticación', () => {
         autenticado.set(false);
         const sesion = {
             autenticado,
-            usuarioActual: signal({ id: 1, correo: 'u@i.test', iglesiaId: 1, miembroId: 2, roles: ['MIEMBRO'] as Rol[] }),
+            usuarioActual: signal({ id: 1, correo: 'u@i.test', iglesiaId: 1, miembroId: 2, perfiles: [perfilBase('MIEMBRO')] }),
             perfilActivo: signal<Rol | null>('MIEMBRO'),
             tieneVariosPerfiles: signal(false),
             rutaInicio: () => '/mi-perfil'

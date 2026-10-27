@@ -2,12 +2,13 @@ import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
 import { InicioSistemaComponent } from './inicio-sistema';
+import { perfilBase } from '@/app/core/auth/testing/perfiles-prueba';
 
 describe('InicioSistemaComponent', () => {
     let fixture: ComponentFixture<InicioSistemaComponent>;
 
     beforeEach(async () => {
-        const sesion = { usuarioActual: signal({ id: 1, correo: 'usuario@iglesia.test', iglesiaId: 1, miembroId: 2, roles: ['ADMIN_SISTEMA'] }) };
+        const sesion = { usuarioActual: signal({ id: 1, correo: 'usuario@iglesia.test', iglesiaId: 1, miembroId: 2, perfiles: [perfilBase('ADMIN_SISTEMA')] }) };
         await TestBed.configureTestingModule({ imports: [InicioSistemaComponent], providers: [{ provide: SesionService, useValue: sesion }] }).compileComponents();
         fixture = TestBed.createComponent(InicioSistemaComponent);
         await fixture.whenStable();

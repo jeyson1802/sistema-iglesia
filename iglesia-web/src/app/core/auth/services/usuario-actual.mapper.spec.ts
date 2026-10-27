@@ -1,32 +1,57 @@
-import { UsuarioResponse } from '../models/usuario-response';
+import { PerfilResponse, UsuarioResponse } from '../models/usuario-response';
 import { aUsuarioActual } from './usuario-actual.mapper';
 
 describe('aUsuarioActual', () => {
-    const respuesta: UsuarioResponse = { id: 7, correo: 'lider@iglesia.test', iglesiaId: 1, miembroId: 20, roles: ['MIEMBRO', 'LIDER'] };
+    const miembro: PerfilResponse = { id: 4, nombre: 'Miembro', rolBase: 'MIEMBRO', permisos: [] };
+    const secretaria: PerfilResponse = { id: 7, nombre: 'Secretaría', rolBase: 'ADMIN_IGLESIA', permisos: ['miembros.ver', 'miembros.crear'] };
+    const respuesta: UsuarioResponse = { id: 7, correo: 'secretaria@iglesia.test', iglesiaId: 1, miembroId: 20, perfiles: [miembro, secretaria] };
 
-    it('copia los datos del usuario', () => {
+    it('copia los datos del usuario y sus perfiles', () => {
         const usuario = aUsuarioActual(respuesta);
 
-        expect(usuario).toEqual({ id: 7, correo: 'lider@iglesia.test', iglesiaId: 1, miembroId: 20, roles: ['LIDER', 'MIEMBRO'] });
+        expect(usuario).toEqual({
+            id: 7,
+            correo: 'secretaria@iglesia.test',
+            iglesiaId: 1,
+            miembroId: 20,
+            perfiles: [
+                { id: 7, nombre: 'Secretaría', rolBase: 'ADMIN_IGLESIA', permisos: ['miembros.ver', 'miembros.crear'] },
+                { id: 4, nombre: 'Miembro', rolBase: 'MIEMBRO', permisos: [] }
+            ]
+        });
     });
 
-    it('ordena los roles por jerarquía, del mayor al menor', () => {
-        const usuario = aUsuarioActual({ ...respuesta, roles: ['MIEMBRO', 'ADMIN_IGLESIA', 'LIDER'] });
+    it('ordena los perfiles por la jerarquía de su rol base y luego por nombre', () => {
+        const tesoreria: PerfilResponse = { id: 8, nombre: 'Tesorería', rolBase: 'ADMIN_IGLESIA', permisos: [] };
+        const consejo: PerfilResponse = { id: 9, nombre: 'Consejo', rolBase: 'ADMIN_IGLESIA', permisos: [] };
+        const lider: PerfilResponse = { id: 3, nombre: 'Líder', rolBase: 'LIDER', permisos: [] };
 
-        expect(usuario.roles).toEqual(['ADMIN_IGLESIA', 'LIDER', 'MIEMBRO']);
+        const usuario = aUsuarioActual({ ...respuesta, perfiles: [miembro, tesoreria, lider, consejo] });
+
+        expect(usuario.perfiles.map((perfil) => perfil.nombre)).toEqual(['Consejo', 'Tesorería', 'Líder', 'Miembro']);
     });
 
-    it('descarta roles que la interfaz no conoce', () => {
-        const usuario = aUsuarioActual({ ...respuesta, roles: ['MIEMBRO', 'DESCONOCIDO'] });
+    it('descarta los permisos que la interfaz no conoce', () => {
+        const conDesconocido: PerfilResponse = { ...secretaria, permisos: ['miembros.ver', 'ofrendas.ver'] };
 
-        expect(usuario.roles).toEqual(['MIEMBRO']);
+        const usuario = aUsuarioActual({ ...respuesta, perfiles: [conDesconocido] });
+
+        expect(usuario.perfiles[0].permisos).toEqual(['miembros.ver']);
+    });
+
+    it('descarta los perfiles cuyo rol base la interfaz no conoce', () => {
+        const desconocido: PerfilResponse = { id: 99, nombre: 'Otro', rolBase: 'DESCONOCIDO', permisos: [] };
+
+        const usuario = aUsuarioActual({ ...respuesta, perfiles: [desconocido, miembro] });
+
+        expect(usuario.perfiles.map((perfil) => perfil.id)).toEqual([4]);
     });
 
     it('no modifica la respuesta original', () => {
-        const roles = ['MIEMBRO', 'LIDER'];
+        const perfiles = [miembro, secretaria];
 
-        aUsuarioActual({ ...respuesta, roles });
+        aUsuarioActual({ ...respuesta, perfiles });
 
-        expect(roles).toEqual(['MIEMBRO', 'LIDER']);
+        expect(perfiles).toEqual([miembro, secretaria]);
     });
 });

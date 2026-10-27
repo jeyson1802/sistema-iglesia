@@ -35,9 +35,9 @@ export class SeleccionarPerfilComponent {
     private readonly sesion = inject(SesionService);
     private readonly router = inject(Router);
 
-    /** Los roles ya llegan ordenados por jerarquía, del mayor al menor. */
+    /** Los perfiles ya llegan ordenados por jerarquía. Puente temporal (SPEC 02, paso 11): una opción por rol base. */
     protected readonly opciones = computed<readonly OpcionPerfil[]>(() =>
-        (this.sesion.usuarioActual()?.roles ?? []).map((rol) => ({
+        [...new Set((this.sesion.usuarioActual()?.perfiles ?? []).map((perfil) => perfil.rolBase))].map((rol) => ({
             rol,
             etiqueta: ETIQUETA_ROL[rol],
             descripcion: DESCRIPCION_POR_ROL[rol],

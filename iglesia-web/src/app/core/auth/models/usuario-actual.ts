@@ -1,4 +1,4 @@
-import { Rol } from './rol';
+import { Perfil } from './perfil';
 
 /** Usuario autenticado, adaptado de la respuesta de `GET /api/usuarios/me`. */
 export interface UsuarioActual {
@@ -6,5 +6,6 @@ export interface UsuarioActual {
     readonly correo: string;
     readonly iglesiaId: number | null;
     readonly miembroId: number | null;
-    readonly roles: readonly Rol[];
+    /** Un perfil por cada rol activo, ordenados por la jerarquía de su rol base y luego por nombre. */
+    readonly perfiles: readonly Perfil[];
 }

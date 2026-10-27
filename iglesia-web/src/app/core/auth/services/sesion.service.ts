@@ -29,7 +29,7 @@ export class SesionService {
     readonly usuarioActual = this.usuario.asReadonly();
     readonly perfilActivo = this.perfil.asReadonly();
     readonly autenticado = computed(() => this.token() !== null && this.usuario() !== null);
-    readonly tieneVariosPerfiles = computed(() => (this.usuario()?.roles.length ?? 0) > 1);
+    readonly tieneVariosPerfiles = computed(() => rolesBase(this.usuario()).length > 1);
 
     /** Con un solo rol, el perfil queda seleccionado; con varios, el usuario debe elegirlo. */
     iniciarSesion(credenciales: Credenciales): Observable<void> {
@@ -69,7 +69,7 @@ export class SesionService {
     }
 
     seleccionarPerfil(rol: Rol): void {
-        if (!this.usuario()?.roles.includes(rol)) {
+        if (!rolesBase(this.usuario()).includes(rol)) {
             throw new Error(`El usuario no tiene el perfil ${rol}`);
         }
         this.establecerPerfil(rol);
@@ -123,10 +123,16 @@ export class SesionService {
 
 /** El perfil guardado solo vale si el usuario aún tiene ese rol; con un único rol, se selecciona solo. */
 function elegirPerfil(usuario: UsuarioActual, preferido: Rol | null): Rol | null {
-    if (preferido && usuario.roles.includes(preferido)) {
+    const roles = rolesBase(usuario);
+    if (preferido && roles.includes(preferido)) {
         return preferido;
     }
-    return usuario.roles.length === 1 ? usuario.roles[0] : null;
+    return roles.length === 1 ? roles[0] : null;
+}
+
+/** Puente temporal hasta que el perfil activo sea un `Perfil` (SPEC 02, paso 9): roles base sin repetir. */
+function rolesBase(usuario: UsuarioActual | null): Rol[] {
+    return [...new Set(usuario?.perfiles.map((perfil) => perfil.rolBase) ?? [])];
 }
 
 // sessionStorage puede lanzar excepciones (modo privado o almacenamiento bloqueado). Sin él, la sesión

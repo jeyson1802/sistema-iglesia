@@ -4,13 +4,13 @@ import { firstValueFrom, of, Subject, throwError } from 'rxjs';
 import { Rol } from '../models/rol';
 import { TokenAcceso } from '../models/token-acceso';
 import { UsuarioActual } from '../models/usuario-actual';
+import { usuarioCon } from '../testing/perfiles-prueba';
 import { AuthApiService } from './auth-api.service';
 import { SesionService } from './sesion.service';
 
 describe('SesionService', () => {
     const CLAVE_PERFIL = 'iglesia.perfilActivo';
     const token = (valor: string): TokenAcceso => ({ tokenAcceso: valor, tipo: 'Bearer', expiraEn: 900 });
-    const usuarioCon = (...roles: Rol[]): UsuarioActual => ({ id: 1, correo: 'u@i.test', iglesiaId: 1, miembroId: 2, roles });
     const noAutorizado = new HttpErrorResponse({ status: 401 });
 
     let api: jasmine.SpyObj<AuthApiService>;

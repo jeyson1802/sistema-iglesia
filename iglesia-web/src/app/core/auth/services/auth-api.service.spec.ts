@@ -69,8 +69,26 @@ describe('AuthApiService', () => {
         const peticion = http.expectOne(`${usuariosUrl}/me`);
         expect(peticion.request.method).toBe('GET');
         expect(peticion.request.withCredentials).toBeFalse();
-        peticion.flush({ id: 3, correo: 'l@i.test', iglesiaId: 1, miembroId: 9, activo: true, roles: ['MIEMBRO', 'LIDER'], creadoEn: '2026-10-25T00:00:00Z' });
-        expect(usuario).toEqual({ id: 3, correo: 'l@i.test', iglesiaId: 1, miembroId: 9, roles: ['LIDER', 'MIEMBRO'] });
+        peticion.flush({
+            id: 3,
+            correo: 'l@i.test',
+            iglesiaId: 1,
+            miembroId: 9,
+            perfiles: [
+                { id: 4, nombre: 'Miembro', rolBase: 'MIEMBRO', permisos: [] },
+                { id: 3, nombre: 'Líder', rolBase: 'LIDER', permisos: [] }
+            ]
+        });
+        expect(usuario).toEqual({
+            id: 3,
+            correo: 'l@i.test',
+            iglesiaId: 1,
+            miembroId: 9,
+            perfiles: [
+                { id: 3, nombre: 'Líder', rolBase: 'LIDER', permisos: [] },
+                { id: 4, nombre: 'Miembro', rolBase: 'MIEMBRO', permisos: [] }
+            ]
+        });
     });
 
     it('cambia la contraseña del usuario actual', () => {
