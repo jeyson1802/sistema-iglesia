@@ -67,7 +67,7 @@ describe('Rutas de la aplicación', () => {
     describe('sin sesión', () => {
         beforeEach(() => configurar(true));
 
-        for (const url of ['/', '/mi-perfil', '/administracion', '/miembros', '/cuenta/contrasena']) {
+        for (const url of ['/', '/mi-perfil', '/administracion', '/miembros', '/roles', '/cuenta/contrasena']) {
             it(`${url} redirige al login`, async () => {
                 expect(await navegarA(url)).toBe('/auth/login');
             });
@@ -106,6 +106,18 @@ describe('Rutas de la aplicación', () => {
             iniciarSesionCon(perfilPersonalizado(11, 'Tesorería', 'ADMIN_IGLESIA', []));
 
             expect(await navegarA('/miembros')).toBe('/auth/acceso-denegado');
+        });
+
+        it('con el perfil Líder, /roles redirige a acceso denegado', async () => {
+            iniciarSesionCon('LIDER');
+
+            expect(await navegarA('/roles')).toBe('/auth/acceso-denegado');
+        });
+
+        it('con roles.ver, /roles abre la administración de roles', async () => {
+            iniciarSesionCon('ADMIN_IGLESIA');
+
+            expect(await navegarA('/roles')).toBe('/roles');
         });
 
         it('cualquier perfil puede abrir el cambio de contraseña', async () => {

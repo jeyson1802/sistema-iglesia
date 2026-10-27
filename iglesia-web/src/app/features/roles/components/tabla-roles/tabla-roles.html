@@ -1,0 +1,92 @@
+@if (cargando()) {
+    <div class="flex flex-col gap-4" role="status" aria-label="Cargando roles">
+        @for (fila of filasCarga; track fila) {
+            <div class="flex items-center gap-4">
+                <p-skeleton width="30%" height="1.5rem" />
+                <p-skeleton width="20%" height="1.5rem" />
+                <p-skeleton width="15%" height="1.5rem" />
+                <p-skeleton width="15%" height="1.5rem" />
+            </div>
+        }
+    </div>
+} @else {
+    <p-table [value]="roles()" [rowHover]="true" dataKey="id" [scrollable]="true" tableStyleClass="min-w-200">
+        <ng-template #header>
+            <tr>
+                <th scope="col">Nombre</th>
+                <th scope="col">Rol base</th>
+                <th scope="col">Tipo</th>
+                <th scope="col">Estado</th>
+                <th scope="col" class="text-right">Usuarios</th>
+                <th scope="col" class="text-right">Permisos</th>
+                <th scope="col"><span class="sr-only">Acciones</span></th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-rol>
+            <tr>
+                <td class="font-medium">{{ rol.nombre }}</td>
+                <td>{{ etiquetaRolBase(rol) }}</td>
+                <td>
+                    <p-tag [value]="rol.base ? 'Base' : 'Personalizado'" [severity]="rol.base ? 'secondary' : 'info'" />
+                </td>
+                <td>
+                    <p-tag [value]="rol.activo ? 'Activo' : 'Inactivo'" [severity]="rol.activo ? 'success' : 'danger'" />
+                </td>
+                <td class="text-right">{{ rol.cantidadUsuarios }}</td>
+                <td class="text-right">{{ rol.permisos.length }}</td>
+                <td>
+                    <div class="flex justify-end gap-2">
+                        @if (rol.base || !puedeAdministrar()) {
+                            <p-button label="Ver permisos" icon="pi pi-eye" [text]="true" severity="secondary" size="small" (onClick)="ver.emit(rol)" />
+                        } @else {
+                            <p-button
+                                icon="pi pi-pencil"
+                                [rounded]="true"
+                                [outlined]="true"
+                                severity="secondary"
+                                [ariaLabel]="'Editar ' + rol.nombre"
+                                pTooltip="Editar"
+                                tooltipPosition="top"
+                                (onClick)="editar.emit(rol)"
+                            />
+                            @if (rol.activo) {
+                                <p-button
+                                    icon="pi pi-ban"
+                                    [rounded]="true"
+                                    [outlined]="true"
+                                    severity="danger"
+                                    [ariaLabel]="'Desactivar ' + rol.nombre"
+                                    pTooltip="Desactivar"
+                                    tooltipPosition="top"
+                                    (onClick)="cambiarEstado.emit(rol)"
+                                />
+                            } @else {
+                                <p-button
+                                    icon="pi pi-replay"
+                                    [rounded]="true"
+                                    [outlined]="true"
+                                    severity="success"
+                                    [ariaLabel]="'Reactivar ' + rol.nombre"
+                                    pTooltip="Reactivar"
+                                    tooltipPosition="top"
+                                    (onClick)="cambiarEstado.emit(rol)"
+                                />
+                            }
+                        }
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+            <tr>
+                <td colspan="7">
+                    <div class="flex flex-col items-center gap-2 py-8 text-center">
+                        <i class="pi pi-shield text-4xl text-muted-color" aria-hidden="true"></i>
+                        <span class="font-medium text-surface-900 dark:text-surface-0">No hay roles para mostrar</span>
+                        <span class="text-muted-color">Los roles que crees para tu iglesia aparecerán aquí.</span>
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+}

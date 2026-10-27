@@ -27,6 +27,7 @@ export function crearRutasApp(produccion: boolean): Routes {
                 { path: '', loadChildren: () => import('./app/features/inicio/inicio.routes') },
                 { path: 'cuenta/contrasena', title: 'Cambiar contraseña', loadComponent: () => import('./app/core/auth/pages/cambiar-contrasena').then((m) => m.CambiarContrasenaComponent) },
                 { path: 'miembros', canActivate: [permisoGuard('miembros.ver')], loadChildren: () => import('./app/features/miembros/miembros.routes') },
+                { path: 'roles', loadChildren: () => import('./app/features/roles/roles.routes') },
                 ...soloEnDesarrollo(RUTAS_DEMO_EN_LAYOUT)
             ]
         },
