@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { signal } from '@angular/core';
+import { computed, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router, RouterOutlet, Routes } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
@@ -8,8 +8,9 @@ import { crearRutasApp } from './app.routes';
 import { TarjetaAccesoComponent } from './app/core/auth/components/tarjeta-acceso/tarjeta-acceso';
 import { Rol, RUTA_INICIO_POR_ROL } from './app/core/auth/models/rol';
 import { Perfil } from './app/core/auth/models/perfil';
+import { Permiso } from './app/core/auth/models/permiso';
 import { SesionService } from './app/core/auth/services/sesion.service';
-import { perfilBase } from './app/core/auth/testing/perfiles-prueba';
+import { perfilBase, perfilPersonalizado } from './app/core/auth/testing/perfiles-prueba';
 import { SIN_CONFIGURADOR_DE_TEMA } from './app/core/auth/testing/sin-configurador-de-tema';
 import { AppLayout } from './app/layout/component/app.layout';
 import { Notfound } from './app/pages/notfound/notfound';
@@ -18,6 +19,7 @@ describe('Rutas de la aplicación', () => {
     const RUTAS_DEMO = ['dashboard', 'uikit', 'documentation', 'pages', 'landing'];
     const autenticado = signal(false);
     const perfilActivo = signal<Perfil | null>(null);
+    const permisosActivos = computed(() => new Set(perfilActivo()?.permisos ?? []));
     let harness: RouterTestingHarness | undefined;
 
     const configurar = (produccion: boolean): void => {
@@ -26,6 +28,7 @@ describe('Rutas de la aplicación', () => {
             perfilActivo,
             usuarioActual: signal({ id: 1, correo: 'u@i.test', iglesiaId: 1, miembroId: 2, perfiles: [perfilBase('LIDER'), perfilBase('MIEMBRO')] }),
             tieneVariosPerfiles: signal(true),
+            tienePermiso: (permiso: Permiso) => permisosActivos().has(permiso),
             rutaInicio: () => {
                 const perfil = perfilActivo();
                 if (!autenticado()) return '/auth/login';
@@ -54,9 +57,9 @@ describe('Rutas de la aplicación', () => {
         return TestBed.inject(Router).url;
     };
 
-    const iniciarSesionCon = (rol: Rol | null): void => {
+    const iniciarSesionCon = (perfil: Rol | Perfil | null): void => {
         autenticado.set(true);
-        perfilActivo.set(rol ? perfilBase(rol) : null);
+        perfilActivo.set(typeof perfil === 'string' ? perfilBase(perfil) : perfil);
     };
 
     const rutasDe = (rutas: Routes): string[] => rutas.flatMap((ruta) => [ruta.path ?? '', ...rutasDe(ruta.children ?? [])]);
@@ -90,6 +93,18 @@ describe('Rutas de la aplicación', () => {
             iniciarSesionCon('MIEMBRO');
 
             expect(await navegarA('/administracion')).toBe('/auth/acceso-denegado');
+            expect(await navegarA('/miembros')).toBe('/auth/acceso-denegado');
+        });
+
+        it('un perfil personalizado con miembros.ver abre /miembros', async () => {
+            iniciarSesionCon(perfilPersonalizado(10, 'Secretaría', 'ADMIN_IGLESIA', ['miembros.ver']));
+
+            expect(await navegarA('/miembros')).toBe('/miembros');
+        });
+
+        it('sin miembros.ver, /miembros redirige a acceso denegado aunque el rol base sea ADMIN_IGLESIA', async () => {
+            iniciarSesionCon(perfilPersonalizado(11, 'Tesorería', 'ADMIN_IGLESIA', []));
+
             expect(await navegarA('/miembros')).toBe('/auth/acceso-denegado');
         });
 
