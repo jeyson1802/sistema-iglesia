@@ -139,7 +139,7 @@
                 "me"
               ]
             },
-            "description": "Datos del usuario autenticado con sus `perfiles`: uno por cada rol activo, con `id`, `nombre`, `rolBase` y `permisos`. El frontend lo usa para el selector de perfil, el menú y los guards. Guarda `{{iglesiaId}}` para crear usuarios en la misma iglesia."
+            "description": "Datos del usuario autenticado con sus `perfiles`: uno por cada rol activo, con `id`, `nombre`, `rolBase` y `permisos`. El frontend lo usa para el selector de perfil, el menú y los guards. Guarda `{{iglesiaId}}` para crear usuarios en la misma iglesia. `debeCambiarContrasena` indica si la contraseña es temporal: mientras sea `true`, el backend solo permite este endpoint y «Cambiar mi contraseña» (el resto responde 403)."
           },
           "event": [
             {
@@ -157,6 +157,7 @@
                   "  });",
                   "});",
                   "pm.test('Ya no devuelve la lista plana de roles', () => pm.expect(yo).to.not.have.property('roles'));",
+                  "pm.test('Indica que la contraseña no es temporal', () => pm.expect(yo.debeCambiarContrasena).to.eql(false));",
                   "if (yo.iglesiaId) { pm.environment.set('iglesiaId', yo.iglesiaId); }"
                 ]
               }
@@ -167,7 +168,7 @@
     },
     {
       "name": "3. Administración de usuarios",
-      "description": "Alta y mantenimiento de usuarios. Consultar exige `usuarios.ver` y crear o editar, `usuarios.administrar`. `ADMIN_SISTEMA` actúa sobre todas las iglesias; el resto, solo sobre la suya y sin otorgar `ADMIN_SISTEMA`. Los roles se asignan por id (`rolIds`): roles base (1 `ADMIN_SISTEMA`, 2 `ADMIN_IGLESIA`, 3 `LIDER`, 4 `MIEMBRO`) o roles personalizados activos de la iglesia del usuario. Un usuario fuera del alcance responde 404.",
+      "description": "Alta y mantenimiento de usuarios. Consultar exige `usuarios.ver` y crear o editar, `usuarios.administrar`. `ADMIN_SISTEMA` actúa sobre todas las iglesias; el resto, solo sobre la suya y sin otorgar `ADMIN_SISTEMA`. Los roles se asignan por id (`rolIds`): roles base (1 `ADMIN_SISTEMA`, 2 `ADMIN_IGLESIA`, 3 `LIDER`, 4 `MIEMBRO`) o roles personalizados activos de la iglesia del usuario. Un usuario fuera del alcance responde 404. Un usuario creado o con la contraseña restablecida por un administrador tiene una contraseña temporal (`debeCambiarContrasena: true`) y debe cambiarla antes de usar el sistema. La iglesia debe conservar siempre al menos un usuario activo que pueda administrar usuarios (si no, 409).",
       "item": [
         {
           "name": "Listar usuarios",
@@ -204,7 +205,7 @@
                 }
               ]
             },
-            "description": "Paginado (`page`, `size` hasta 100, `sort`). `iglesiaId` filtra por iglesia (para `ADMIN_IGLESIA` siempre se limita a la suya)."
+            "description": "Paginado (`page`, `size` hasta 100, `sort`). `iglesiaId` filtra por iglesia (para `ADMIN_IGLESIA` siempre se limita a la suya). Para filtrar por correo, estado o rol, ver «Listar usuarios con filtros»."
           },
           "event": [
             {
@@ -213,6 +214,73 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar usuarios con filtros",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/usuarios?correo=PRUEBA&activo=true&rolId=2&page=0&size=20&sort=correo,asc",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios"
+              ],
+              "query": [
+                {
+                  "key": "correo",
+                  "value": "PRUEBA",
+                  "description": "Opcional. Contiene, sin distinguir mayúsculas (máx. 254 caracteres)."
+                },
+                {
+                  "key": "activo",
+                  "value": "true",
+                  "description": "Opcional. `true` activos, `false` inactivos."
+                },
+                {
+                  "key": "rolId",
+                  "value": "2",
+                  "description": "Opcional. Usuarios con ese rol asignado (base o personalizado)."
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "sort",
+                  "value": "correo,asc"
+                }
+              ]
+            },
+            "description": "Combina los filtros opcionales `correo` (contiene, sin distinguir mayúsculas), `activo` y `rolId` entre sí y con la paginación. Aquí: usuarios activos con el rol base `ADMIN_IGLESIA` (id 2) cuyo correo contiene «prueba», como el que crea «Crear usuario». Un `correo` de más de 254 caracteres responde 400."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const pagina = pm.response.json();",
+                  "pm.test('Todos cumplen los filtros', () => {",
+                  "  pagina.content.forEach(usuario => {",
+                  "    pm.expect(usuario.correo).to.include('prueba');",
+                  "    pm.expect(usuario.activo).to.eql(true);",
+                  "    pm.expect(usuario.roles.map(rol => rol.id)).to.include(2);",
+                  "  });",
+                  "});",
+                  "pm.test('Trae el total de la página', () => pm.expect(pagina.page.totalElements).to.be.a('number'));"
                 ]
               }
             }
@@ -238,7 +306,7 @@
                 "usuarios"
               ]
             },
-            "description": "Crea un usuario en la iglesia de `{{iglesiaId}}` (la guarda «Obtener mi usuario») con el rol base `ADMIN_IGLESIA` (id 2). `miembroId` es obligatorio con `LIDER`, `MIEMBRO` y los roles que heredan de ellos. Un rol de otra iglesia, inexistente o inactivo responde 400. Responde 201 con `Location`. El correo lleva `{{$timestamp}}` para poder repetir la ejecución.",
+            "description": "Crea un usuario en la iglesia de `{{iglesiaId}}` (la guarda «Obtener mi usuario») con el rol base `ADMIN_IGLESIA` (id 2). `miembroId` es obligatorio con `LIDER`, `MIEMBRO` y los roles que heredan de ellos. Un rol de otra iglesia, inexistente o inactivo responde 400. Responde 201 con `Location`. La contraseña es temporal: el usuario deberá cambiarla en su primer acceso. El correo lleva `{{$timestamp}}` para poder repetir la ejecución.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"correo\": \"secretaria.{{$timestamp}}@prueba.test\",\n  \"contrasena\": \"ClaveTemporal123\",\n  \"iglesiaId\": {{iglesiaId}},\n  \"miembroId\": null,\n  \"rolIds\": [\n    2\n  ]\n}",
@@ -259,6 +327,7 @@
                   "const creado = pm.response.json();",
                   "pm.test('Devuelve los roles con id, nombre y rol base', () =>",
                   "  pm.expect(creado.roles[0]).to.include({ id: 2, rolBase: 'ADMIN_IGLESIA' }));",
+                  "pm.test('La contraseña es temporal', () => pm.expect(creado.debeCambiarContrasena).to.eql(true));",
                   "pm.environment.set('usuarioId', creado.id);"
                 ]
               }
@@ -316,10 +385,68 @@
                 "{{usuarioId}}"
               ]
             },
-            "description": "Cambia roles (`rolIds`), miembro vinculado y estado. La iglesia y el correo no se editan. Si cambia algo, se cierran las sesiones del usuario. Para asignar un rol personalizado, usa su id (p. ej. `{{rolId}}` tras «4. Roles y permisos → Crear rol»).",
+            "description": "Cambia el correo, los roles (`rolIds`), el miembro vinculado y el estado. La iglesia no se edita. El correo se guarda sin espacios y en minúsculas; si es de otro usuario responde 409. Si cambia algo, se cierran las sesiones del usuario (con un correo nuevo, debe entrar con él). Responde 409 si el cambio deja la iglesia sin ningún usuario activo que pueda administrar usuarios. Nadie puede modificar su propio usuario (400). Para asignar un rol personalizado, usa su id (p. ej. `{{rolId}}` tras «4. Roles y permisos → Crear rol»). El correo nuevo lo genera el script previo, con mayúsculas para probar la normalización.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"rolIds\": [\n    2\n  ],\n  \"miembroId\": null,\n  \"activo\": true\n}",
+              "raw": "{\n  \"correo\": \"{{correoEditado}}\",\n  \"rolIds\": [\n    2\n  ],\n  \"miembroId\": null,\n  \"activo\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Correo nuevo y único en cada ejecución; las mayúsculas prueban que el backend lo normaliza.",
+                  "pm.variables.set('correoEditado', `Secretaria.Editada.${Date.now()}@Prueba.test`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Usa los roles enviados', () => pm.expect(pm.response.json().roles.map(rol => rol.id)).to.eql([2]));",
+                  "pm.test('Guarda el correo normalizado', () =>",
+                  "  pm.expect(pm.response.json().correo).to.eql(pm.variables.get('correoEditado').toLowerCase()));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Restablecer contraseña",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/usuarios/{{usuarioId}}/contrasena",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "{{usuarioId}}",
+                "contrasena"
+              ]
+            },
+            "description": "Fija una contraseña temporal a otro usuario (`{{usuarioId}}`, el de «Crear usuario»): deberá cambiarla en su próximo inicio de sesión, y se cierran sus sesiones. Requiere `usuarios.administrar`. Para la contraseña propia se usa «7. Cierre → Cambiar mi contraseña» (sobre uno mismo responde 400). Un usuario de otra iglesia responde 404. Responde 204 sin cuerpo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contrasenaTemporal\": \"TemporalNueva123\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -333,8 +460,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Usa los roles enviados', () => pm.expect(pm.response.json().roles.map(rol => rol.id)).to.eql([2]));"
+                  "pm.test('Responde 204', () => pm.response.to.have.status(204));"
                 ]
               }
             }
@@ -520,7 +646,7 @@
                 "{{rolId}}"
               ]
             },
-            "description": "Cambia el nombre y los permisos de un rol personalizado (reemplazan a los actuales); el rol base no cambia. Sobre un rol base responde 403. Los usuarios del rol reciben los nuevos permisos en el siguiente refresco del token.",
+            "description": "Cambia el nombre y los permisos de un rol personalizado (reemplazan a los actuales); el rol base no cambia. Sobre un rol base responde 403. Los usuarios del rol reciben los nuevos permisos en el siguiente refresco del token. Responde 409 si quitarle `usuarios.administrar` deja la iglesia sin ningún usuario activo que pueda administrar usuarios.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Secretaría general {{$timestamp}}\",\n  \"permisos\": [\n    \"miembros.ver\",\n    \"miembros.crear\",\n    \"miembros.editar\"\n  ]\n}",
@@ -567,7 +693,7 @@
                 "estado"
               ]
             },
-            "description": "Desactiva un rol personalizado: sigue asignado, pero deja de aportar permisos y de aparecer en los perfiles desde el siguiente refresco, y no se puede asignar. Responde 409 si algún usuario se quedaría sin roles activos.",
+            "description": "Desactiva un rol personalizado: sigue asignado, pero deja de aportar permisos y de aparecer en los perfiles desde el siguiente refresco, y no se puede asignar. Responde 409 si algún usuario se quedaría sin roles activos, o si la iglesia se quedaría sin ningún usuario activo que pueda administrar usuarios.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"activo\": false\n}",
