@@ -19,6 +19,7 @@ describe('Rutas de la aplicación', () => {
     const RUTAS_DEMO = ['dashboard', 'uikit', 'documentation', 'pages', 'landing'];
     const autenticado = signal(false);
     const perfilActivo = signal<Perfil | null>(null);
+    const debeCambiarContrasena = signal(false);
     const permisosActivos = computed(() => new Set(perfilActivo()?.permisos ?? []));
     let harness: RouterTestingHarness | undefined;
 
@@ -28,6 +29,7 @@ describe('Rutas de la aplicación', () => {
             perfilActivo,
             usuarioActual: signal({ id: 1, correo: 'u@i.test', iglesiaId: 1, miembroId: 2, perfiles: [perfilBase('LIDER'), perfilBase('MIEMBRO')] }),
             tieneVariosPerfiles: signal(true),
+            debeCambiarContrasena,
             tienePermiso: (permiso: Permiso) => permisosActivos().has(permiso),
             rutaInicio: () => {
                 const perfil = perfilActivo();
@@ -47,6 +49,7 @@ describe('Rutas de la aplicación', () => {
     beforeEach(() => {
         autenticado.set(false);
         perfilActivo.set(null);
+        debeCambiarContrasena.set(false);
     });
 
     afterEach(() => (harness = undefined));
@@ -130,6 +133,33 @@ describe('Rutas de la aplicación', () => {
             iniciarSesionCon('MIEMBRO');
 
             expect(await navegarA('/no-existe')).toBe('/notfound');
+        });
+    });
+
+    describe('con la contraseña temporal', () => {
+        beforeEach(() => {
+            configurar(true);
+            debeCambiarContrasena.set(true);
+        });
+
+        it('la raíz y cualquier página del layout redirigen al cambio de contraseña', async () => {
+            iniciarSesionCon('ADMIN_IGLESIA');
+
+            expect(await navegarA('/')).toBe('/cuenta/contrasena');
+            expect(await navegarA('/miembros')).toBe('/cuenta/contrasena');
+            expect(await navegarA('/roles')).toBe('/cuenta/contrasena');
+        });
+
+        it('el cambio de contraseña se abre', async () => {
+            iniciarSesionCon('MIEMBRO');
+
+            expect(await navegarA('/cuenta/contrasena')).toBe('/cuenta/contrasena');
+        });
+
+        it('sin perfil elegido sigue yendo primero al selector de perfil', async () => {
+            iniciarSesionCon(null);
+
+            expect(await navegarA('/miembros')).toBe('/auth/seleccionar-perfil');
         });
     });
 

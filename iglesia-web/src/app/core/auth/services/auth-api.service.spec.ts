@@ -74,6 +74,7 @@ describe('AuthApiService', () => {
             correo: 'l@i.test',
             iglesiaId: 1,
             miembroId: 9,
+            debeCambiarContrasena: false,
             perfiles: [
                 { id: 4, nombre: 'Miembro', rolBase: 'MIEMBRO', permisos: [] },
                 { id: 3, nombre: 'Líder', rolBase: 'LIDER', permisos: [] }
@@ -84,6 +85,7 @@ describe('AuthApiService', () => {
             correo: 'l@i.test',
             iglesiaId: 1,
             miembroId: 9,
+            debeCambiarContrasena: false,
             perfiles: [
                 { id: 3, nombre: 'Líder', rolBase: 'LIDER', permisos: [] },
                 { id: 4, nombre: 'Miembro', rolBase: 'MIEMBRO', permisos: [] }

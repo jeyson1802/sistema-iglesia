@@ -47,6 +47,7 @@ describe('authInterceptor', () => {
             correo: 'u@i.test',
             iglesiaId: 1,
             miembroId: 2,
+            debeCambiarContrasena: false,
             perfiles: [{ id: 4, nombre: 'Miembro', rolBase: 'MIEMBRO', permisos: [] }]
         });
         await restaurada;

@@ -1,5 +1,5 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, RedirectFunction, Router } from '@angular/router';
+import { CanActivateChildFn, CanActivateFn, RedirectFunction, Router } from '@angular/router';
 import { Permiso } from '../models/permiso';
 import { Rol } from '../models/rol';
 import { RUTAS_AUTH } from '../models/rutas-auth';
@@ -34,5 +34,16 @@ export const permisoGuard =
     () =>
         inject(SesionService).tienePermiso(permiso) || inject(Router).parseUrl(RUTAS_AUTH.accesoDenegado);
 
+/**
+ * Con una contraseña temporal, cualquier página del layout distinta del cambio de contraseña redirige a él. El
+ * backend ya rechaza el resto de operaciones; el guard evita mostrar pantallas que solo darían errores 403.
+ */
+export const contrasenaVigenteGuard: CanActivateChildFn = (_ruta, estado) =>
+    !inject(SesionService).debeCambiarContrasena() || sinConsultaNiFragmento(estado.url) === RUTAS_AUTH.cambiarContrasena || inject(Router).parseUrl(RUTAS_AUTH.cambiarContrasena);
+
 /** Redirige la ruta raíz a la página de inicio del perfil activo. */
 export const inicioRedirect: RedirectFunction = () => inject(SesionService).rutaInicio();
+
+function sinConsultaNiFragmento(url: string): string {
+    return url.split(/[?#]/)[0];
+}

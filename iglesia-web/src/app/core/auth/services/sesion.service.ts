@@ -34,6 +34,8 @@ export class SesionService {
     readonly autenticado = computed(() => this.token() !== null && this.usuario() !== null);
     readonly permisosActivos = computed<ReadonlySet<Permiso>>(() => new Set(this.perfil()?.permisos ?? []));
     readonly tieneVariosPerfiles = computed(() => (this.usuario()?.perfiles.length ?? 0) > 1);
+    /** Con una contraseña temporal, el backend rechaza todo salvo consultar el usuario y cambiarla. */
+    readonly debeCambiarContrasena = computed(() => this.usuario()?.debeCambiarContrasena ?? false);
 
     /** Con un solo perfil, queda seleccionado; con varios, el usuario debe elegirlo. */
     iniciarSesion(credenciales: Credenciales): Observable<void> {

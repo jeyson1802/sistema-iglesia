@@ -1,4 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
@@ -9,9 +10,11 @@ describe('CambiarContrasenaComponent', () => {
     let sesion: jasmine.SpyObj<SesionService>;
     let navegar: jasmine.Spy;
     let fixture: ComponentFixture<CambiarContrasenaComponent>;
+    const debeCambiarContrasena = signal(false);
 
     beforeEach(async () => {
-        sesion = jasmine.createSpyObj<SesionService>('SesionService', ['cambiarContrasena', 'rutaInicio']);
+        debeCambiarContrasena.set(false);
+        sesion = jasmine.createSpyObj<SesionService>('SesionService', ['cambiarContrasena', 'rutaInicio'], { debeCambiarContrasena });
         sesion.rutaInicio.and.returnValue('/mi-perfil');
         await TestBed.configureTestingModule({ imports: [CambiarContrasenaComponent], providers: [provideRouter([]), { provide: SesionService, useValue: sesion }] }).compileComponents();
         navegar = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
@@ -35,6 +38,17 @@ describe('CambiarContrasenaComponent', () => {
         fixture.nativeElement.querySelector('form').dispatchEvent(new Event('submit'));
         await fixture.whenStable();
     };
+
+    it('con una contraseña definitiva no muestra el aviso de contraseña temporal', () => {
+        expect(texto()).not.toContain('Tu contraseña es temporal');
+    });
+
+    it('con una contraseña temporal avisa que hay que cambiarla para continuar', async () => {
+        debeCambiarContrasena.set(true);
+        await fixture.whenStable();
+
+        expect(texto()).toContain('Tu contraseña es temporal. Cámbiala para continuar.');
+    });
 
     it('con el formulario vacío pide los tres campos y no envía nada', async () => {
         await enviar('', '', '');

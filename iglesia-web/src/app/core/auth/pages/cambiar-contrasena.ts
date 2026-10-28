@@ -51,6 +51,7 @@ export class CambiarContrasenaComponent {
 
     protected readonly ayudaNueva = `Entre ${LONGITUD_MINIMA_CONTRASENA} y ${LONGITUD_MAXIMA_CONTRASENA} caracteres.`;
     protected readonly rutaCancelar = this.sesion.rutaInicio();
+    protected readonly debeCambiarContrasena = this.sesion.debeCambiarContrasena;
 
     protected readonly guardando = signal(false);
     protected readonly error = signal<string | null>(null);

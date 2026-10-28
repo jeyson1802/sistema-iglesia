@@ -295,6 +295,24 @@ describe('SesionService', () => {
         });
     });
 
+    describe('debeCambiarContrasena', () => {
+        it('sin sesión es falso', () => {
+            expect(sesion.debeCambiarContrasena()).toBeFalse();
+        });
+
+        it('refleja si la contraseña del usuario es temporal', async () => {
+            await iniciarSesionCon({ ...usuarioCon('ADMIN_IGLESIA'), debeCambiarContrasena: true });
+
+            expect(sesion.debeCambiarContrasena()).toBeTrue();
+        });
+
+        it('es falso con una contraseña definitiva', async () => {
+            await iniciarSesionCon(usuarioCon('ADMIN_IGLESIA'));
+
+            expect(sesion.debeCambiarContrasena()).toBeFalse();
+        });
+    });
+
     describe('cambiarContrasena', () => {
         const cambio = { contrasenaActual: 'Actual12345', contrasenaNueva: 'Nueva12345' };
 

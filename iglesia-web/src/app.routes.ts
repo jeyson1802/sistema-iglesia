@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { environment } from './environments/environment';
-import { autenticadoGuard, inicioRedirect, perfilSeleccionadoGuard, permisoGuard } from './app/core/auth/guards/auth.guards';
+import { autenticadoGuard, contrasenaVigenteGuard, inicioRedirect, perfilSeleccionadoGuard, permisoGuard } from './app/core/auth/guards/auth.guards';
 import { AppLayout } from './app/layout/component/app.layout';
 import { Notfound } from './app/pages/notfound/notfound';
 
@@ -22,6 +22,7 @@ export function crearRutasApp(produccion: boolean): Routes {
             path: '',
             component: AppLayout,
             canActivate: [autenticadoGuard, perfilSeleccionadoGuard],
+            canActivateChild: [contrasenaVigenteGuard],
             children: [
                 { path: '', pathMatch: 'full', redirectTo: inicioRedirect },
                 { path: '', loadChildren: () => import('./app/features/inicio/inicio.routes') },

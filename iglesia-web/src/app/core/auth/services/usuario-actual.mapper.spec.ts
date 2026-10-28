@@ -4,7 +4,7 @@ import { aUsuarioActual } from './usuario-actual.mapper';
 describe('aUsuarioActual', () => {
     const miembro: PerfilResponse = { id: 4, nombre: 'Miembro', rolBase: 'MIEMBRO', permisos: [] };
     const secretaria: PerfilResponse = { id: 7, nombre: 'Secretaría', rolBase: 'ADMIN_IGLESIA', permisos: ['miembros.ver', 'miembros.crear'] };
-    const respuesta: UsuarioResponse = { id: 7, correo: 'secretaria@iglesia.test', iglesiaId: 1, miembroId: 20, perfiles: [miembro, secretaria] };
+    const respuesta: UsuarioResponse = { id: 7, correo: 'secretaria@iglesia.test', iglesiaId: 1, miembroId: 20, debeCambiarContrasena: false, perfiles: [miembro, secretaria] };
 
     it('copia los datos del usuario y sus perfiles', () => {
         const usuario = aUsuarioActual(respuesta);
@@ -14,6 +14,7 @@ describe('aUsuarioActual', () => {
             correo: 'secretaria@iglesia.test',
             iglesiaId: 1,
             miembroId: 20,
+            debeCambiarContrasena: false,
             perfiles: [
                 { id: 7, nombre: 'Secretaría', rolBase: 'ADMIN_IGLESIA', permisos: ['miembros.ver', 'miembros.crear'] },
                 { id: 4, nombre: 'Miembro', rolBase: 'MIEMBRO', permisos: [] }
@@ -45,6 +46,10 @@ describe('aUsuarioActual', () => {
         const usuario = aUsuarioActual({ ...respuesta, perfiles: [desconocido, miembro] });
 
         expect(usuario.perfiles.map((perfil) => perfil.id)).toEqual([4]);
+    });
+
+    it('copia si la contraseña es temporal', () => {
+        expect(aUsuarioActual({ ...respuesta, debeCambiarContrasena: true }).debeCambiarContrasena).toBeTrue();
     });
 
     it('no modifica la respuesta original', () => {

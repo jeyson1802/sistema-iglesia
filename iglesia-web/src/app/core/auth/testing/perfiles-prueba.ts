@@ -32,5 +32,6 @@ export const usuarioCon = (...perfiles: (Rol | Perfil)[]): UsuarioActual => ({
     correo: 'u@i.test',
     iglesiaId: 1,
     miembroId: 2,
+    debeCambiarContrasena: false,
     perfiles: perfiles.map((perfil) => (typeof perfil === 'string' ? perfilBase(perfil) : perfil))
 });

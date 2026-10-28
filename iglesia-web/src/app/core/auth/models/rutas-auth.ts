@@ -2,7 +2,8 @@
 export const RUTAS_AUTH = {
     login: '/auth/login',
     seleccionarPerfil: '/auth/seleccionar-perfil',
-    accesoDenegado: '/auth/acceso-denegado'
+    accesoDenegado: '/auth/acceso-denegado',
+    cambiarContrasena: '/cuenta/contrasena'
 } as const;
 
 /** Valores del parámetro `motivo` de la página de login, que decide el aviso que se muestra. */

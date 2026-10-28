@@ -4,6 +4,10 @@
         <p class="text-muted-color m-0">Por seguridad, al cambiarla se cerrarán todas tus sesiones abiertas y tendrás que iniciar sesión de nuevo.</p>
     </header>
 
+    @if (debeCambiarContrasena()) {
+        <p-message severity="warn" icon="pi pi-exclamation-triangle" styleClass="mb-6">Tu contraseña es temporal. Cámbiala para continuar.</p-message>
+    }
+
     <div aria-live="polite">
         @if (error()) {
             <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-6">{{ error() }}</p-message>

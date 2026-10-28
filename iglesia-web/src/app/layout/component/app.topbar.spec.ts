@@ -19,7 +19,7 @@ describe('AppTopbar', () => {
         tieneVariosPerfiles.set(false);
         perfilActivo.set(perfilBase('LIDER'));
         sesion = jasmine.createSpyObj<SesionService>('SesionService', ['cerrarSesion'], {
-            usuarioActual: signal({ id: 1, correo: 'lider@iglesia.test', iglesiaId: 1, miembroId: 2, perfiles: [perfilBase('LIDER'), perfilBase('MIEMBRO')] }),
+            usuarioActual: signal({ id: 1, correo: 'lider@iglesia.test', iglesiaId: 1, miembroId: 2, debeCambiarContrasena: false, perfiles: [perfilBase('LIDER'), perfilBase('MIEMBRO')] }),
             perfilActivo,
             tieneVariosPerfiles
         });
