@@ -59,4 +59,22 @@ public interface RolRepository extends JpaRepository<Rol, Long> {
 			""", nativeQuery = true)
 	boolean dejariaUsuariosSinRolesActivos(@Param("rolId") Long rolId);
 
+	/** Bloqueo transaccional por iglesia; PostgreSQL lo libera solo al terminar la transacción. */
+	@Query(value = "SELECT 1 FROM pg_advisory_xact_lock(:iglesiaId)", nativeQuery = true)
+	Integer bloquearAdministracionDeIglesia(@Param("iglesiaId") Long iglesiaId);
+
+	/** Usuarios activos de la iglesia con algún rol activo que tiene ese permiso. */
+	@Query(value = """
+			SELECT count(DISTINCT u.id)
+			FROM usuario u
+			JOIN usuario_rol ur ON ur.usuario_id = u.id
+			JOIN rol r ON r.id = ur.rol_id
+			JOIN rol_permiso rp ON rp.rol_id = r.id
+			WHERE u.iglesia_id = :iglesiaId
+			  AND u.activo
+			  AND r.activo
+			  AND rp.permiso_codigo = :permiso
+			""", nativeQuery = true)
+	long contarAdministradoresActivos(@Param("iglesiaId") Long iglesiaId, @Param("permiso") String permiso);
+
 }

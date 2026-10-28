@@ -20,6 +20,7 @@ import com.iglesia.seguridad.common.seguridad.component.ProveedorUsuarioAutentic
 import com.iglesia.seguridad.common.seguridad.model.UsuarioAutenticado;
 import com.iglesia.seguridad.rol.entity.Rol;
 import com.iglesia.seguridad.rol.model.RolBase;
+import com.iglesia.seguridad.rol.service.GarantiaAdministradorIglesia;
 import com.iglesia.seguridad.rol.service.RolService;
 import com.iglesia.seguridad.usuario.dto.ActualizarUsuarioRequest;
 import com.iglesia.seguridad.usuario.dto.CambiarContrasenaRequest;
@@ -58,9 +59,12 @@ public class UsuarioService {
 
 	private final RolService roles;
 
+	private final GarantiaAdministradorIglesia garantiaAdministrador;
+
 	UsuarioService(UsuarioRepository usuarios, PoliticaAdministracionUsuarios politica,
 			ProveedorUsuarioAutenticado proveedorUsuario, PasswordEncoder codificador,
-			TokenRefrescoService tokensRefresco, UsuarioMapper mapper, RolService roles) {
+			TokenRefrescoService tokensRefresco, UsuarioMapper mapper, RolService roles,
+			GarantiaAdministradorIglesia garantiaAdministrador) {
 		this.usuarios = usuarios;
 		this.politica = politica;
 		this.proveedorUsuario = proveedorUsuario;
@@ -68,6 +72,7 @@ public class UsuarioService {
 		this.tokensRefresco = tokensRefresco;
 		this.mapper = mapper;
 		this.roles = roles;
+		this.garantiaAdministrador = garantiaAdministrador;
 	}
 
 	@Transactional
@@ -124,6 +129,10 @@ public class UsuarioService {
 		}
 		boolean cambioCorreo = usuario.cambiarCorreo(correo);
 		boolean cambioAcceso = usuario.actualizar(rolesAsignados, solicitud.miembroId(), solicitud.activo());
+		// El administrador del sistema no pertenece a ninguna iglesia.
+		if (usuario.getIglesiaId() != null) {
+			garantiaAdministrador.verificarQueQuedaAdministrador(usuario.getIglesiaId());
+		}
 		if (cambioCorreo || cambioAcceso) {
 			// Fuerza a obtener un token nuevo con los datos actualizados (o impide el acceso si se desactivó o
 			// cambió el correo con el que inicia sesión).

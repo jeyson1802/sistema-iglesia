@@ -35,8 +35,12 @@ class RolServiceTest {
 	@Mock
 	private ProveedorUsuarioAutenticado proveedorUsuario;
 
+	@Mock
+	private GarantiaAdministradorIglesia garantiaAdministrador;
+
 	private RolService servicio() {
-		return new RolService(repositorio, permisos, new PoliticaRoles(), proveedorUsuario, new RolMapper());
+		return new RolService(repositorio, permisos, new PoliticaRoles(), proveedorUsuario, new RolMapper(),
+				garantiaAdministrador);
 	}
 
 	@Test

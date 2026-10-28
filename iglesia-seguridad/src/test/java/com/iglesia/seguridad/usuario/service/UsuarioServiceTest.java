@@ -24,6 +24,7 @@ import com.iglesia.seguridad.common.seguridad.model.UsuarioAutenticado;
 import com.iglesia.seguridad.rol.entity.Rol;
 import com.iglesia.seguridad.rol.entity.RolesPrueba;
 import com.iglesia.seguridad.rol.model.RolBase;
+import com.iglesia.seguridad.rol.service.GarantiaAdministradorIglesia;
 import com.iglesia.seguridad.rol.service.RolService;
 import com.iglesia.seguridad.usuario.dto.ActualizarUsuarioRequest;
 import com.iglesia.seguridad.usuario.dto.CambiarContrasenaRequest;
@@ -43,6 +44,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 
@@ -67,12 +69,15 @@ class UsuarioServiceTest {
 	@Mock
 	private RolService roles;
 
+	@Mock
+	private GarantiaAdministradorIglesia garantiaAdministrador;
+
 	private UsuarioService servicio;
 
 	@BeforeEach
 	void configurar() {
 		servicio = new UsuarioService(usuarios, new PoliticaAdministracionUsuarios(), proveedorUsuario, codificador,
-				tokensRefresco, new UsuarioMapper(), roles);
+				tokensRefresco, new UsuarioMapper(), roles, garantiaAdministrador);
 		given(proveedorUsuario.actual()).willReturn(ADMIN_IGLESIA_1);
 		// Los roles base tienen los mismos ids que les asigna Flyway (1 a 4, en el orden del enum).
 		lenient().when(roles.rolesAsignables(any(), any())).thenAnswer(invocacion -> invocacion.<Set<Long>>getArgument(0)
@@ -224,6 +229,20 @@ class UsuarioServiceTest {
 			.isInstanceOf(ConflictoException.class);
 		assertThat(miembro.getCorreo()).isEqualTo("m@y.com");
 		assertThat(miembro.getRolesBase()).containsExactly(RolBase.MIEMBRO);
+		then(tokensRefresco).should(never()).revocarTodos(anyLong());
+	}
+
+	@Test
+	void siLaIglesiaSeQuedaSinAdministradorNoRevocaSesionesNiRegistraElCambio() {
+		Usuario miembro = Usuario.nuevo("m@y.com", "h", 1L, 7L, RolesPrueba.bases(RolBase.MIEMBRO), false);
+		given(usuarios.findConRolesById(50L)).willReturn(Optional.of(miembro));
+		willThrow(new ConflictoException(GarantiaAdministradorIglesia.SIN_ADMINISTRADOR)).given(garantiaAdministrador)
+			.verificarQueQuedaAdministrador(1L);
+
+		assertThatThrownBy(() -> servicio.actualizar(50L,
+				new ActualizarUsuarioRequest("m@y.com", rolIds(RolBase.MIEMBRO), 7L, false)))
+			.isInstanceOf(ConflictoException.class)
+			.hasMessage(GarantiaAdministradorIglesia.SIN_ADMINISTRADOR);
 		then(tokensRefresco).should(never()).revocarTodos(anyLong());
 	}
 

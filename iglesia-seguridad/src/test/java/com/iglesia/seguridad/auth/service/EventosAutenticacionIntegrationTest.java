@@ -41,6 +41,8 @@ class EventosAutenticacionIntegrationTest {
 
 	private static final String IP_CLIENTE = "203.0.113.7";
 
+	private static final long IGLESIA = 101L;
+
 	private static final String CONTRASENA_ERRONEA = "ClaveErronea987";
 
 	@Autowired
@@ -75,15 +77,9 @@ class EventosAutenticacionIntegrationTest {
 			.andReturn()
 			.getResponse()
 			.getContentAsString(), "$.tokenAcceso");
-		Integer id = JsonPath.read(mvc.perform(post("/api/usuarios").header(HttpHeaders.AUTHORIZATION, "Bearer " + acceso)
-			.contentType(MediaType.APPLICATION_JSON)
-			.content("""
-					{"correo":"%s","contrasena":"%s","iglesiaId":1,"rolIds":[2]}
-					""".formatted(correo, contrasena)))
-			.andExpect(status().isCreated())
-			.andReturn()
-			.getResponse()
-			.getContentAsString(), "$.id");
+		// Otro administrador activo en la iglesia: sin él, desactivar al único respondería 409.
+		crearAdministrador(acceso, "admin@eventos.test", contrasena);
+		Integer id = crearAdministrador(acceso, correo, contrasena);
 		mvc.perform(put("/api/usuarios/{id}", id).header(HttpHeaders.AUTHORIZATION, "Bearer " + acceso)
 			.contentType(MediaType.APPLICATION_JSON)
 			.content("{\"correo\":\"%s\",\"rolIds\":[2],\"activo\":false}".formatted(correo)))
@@ -91,7 +87,7 @@ class EventosAutenticacionIntegrationTest {
 
 		iniciarSesion(correo, contrasena).andExpect(status().isUnauthorized());
 
-		assertThat(salida.getOut()).contains("Usuario creado id=" + id + " iglesiaId=1 por usuarioId=")
+		assertThat(salida.getOut()).contains("Usuario creado id=" + id + " iglesiaId=" + IGLESIA + " por usuarioId=")
 			.contains("Usuario actualizado id=" + id + " por usuarioId=")
 			.contains("usuario inactivo usuarioId=" + id + " ip=" + IP_CLIENTE)
 			.doesNotContain(correo)
@@ -105,6 +101,18 @@ class EventosAutenticacionIntegrationTest {
 		assertThat(salida.getOut()).containsPattern("exitoso usuarioId=\\d+")
 			.doesNotContain(CORREO_ADMIN)
 			.doesNotContain(CONTRASENA_ADMIN);
+	}
+
+	private Integer crearAdministrador(String acceso, String correo, String contrasena) throws Exception {
+		return JsonPath.read(mvc.perform(post("/api/usuarios").header(HttpHeaders.AUTHORIZATION, "Bearer " + acceso)
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("""
+					{"correo":"%s","contrasena":"%s","iglesiaId":%d,"rolIds":[2]}
+					""".formatted(correo, contrasena, IGLESIA)))
+			.andExpect(status().isCreated())
+			.andReturn()
+			.getResponse()
+			.getContentAsString(), "$.id");
 	}
 
 	private ResultActions iniciarSesion(String correo, String contrasena) throws Exception {

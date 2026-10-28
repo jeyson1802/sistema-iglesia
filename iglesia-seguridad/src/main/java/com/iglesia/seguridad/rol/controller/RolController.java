@@ -134,7 +134,8 @@ class RolController {
 	@Operation(summary = "Actualizar un rol personalizado", description = """
 			Cambia el nombre y los permisos de un rol personalizado; el rol base no se modifica. Requiere el \
 			permiso `roles.administrar`. Mismas reglas que al crear. Los usuarios del rol reciben los nuevos \
-			permisos en el siguiente refresco de su token.""")
+			permisos en el siguiente refresco de su token. La iglesia debe conservar al menos un usuario activo \
+			que pueda administrar usuarios.""")
 	@ApiResponse(responseCode = "200", description = "Rol actualizado.")
 	@ApiResponse(responseCode = "400", description = RespuestasOpenApi.DATOS_INVALIDOS
 			+ " También si algún permiso no lo tiene el rol base.",
@@ -149,7 +150,8 @@ class RolController {
 	@ApiResponse(responseCode = "404", description = NO_ENCONTRADO,
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
 					schema = @Schema(implementation = ProblemDetailEsquema.class)))
-	@ApiResponse(responseCode = "409", description = "Ya existe otro rol con ese nombre en la iglesia.",
+	@ApiResponse(responseCode = "409", description = "Ya existe otro rol con ese nombre en la iglesia, o quitarle "
+			+ "`usuarios.administrar` dejaría la iglesia sin ningún usuario activo que pueda administrar usuarios.",
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
 					schema = @Schema(implementation = ProblemDetailEsquema.class)))
 	RolResponse actualizar(@Parameter(description = DESCRIPCION_ID, example = "7") @PathVariable Long id,
@@ -165,7 +167,8 @@ class RolController {
 
 			Un rol desactivado sigue asignado a sus usuarios, pero no aporta permisos ni aparece en sus \
 			perfiles desde el siguiente refresco del token, y no se puede asignar. No se puede desactivar si \
-			algún usuario se quedaría sin roles activos.""")
+			algún usuario se quedaría sin roles activos, ni si la iglesia se quedaría sin ningún usuario activo \
+			que pueda administrar usuarios.""")
 	@ApiResponse(responseCode = "200", description = "Estado del rol actualizado.")
 	@ApiResponse(responseCode = "400", description = RespuestasOpenApi.DATOS_INVALIDOS,
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
@@ -179,7 +182,8 @@ class RolController {
 	@ApiResponse(responseCode = "404", description = NO_ENCONTRADO,
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
 					schema = @Schema(implementation = ProblemDetailEsquema.class)))
-	@ApiResponse(responseCode = "409", description = "Desactivarlo dejaría a algún usuario sin roles activos.",
+	@ApiResponse(responseCode = "409", description = "Desactivarlo dejaría a algún usuario sin roles activos, o "
+			+ "la iglesia sin ningún usuario activo que pueda administrar usuarios.",
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
 					schema = @Schema(implementation = ProblemDetailEsquema.class)))
 	RolResponse cambiarEstado(@Parameter(description = DESCRIPCION_ID, example = "7") @PathVariable Long id,

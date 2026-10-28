@@ -54,13 +54,17 @@ public class RolService {
 
 	private final RolMapper mapper;
 
+	private final GarantiaAdministradorIglesia garantiaAdministrador;
+
 	RolService(RolRepository roles, PermisoRepository permisos, PoliticaRoles politica,
-			ProveedorUsuarioAutenticado proveedorUsuario, RolMapper mapper) {
+			ProveedorUsuarioAutenticado proveedorUsuario, RolMapper mapper,
+			GarantiaAdministradorIglesia garantiaAdministrador) {
 		this.roles = roles;
 		this.permisos = permisos;
 		this.politica = politica;
 		this.proveedorUsuario = proveedorUsuario;
 		this.mapper = mapper;
+		this.garantiaAdministrador = garantiaAdministrador;
 	}
 
 	@Transactional(readOnly = true)
@@ -112,6 +116,7 @@ public class RolService {
 			throw new ConflictoException(NOMBRE_REPETIDO);
 		}
 		rol.actualizar(solicitud.nombre(), buscarPermisos(solicitud.permisos()));
+		garantiaAdministrador.verificarQueQuedaAdministrador(rol.getIglesiaId());
 		LOG.info("Rol actualizado id={} iglesiaId={} por usuarioId={}", id, rol.getIglesiaId(), actor.usuarioId());
 		return aRespuesta(rol, actor);
 	}
@@ -125,7 +130,9 @@ public class RolService {
 		if (!activar) {
 			politica.verificarDesactivable(roles.dejariaUsuariosSinRolesActivos(id));
 		}
-		if (rol.cambiarEstado(activar)) {
+		boolean cambio = rol.cambiarEstado(activar);
+		garantiaAdministrador.verificarQueQuedaAdministrador(rol.getIglesiaId());
+		if (cambio) {
 			LOG.info("Rol {} id={} iglesiaId={} por usuarioId={}", activar ? "reactivado" : "desactivado", id,
 					rol.getIglesiaId(), actor.usuarioId());
 		}
