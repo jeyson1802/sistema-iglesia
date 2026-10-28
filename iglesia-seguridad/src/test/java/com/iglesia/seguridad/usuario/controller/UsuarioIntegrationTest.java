@@ -14,6 +14,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import com.iglesia.seguridad.SemillaSeguridad;
 import com.iglesia.seguridad.TestcontainersConfiguration;
@@ -132,6 +133,65 @@ class UsuarioIntegrationTest {
 			.andExpect(jsonPath("$.perfiles[1].nombre").value("Miembro"))
 			.andExpect(jsonPath("$.perfiles[1].rolBase").value("MIEMBRO"))
 			.andExpect(jsonPath("$.roles").doesNotExist());
+	}
+
+	@Test
+	void filtraPorParteDelCorreoSinDistinguirMayusculasYSinComodines() throws Exception {
+		semilla.crearUsuario("prueba.uno@iglesia83.test", 83L, null, semilla.idRolBase("ADMIN_IGLESIA"));
+		semilla.crearUsuario("otra.prueba@iglesia83.test", 83L, null, semilla.idRolBase("ADMIN_IGLESIA"));
+		semilla.crearUsuario("ajeno@iglesia83.test", 83L, null, semilla.idRolBase("ADMIN_IGLESIA"));
+		semilla.crearUsuario("prueba@iglesia84.test", 84L, null, semilla.idRolBase("ADMIN_IGLESIA"));
+		String token = administradorDe(83L);
+
+		listar(token, "correo", "PRUEBA").andExpect(status().isOk())
+			.andExpect(jsonPath("$.content[*].correo",
+					contains("otra.prueba@iglesia83.test", "prueba.uno@iglesia83.test")));
+		// % y _ se buscan literalmente: ningún correo los contiene.
+		listar(token, "correo", "%").andExpect(jsonPath("$.content.length()").value(0));
+		listar(token, "correo", "_").andExpect(jsonPath("$.content.length()").value(0));
+	}
+
+	@Test
+	void filtraPorEstadoYPorRolYCombinaLosFiltros() throws Exception {
+		long secretaria = semilla.crearRolPersonalizado(85L, "Secretaría", "ADMIN_IGLESIA", true, "miembros.ver");
+		semilla.crearUsuario("activa@iglesia85.test", 85L, null, secretaria);
+		long inactiva = semilla.crearUsuario("inactiva@iglesia85.test", 85L, null, secretaria);
+		semilla.desactivarUsuario(inactiva);
+		String token = administradorDe(85L);
+
+		listar(token, "activo", "false").andExpect(status().isOk())
+			.andExpect(jsonPath("$.content[*].correo", contains("inactiva@iglesia85.test")));
+		listar(token, "rolId", String.valueOf(secretaria))
+			.andExpect(jsonPath("$.content[*].correo", contains("activa@iglesia85.test", "inactiva@iglesia85.test")));
+		listar(token, "rolId", String.valueOf(secretaria), "activo", "true", "correo", "ACTIVA")
+			.andExpect(jsonPath("$.content[*].correo", contains("activa@iglesia85.test")))
+			.andExpect(jsonPath("$.page.totalElements").value(1));
+	}
+
+	@Test
+	void unAdministradorDeIglesiaNoVeOtraIglesiaAunqueEnvieSuIglesiaId() throws Exception {
+		semilla.crearUsuario("vecino@iglesia86.test", 86L, null, semilla.idRolBase("ADMIN_IGLESIA"));
+		String token = administradorDe(87L);
+
+		listar(token, "iglesiaId", "86").andExpect(status().isOk())
+			.andExpect(jsonPath("$.content[*].correo", contains("admin@iglesia87.test")));
+		listar(token, "iglesiaId", "86", "correo", "vecino").andExpect(jsonPath("$.content.length()").value(0));
+	}
+
+	@Test
+	void unCorreoDeFiltroDemasiadoLargoEsUnErrorDeDatos() throws Exception {
+		listar(administradorDe(88L), "correo", "a".repeat(255)).andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.errores.correo").exists());
+	}
+
+	/** Lista ordenado por correo con los filtros dados como pares nombre, valor. */
+	private ResultActions listar(String token, String... filtros) throws Exception {
+		MockHttpServletRequestBuilder peticion = get("/api/usuarios").param("sort", "correo,asc")
+			.header(HttpHeaders.AUTHORIZATION, bearer(token));
+		for (int i = 0; i < filtros.length; i += 2) {
+			peticion.param(filtros[i], filtros[i + 1]);
+		}
+		return mvc.perform(peticion);
 	}
 
 	private String administradorDe(long iglesiaId) throws Exception {

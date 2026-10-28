@@ -1,6 +1,9 @@
 package com.iglesia.seguridad.common.openapi.config;
 
+import java.lang.reflect.RecordComponent;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,7 +32,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 /**
  * Recorre la especificación generada y falla si algo quedó sin documentar: cada operación con resumen,
  * descripción y respuestas descritas, y cada DTO propio (paquetes {@code dto}) con descripción en la clase
- * y en cada campo.
+ * y en cada campo. Los DTOs de parámetros de consulta ({@code @ParameterObject}) no son esquemas: se exige
+ * descripción y ejemplo en cada parámetro.
  */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
@@ -99,10 +103,15 @@ class OpenApiCoberturaIntegrationTest {
 	@Test
 	void todoDtoPropioTieneDescripcionEnLaClaseYEnCadaCampo() {
 		Map<String, Object> esquemas = JsonPath.read(especificacion, "$.components.schemas");
-		Set<String> dtos = nombresDeDtosPropios();
+		Map<String, Class<?>> dtos = dtosPropios();
+		Map<String, Map<String, Object>> parametrosConsulta = parametrosDeConsulta();
 		List<String> faltantes = new ArrayList<>();
-		dtos.forEach(dto -> {
+		dtos.forEach((dto, clase) -> {
 			Map<String, Object> esquema = mapa(esquemas.get(dto));
+			if (esquema.isEmpty() && esParametroDeConsulta(clase, parametrosConsulta)) {
+				revisarParametros(dto, clase, parametrosConsulta, faltantes);
+				return;
+			}
 			if (esquema.isEmpty()) {
 				faltantes.add(dto + ": no aparece en la especificación");
 				return;
@@ -156,8 +165,38 @@ class OpenApiCoberturaIntegrationTest {
 			.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 	}
 
-	/** Nombres simples de las clases de los paquetes {@code dto} del proyecto. */
-	private static Set<String> nombresDeDtosPropios() {
+	/** Parámetros {@code in: query} de todas las operaciones, indexados por nombre. */
+	private Map<String, Map<String, Object>> parametrosDeConsulta() {
+		Map<String, Map<String, Object>> parametros = new HashMap<>();
+		operaciones().values()
+			.forEach(operacion -> ((List<?>) operacion.getOrDefault("parameters", List.of())).stream()
+				.map(OpenApiCoberturaIntegrationTest::mapa)
+				.filter(parametro -> "query".equals(parametro.get("in")))
+				.forEach(parametro -> parametros.putIfAbsent((String) parametro.get("name"), parametro)));
+		return parametros;
+	}
+
+	/** Un {@code record} cuyos campos están todos publicados como parámetros de consulta. */
+	private static boolean esParametroDeConsulta(Class<?> clase, Map<String, Map<String, Object>> parametros) {
+		return clase.isRecord() && Arrays.stream(clase.getRecordComponents())
+			.allMatch(componente -> parametros.containsKey(componente.getName()));
+	}
+
+	private static void revisarParametros(String dto, Class<?> clase, Map<String, Map<String, Object>> parametros,
+			List<String> faltantes) {
+		for (RecordComponent componente : clase.getRecordComponents()) {
+			Map<String, Object> parametro = parametros.get(componente.getName());
+			if (vacio(parametro.get("description"))) {
+				faltantes.add(dto + "." + componente.getName() + ": parámetro sin description");
+			}
+			if (!parametro.containsKey("example") && !mapa(parametro.get("schema")).containsKey("example")) {
+				faltantes.add(dto + "." + componente.getName() + ": parámetro sin example");
+			}
+		}
+	}
+
+	/** Clases de los paquetes {@code dto} del proyecto, indexadas por nombre simple. */
+	private static Map<String, Class<?>> dtosPropios() {
 		ClassPathScanningCandidateComponentProvider escaner = new ClassPathScanningCandidateComponentProvider(false) {
 			@Override
 			protected boolean isCandidateComponent(AnnotatedBeanDefinition definicion) {
@@ -167,8 +206,8 @@ class OpenApiCoberturaIntegrationTest {
 		escaner.addIncludeFilter((lector, fabrica) -> lector.getClassMetadata().getClassName().contains(".dto."));
 		return escaner.findCandidateComponents(PAQUETE_BASE)
 			.stream()
-			.map(definicion -> ClassUtils.getShortName(definicion.getBeanClassName()))
-			.collect(Collectors.toSet());
+			.map(definicion -> ClassUtils.resolveClassName(definicion.getBeanClassName(), null))
+			.collect(Collectors.toMap(ClassUtils::getShortName, clase -> clase));
 	}
 
 	@SuppressWarnings("unchecked")

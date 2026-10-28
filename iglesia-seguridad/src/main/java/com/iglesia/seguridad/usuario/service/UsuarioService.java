@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,11 +24,13 @@ import com.iglesia.seguridad.rol.service.RolService;
 import com.iglesia.seguridad.usuario.dto.ActualizarUsuarioRequest;
 import com.iglesia.seguridad.usuario.dto.CambiarContrasenaRequest;
 import com.iglesia.seguridad.usuario.dto.CrearUsuarioRequest;
+import com.iglesia.seguridad.usuario.dto.FiltroUsuarios;
 import com.iglesia.seguridad.usuario.dto.MiUsuarioResponse;
 import com.iglesia.seguridad.usuario.dto.UsuarioResponse;
 import com.iglesia.seguridad.usuario.entity.Usuario;
 import com.iglesia.seguridad.usuario.mapper.UsuarioMapper;
 import com.iglesia.seguridad.usuario.model.Correo;
+import com.iglesia.seguridad.usuario.repository.EspecificacionesUsuario;
 import com.iglesia.seguridad.usuario.repository.UsuarioRepository;
 
 /** Administración de usuarios y gestión de la cuenta propia. */
@@ -86,11 +89,12 @@ public class UsuarioService {
 	}
 
 	@Transactional(readOnly = true)
-	public Page<UsuarioResponse> listar(Long iglesiaId, Pageable paginacion) {
+	public Page<UsuarioResponse> listar(Long iglesiaId, FiltroUsuarios filtro, Pageable paginacion) {
 		Long iglesia = politica.iglesiaParaListado(proveedorUsuario.actual(), iglesiaId);
-		Page<Usuario> pagina = iglesia == null ? usuarios.findAll(paginacion)
-				: usuarios.findByIglesiaId(iglesia, paginacion);
-		return pagina.map(mapper::aRespuesta);
+		Specification<Usuario> criterio = Specification.allOf(EspecificacionesUsuario.deIglesia(iglesia),
+				EspecificacionesUsuario.correoContiene(filtro.correo()),
+				EspecificacionesUsuario.conEstado(filtro.activo()), EspecificacionesUsuario.conRol(filtro.rolId()));
+		return usuarios.findAll(criterio, paginacion).map(mapper::aRespuesta);
 	}
 
 	@Transactional(readOnly = true)

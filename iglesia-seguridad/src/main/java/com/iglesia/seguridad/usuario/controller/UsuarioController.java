@@ -36,6 +36,7 @@ import com.iglesia.seguridad.common.seguridad.constant.Permisos;
 import com.iglesia.seguridad.usuario.dto.ActualizarUsuarioRequest;
 import com.iglesia.seguridad.usuario.dto.CambiarContrasenaRequest;
 import com.iglesia.seguridad.usuario.dto.CrearUsuarioRequest;
+import com.iglesia.seguridad.usuario.dto.FiltroUsuarios;
 import com.iglesia.seguridad.usuario.dto.MiUsuarioResponse;
 import com.iglesia.seguridad.usuario.dto.UsuarioResponse;
 import com.iglesia.seguridad.usuario.service.UsuarioService;
@@ -102,9 +103,13 @@ class UsuarioController {
 			permiso `usuarios.ver`.
 
 			`ADMIN_SISTEMA` puede filtrar por `iglesiaId` (sin filtro ve todas las iglesias). El resto siempre \
-			ve solo su iglesia, aunque envíe otro `iglesiaId`.""")
+			ve solo su iglesia, aunque envíe otro `iglesiaId`.
+
+			Los filtros `correo` (contiene, sin distinguir mayúsculas), `activo` y `rolId` son opcionales y se \
+			combinan entre sí y con la paginación.""")
 	@ApiResponse(responseCode = "200", description = "Página de usuarios.")
-	@ApiResponse(responseCode = "400", description = "Parámetro inválido, por ejemplo un campo de ordenación que no existe.",
+	@ApiResponse(responseCode = "400", description = "Parámetro inválido, por ejemplo un campo de ordenación que no "
+			+ "existe o un `correo` de más de 254 caracteres.",
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
 					schema = @Schema(implementation = ProblemDetailEsquema.class)))
 	@ApiResponse(responseCode = "401", description = RespuestasOpenApi.NO_AUTENTICADO,
@@ -116,8 +121,9 @@ class UsuarioController {
 	Page<UsuarioResponse> listar(
 			@Parameter(description = "Filtra por iglesia. Solo lo tiene en cuenta `ADMIN_SISTEMA`.",
 					example = "1") @RequestParam(required = false) Long iglesiaId,
+			@Valid @ParameterObject FiltroUsuarios filtro,
 			@ParameterObject @PageableDefault(sort = "id") Pageable paginacion) {
-		return servicio.listar(iglesiaId, paginacion);
+		return servicio.listar(iglesiaId, filtro, paginacion);
 	}
 
 	@GetMapping("/{id}")

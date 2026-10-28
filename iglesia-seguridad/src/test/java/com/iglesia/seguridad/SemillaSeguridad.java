@@ -48,6 +48,10 @@ public class SemillaSeguridad {
 		return id;
 	}
 
+	public void desactivarUsuario(long usuarioId) {
+		jdbc.update("UPDATE usuario SET activo = FALSE WHERE id = ?", usuarioId);
+	}
+
 	/** Marca la contraseña del usuario como temporal, como si un administrador la hubiera elegido. */
 	public void exigirCambioContrasena(long usuarioId) {
 		jdbc.update("UPDATE usuario SET debe_cambiar_contrasena = TRUE WHERE id = ?", usuarioId);
