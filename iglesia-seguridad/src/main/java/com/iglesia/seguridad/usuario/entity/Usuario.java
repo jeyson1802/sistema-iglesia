@@ -56,6 +56,9 @@ public class Usuario {
 	@Column(nullable = false)
 	private boolean activo;
 
+	@Column(name = "debe_cambiar_contrasena", nullable = false)
+	private boolean debeCambiarContrasena;
+
 	@ManyToMany(fetch = FetchType.LAZY)
 	@JoinTable(name = "usuario_rol", joinColumns = @JoinColumn(name = "usuario_id"),
 			inverseJoinColumns = @JoinColumn(name = "rol_id"))
@@ -75,7 +78,8 @@ public class Usuario {
 	protected Usuario() {
 	}
 
-	private Usuario(String correo, String hashContrasena, Long iglesiaId, Long miembroId, Set<Rol> roles) {
+	private Usuario(String correo, String hashContrasena, Long iglesiaId, Long miembroId, Set<Rol> roles,
+			boolean contrasenaTemporal) {
 		validar(roles, iglesiaId, miembroId);
 		this.correo = Correo.normalizar(correo);
 		this.hashContrasena = Objects.requireNonNull(hashContrasena);
@@ -83,10 +87,16 @@ public class Usuario {
 		this.miembroId = miembroId;
 		this.roles.addAll(roles);
 		this.activo = true;
+		this.debeCambiarContrasena = contrasenaTemporal;
 	}
 
-	public static Usuario nuevo(String correo, String hashContrasena, Long iglesiaId, Long miembroId, Set<Rol> roles) {
-		return new Usuario(correo, hashContrasena, iglesiaId, miembroId, roles);
+	/**
+	 * @param contrasenaTemporal {@code true} si la contraseña la eligió otra persona (un administrador) y el
+	 *     usuario debe cambiarla antes de usar el sistema
+	 */
+	public static Usuario nuevo(String correo, String hashContrasena, Long iglesiaId, Long miembroId, Set<Rol> roles,
+			boolean contrasenaTemporal) {
+		return new Usuario(correo, hashContrasena, iglesiaId, miembroId, roles, contrasenaTemporal);
 	}
 
 	/**
@@ -104,8 +114,16 @@ public class Usuario {
 		return cambioAcceso;
 	}
 
+	/** El propio usuario elige su contraseña: deja de ser temporal. */
 	public void cambiarContrasena(String nuevoHash) {
 		hashContrasena = Objects.requireNonNull(nuevoHash);
+		debeCambiarContrasena = false;
+	}
+
+	/** Un administrador fija una contraseña temporal que el usuario debe cambiar antes de usar el sistema. */
+	public void restablecerContrasena(String hashTemporal) {
+		hashContrasena = Objects.requireNonNull(hashTemporal);
+		debeCambiarContrasena = true;
 	}
 
 	private static void validar(Set<Rol> roles, Long iglesiaId, Long miembroId) {
@@ -154,6 +172,10 @@ public class Usuario {
 
 	public boolean isActivo() {
 		return activo;
+	}
+
+	public boolean isDebeCambiarContrasena() {
+		return debeCambiarContrasena;
 	}
 
 	public Set<Rol> getRoles() {

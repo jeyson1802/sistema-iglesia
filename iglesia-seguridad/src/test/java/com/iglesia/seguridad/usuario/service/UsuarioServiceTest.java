@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
@@ -97,6 +98,18 @@ class UsuarioServiceTest {
 	}
 
 	@Test
+	void laContrasenaDeUnUsuarioCreadoPorUnAdministradorEsTemporal() {
+		given(codificador.encode("ClaveSegura123")).willReturn("{bcrypt}hash");
+		given(usuarios.save(any(Usuario.class))).willAnswer(invocacion -> invocacion.getArgument(0));
+
+		servicio.crear(new CrearUsuarioRequest("a@b.com", "ClaveSegura123", 1L, null, rolIds(RolBase.ADMIN_IGLESIA)));
+
+		ArgumentCaptor<Usuario> guardado = ArgumentCaptor.forClass(Usuario.class);
+		then(usuarios).should().save(guardado.capture());
+		assertThat(guardado.getValue().isDebeCambiarContrasena()).isTrue();
+	}
+
+	@Test
 	void noCreaUsuariosEnOtraIglesia() {
 		assertThatThrownBy(() -> servicio
 			.crear(new CrearUsuarioRequest("a@b.com", "ClaveSegura123", 2L, null, rolIds(RolBase.ADMIN_IGLESIA))))
@@ -114,7 +127,7 @@ class UsuarioServiceTest {
 
 	@Test
 	void validaLosRolesContraLaIglesiaDelUsuarioAlActualizar() {
-		Usuario miembro = Usuario.nuevo("m@y.com", "h", 1L, 7L, RolesPrueba.bases(RolBase.MIEMBRO));
+		Usuario miembro = Usuario.nuevo("m@y.com", "h", 1L, 7L, RolesPrueba.bases(RolBase.MIEMBRO), false);
 		given(usuarios.findConRolesById(50L)).willReturn(Optional.of(miembro));
 
 		servicio.actualizar(50L, new ActualizarUsuarioRequest(rolIds(RolBase.LIDER), 7L, true));
@@ -129,7 +142,7 @@ class UsuarioServiceTest {
 		Rol tesoreria = RolesPrueba
 			.desactivado(RolesPrueba.personalizado(11L, 1L, "Tesorería", RolBase.ADMIN_IGLESIA, "usuarios.ver"));
 		Usuario propio = Usuario.nuevo("s@y.com", "h", 1L, 7L,
-				Set.of(RolesPrueba.base(RolBase.MIEMBRO), secretaria, tesoreria));
+				Set.of(RolesPrueba.base(RolBase.MIEMBRO), secretaria, tesoreria), false);
 		given(usuarios.findConRolesById(ADMIN_IGLESIA_1.usuarioId())).willReturn(Optional.of(propio));
 
 		MiUsuarioResponse yo = servicio.obtenerActual();
@@ -150,7 +163,7 @@ class UsuarioServiceTest {
 
 	@Test
 	void unUsuarioDeOtraIglesiaSeTrataComoInexistente() {
-		Usuario ajeno = Usuario.nuevo("x@y.com", "h", 2L, null, RolesPrueba.bases(RolBase.ADMIN_IGLESIA));
+		Usuario ajeno = Usuario.nuevo("x@y.com", "h", 2L, null, RolesPrueba.bases(RolBase.ADMIN_IGLESIA), false);
 		given(usuarios.findConRolesById(50L)).willReturn(Optional.of(ajeno));
 
 		assertThatThrownBy(() -> servicio.obtener(50L)).isInstanceOf(RecursoNoEncontradoException.class);
@@ -158,7 +171,7 @@ class UsuarioServiceTest {
 
 	@Test
 	void revocaSesionesCuandoCambianLosRoles() {
-		Usuario miembro = Usuario.nuevo("m@y.com", "h", 1L, 7L, RolesPrueba.bases(RolBase.MIEMBRO));
+		Usuario miembro = Usuario.nuevo("m@y.com", "h", 1L, 7L, RolesPrueba.bases(RolBase.MIEMBRO), false);
 		given(usuarios.findConRolesById(50L)).willReturn(Optional.of(miembro));
 
 		servicio.actualizar(50L, new ActualizarUsuarioRequest(rolIds(RolBase.LIDER), 7L, true));
@@ -168,7 +181,7 @@ class UsuarioServiceTest {
 
 	@Test
 	void noRevocaSesionesSiNoCambiaElAcceso() {
-		Usuario miembro = Usuario.nuevo("m@y.com", "h", 1L, 7L, RolesPrueba.bases(RolBase.MIEMBRO));
+		Usuario miembro = Usuario.nuevo("m@y.com", "h", 1L, 7L, RolesPrueba.bases(RolBase.MIEMBRO), false);
 		given(usuarios.findConRolesById(50L)).willReturn(Optional.of(miembro));
 
 		servicio.actualizar(50L, new ActualizarUsuarioRequest(rolIds(RolBase.MIEMBRO), 7L, true));
@@ -185,7 +198,7 @@ class UsuarioServiceTest {
 
 	@Test
 	void cambiarContrasenaExigeLaActualYRevocaSesiones() {
-		Usuario propio = Usuario.nuevo("p@y.com", "hash-actual", 1L, null, RolesPrueba.bases(RolBase.ADMIN_IGLESIA));
+		Usuario propio = Usuario.nuevo("p@y.com", "hash-actual", 1L, null, RolesPrueba.bases(RolBase.ADMIN_IGLESIA), false);
 		given(usuarios.findConRolesById(ADMIN_IGLESIA_1.usuarioId())).willReturn(Optional.of(propio));
 		given(codificador.matches("mala", "hash-actual")).willReturn(false);
 		given(codificador.matches("buena", "hash-actual")).willReturn(true);

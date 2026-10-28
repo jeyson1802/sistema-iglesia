@@ -50,7 +50,7 @@ class TokenRefrescoServiceTest {
 		JwtProperties propiedades = new JwtProperties("e", List.of("a"), "a", Duration.ofMinutes(15), VIGENCIA, null,
 				null);
 		servicio = new TokenRefrescoService(tokens, propiedades, Clock.fixed(AHORA, ZoneOffset.UTC));
-		usuario = Usuario.nuevo("u@i.com", "h", 1L, null, RolesPrueba.bases(RolBase.ADMIN_IGLESIA));
+		usuario = Usuario.nuevo("u@i.com", "h", 1L, null, RolesPrueba.bases(RolBase.ADMIN_IGLESIA), false);
 		ReflectionTestUtils.setField(usuario, "id", 5L);
 	}
 

@@ -50,7 +50,7 @@ class GeneradorTokenAccesoTest {
 
 	@Test
 	void incluyeRolesIglesiaYMiembroFirmadoConRs256() throws Exception {
-		Usuario usuario = Usuario.nuevo("l@i.com", "h", 3L, 9L, RolesPrueba.bases(RolBase.MIEMBRO, RolBase.LIDER));
+		Usuario usuario = Usuario.nuevo("l@i.com", "h", 3L, 9L, RolesPrueba.bases(RolBase.MIEMBRO, RolBase.LIDER), false);
 		ReflectionTestUtils.setField(usuario, "id", 42L);
 
 		TokenAcceso token = generador.generar(usuario);
@@ -74,7 +74,7 @@ class GeneradorTokenAccesoTest {
 				"usuarios.ver");
 		Rol tesoreria = RolesPrueba.desactivado(
 				RolesPrueba.personalizado(12L, 3L, "Tesorería", RolBase.LIDER, "roles.ver"));
-		Usuario usuario = Usuario.nuevo("s@i.com", "h", 3L, 9L, Set.of(secretaria, consejo, tesoreria));
+		Usuario usuario = Usuario.nuevo("s@i.com", "h", 3L, 9L, Set.of(secretaria, consejo, tesoreria), false);
 		ReflectionTestUtils.setField(usuario, "id", 43L);
 
 		Jwt jwt = decodificar(generador.generar(usuario));
@@ -86,7 +86,7 @@ class GeneradorTokenAccesoTest {
 
 	@Test
 	void unRolBaseSinPermisosEmiteLaListaDePermisosVacia() throws Exception {
-		Usuario miembro = Usuario.nuevo("m@i.com", "h", 3L, 9L, RolesPrueba.bases(RolBase.MIEMBRO));
+		Usuario miembro = Usuario.nuevo("m@i.com", "h", 3L, 9L, RolesPrueba.bases(RolBase.MIEMBRO), false);
 		ReflectionTestUtils.setField(miembro, "id", 44L);
 
 		assertThat(decodificar(generador.generar(miembro)).getClaimAsStringList(ClaimsJwt.PERMISOS)).isEmpty();
@@ -94,7 +94,7 @@ class GeneradorTokenAccesoTest {
 
 	@Test
 	void elAdministradorDelSistemaNoLlevaIglesia() throws Exception {
-		Usuario admin = Usuario.nuevo("a@i.com", "h", null, null, RolesPrueba.bases(RolBase.ADMIN_SISTEMA));
+		Usuario admin = Usuario.nuevo("a@i.com", "h", null, null, RolesPrueba.bases(RolBase.ADMIN_SISTEMA), false);
 		ReflectionTestUtils.setField(admin, "id", 1L);
 
 		Jwt jwt = NimbusJwtDecoder.withPublicKey(clave.toRSAPublicKey())

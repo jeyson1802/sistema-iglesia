@@ -78,7 +78,7 @@ public class UsuarioService {
 			throw new ConflictoException("El miembro ya tiene un usuario");
 		}
 		Usuario usuario = Usuario.nuevo(correo, codificador.encode(solicitud.contrasena()), solicitud.iglesiaId(),
-				solicitud.miembroId(), rolesAsignados);
+				solicitud.miembroId(), rolesAsignados, true);
 		Usuario guardado = usuarios.save(usuario);
 		LOG.info("Usuario creado id={} iglesiaId={} por usuarioId={}", guardado.getId(), guardado.getIglesiaId(),
 				actor.usuarioId());

@@ -48,7 +48,7 @@ class AdministradorInicial implements ApplicationRunner {
 			return;
 		}
 		usuarios.save(Usuario.nuevo(propiedades.correo(), codificador.encode(propiedades.contrasena()), null, null,
-				roles.rolesBase(Set.of(RolBase.ADMIN_SISTEMA))));
+				roles.rolesBase(Set.of(RolBase.ADMIN_SISTEMA)), false));
 		LOG.info("Administrador del sistema inicial creado");
 	}
 
