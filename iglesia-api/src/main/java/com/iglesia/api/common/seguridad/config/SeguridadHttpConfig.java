@@ -20,6 +20,7 @@ import com.iglesia.api.common.error.handler.AccessDeniedProblemDetail;
 import com.iglesia.api.common.error.handler.EntryPointProblemDetail;
 import com.iglesia.api.common.openapi.config.OpenApiConfig;
 import com.iglesia.api.common.seguridad.component.ConvertidorAutoridadesJwt;
+import com.iglesia.api.common.seguridad.filter.FiltroCambioContrasenaPendiente;
 import com.iglesia.api.common.traza.constant.TrazaConstantes;
 import com.iglesia.api.common.traza.filter.FiltroContextoUsuario;
 
@@ -60,6 +61,8 @@ class SeguridadHttpConfig {
 				.accessDeniedHandler(accesoDenegado))
 			// usuarioId e iglesiaId en el MDC en cuanto se valida el JWT, para todos los logs posteriores.
 			.addFilterAfter(new FiltroContextoUsuario(), BearerTokenAuthenticationFilter.class)
+			// Con una contraseña temporal, toda la API responde 403 hasta que se cambie en iglesia-seguridad.
+			.addFilterAfter(new FiltroCambioContrasenaPendiente(accesoDenegado), FiltroContextoUsuario.class)
 			.build();
 	}
 

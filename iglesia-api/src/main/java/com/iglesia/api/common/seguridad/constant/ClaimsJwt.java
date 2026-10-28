@@ -11,6 +11,9 @@ public final class ClaimsJwt {
 
 	public static final String MIEMBRO_ID = "miembro_id";
 
+	/** {@code true} si el usuario tiene una contraseña temporal que debe cambiar antes de usar el sistema. */
+	public static final String CAMBIO_CONTRASENA = "cambio_contrasena";
+
 	private ClaimsJwt() {
 	}
 
