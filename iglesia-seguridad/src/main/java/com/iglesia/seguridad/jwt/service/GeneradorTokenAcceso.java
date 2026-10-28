@@ -22,7 +22,8 @@ import com.iglesia.seguridad.usuario.entity.Usuario;
 /**
  * Emite el token de acceso (JWT RS256). El {@code sub} es el id del usuario; los datos personales
  * no viajan en el token. Incluye los roles base y los permisos de sus roles activos, la iglesia (tenant)
- * y el miembro vinculado cuando existen. La autorización se decide por permiso, nunca por rol.
+ * y el miembro vinculado cuando existen, y si la contraseña es temporal. La autorización se decide por permiso,
+ * nunca por rol.
  */
 @Component
 public class GeneradorTokenAcceso {
@@ -56,7 +57,8 @@ public class GeneradorTokenAcceso {
 			.issuedAt(ahora)
 			.expiresAt(expiraEn)
 			.claim(ClaimsJwt.ROLES, roles)
-			.claim(ClaimsJwt.PERMISOS, permisos);
+			.claim(ClaimsJwt.PERMISOS, permisos)
+			.claim(ClaimsJwt.CAMBIO_CONTRASENA, usuario.isDebeCambiarContrasena());
 		if (usuario.getIglesiaId() != null) {
 			claims.claim(ClaimsJwt.IGLESIA_ID, usuario.getIglesiaId());
 		}

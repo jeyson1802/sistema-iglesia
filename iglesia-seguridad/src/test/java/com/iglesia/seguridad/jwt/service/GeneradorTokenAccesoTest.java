@@ -105,6 +105,19 @@ class GeneradorTokenAccesoTest {
 		assertThat(jwt.hasClaim(ClaimsJwt.MIEMBRO_ID)).isFalse();
 	}
 
+	@Test
+	void emiteSiempreSiLaContrasenaEsTemporalComoBooleano() throws Exception {
+		Usuario temporal = Usuario.nuevo("t@i.com", "h", 3L, null, RolesPrueba.bases(RolBase.ADMIN_IGLESIA), true);
+		Usuario definitiva = Usuario.nuevo("d@i.com", "h", 3L, null, RolesPrueba.bases(RolBase.ADMIN_IGLESIA), false);
+		ReflectionTestUtils.setField(temporal, "id", 45L);
+		ReflectionTestUtils.setField(definitiva, "id", 46L);
+
+		assertThat(decodificar(generador.generar(temporal)).<Object>getClaim(ClaimsJwt.CAMBIO_CONTRASENA))
+			.isEqualTo(true);
+		assertThat(decodificar(generador.generar(definitiva)).<Object>getClaim(ClaimsJwt.CAMBIO_CONTRASENA))
+			.isEqualTo(false);
+	}
+
 	private Jwt decodificar(TokenAcceso token) throws Exception {
 		return NimbusJwtDecoder.withPublicKey(clave.toRSAPublicKey()).build().decode(token.valor());
 	}

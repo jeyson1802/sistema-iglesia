@@ -28,6 +28,7 @@ import com.iglesia.seguridad.common.error.component.FabricaProblemDetail;
 import com.iglesia.seguridad.common.error.exception.ConflictoException;
 import com.iglesia.seguridad.common.error.exception.RecursoNoEncontradoException;
 import com.iglesia.seguridad.common.error.exception.ReglaNegocioException;
+import com.iglesia.seguridad.common.seguridad.exception.CambioContrasenaPendienteException;
 
 /**
  * Traduce las excepciones a respuestas {@link ProblemDetail} (RFC 9457) con mensajes en español y {@code traceId}.
@@ -79,6 +80,13 @@ class ManejadorGlobalErrores extends ResponseEntityExceptionHandler {
 	@ExceptionHandler(AccessDeniedException.class)
 	ProblemDetail accesoDenegado(AccessDeniedException ex, HttpServletRequest peticion) {
 		return registrar(peticion, fabrica.accesoDenegado(), ex);
+	}
+
+	/** 403 con el motivo explícito, para que el usuario sepa cómo desbloquearse. */
+	@ExceptionHandler(CambioContrasenaPendienteException.class)
+	ProblemDetail cambioContrasenaPendiente(CambioContrasenaPendienteException ex, HttpServletRequest peticion) {
+		return registrar(peticion, fabrica.crear(HttpStatus.FORBIDDEN, FabricaProblemDetail.TITULO_ACCESO_DENEGADO,
+				ex.getMessage()), ex);
 	}
 
 	@ExceptionHandler(Exception.class)

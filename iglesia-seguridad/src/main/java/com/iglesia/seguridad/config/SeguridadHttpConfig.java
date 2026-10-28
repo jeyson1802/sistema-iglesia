@@ -26,6 +26,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import com.iglesia.seguridad.common.error.handler.AccessDeniedProblemDetail;
 import com.iglesia.seguridad.common.error.handler.EntryPointProblemDetail;
 import com.iglesia.seguridad.common.openapi.config.OpenApiConfig;
+import com.iglesia.seguridad.common.seguridad.filter.FiltroCambioContrasenaPendiente;
 import com.iglesia.seguridad.common.traza.constant.TrazaConstantes;
 import com.iglesia.seguridad.common.traza.filter.FiltroContextoUsuario;
 import com.iglesia.seguridad.jwt.controller.JwksController;
@@ -71,6 +72,9 @@ class SeguridadHttpConfig {
 				.accessDeniedHandler(accesoDenegado))
 			// usuarioId e iglesiaId en el MDC en cuanto se valida el JWT, para todos los logs posteriores.
 			.addFilterAfter(new FiltroContextoUsuario(), BearerTokenAuthenticationFilter.class)
+			// Con contraseña temporal solo se permite consultar el propio usuario y cambiarla. Va después del
+			// contexto de usuario para que el WARN del 403 lleve usuarioId e iglesiaId.
+			.addFilterAfter(new FiltroCambioContrasenaPendiente(accesoDenegado), FiltroContextoUsuario.class)
 			.build();
 	}
 

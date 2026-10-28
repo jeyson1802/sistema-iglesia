@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -133,9 +134,9 @@ class AuthIntegrationTest {
 					"""))
 			.andExpect(status().isCreated());
 
-		String accesoIglesia = JsonPath.read(
-				iniciarSesion("admin@iglesia2.test", "ClaveIglesia123").getResponse().getContentAsString(),
-				"$.tokenAcceso");
+		// Su contraseña es temporal: hasta cambiarla, todo responde 403 y no se probaría el aislamiento.
+		String accesoIglesia = cambiarContrasenaTemporal("admin@iglesia2.test", "ClaveIglesia123",
+				"ClaveDefinitiva123");
 
 		mvc.perform(post("/api/usuarios").header(HttpHeaders.AUTHORIZATION, "Bearer " + accesoIglesia)
 			.contentType(MediaType.APPLICATION_JSON)
@@ -193,6 +194,17 @@ class AuthIntegrationTest {
 			.content("{\"correo\":\"%s\",\"contrasena\":\"%s\"}".formatted(correo, contrasena)))
 			.andExpect(status().isOk())
 			.andReturn();
+	}
+
+	/** Cambia la contraseña temporal de un usuario recién creado y devuelve el token del nuevo login. */
+	private String cambiarContrasenaTemporal(String correo, String temporal, String definitiva) throws Exception {
+		String accesoTemporal = JsonPath.read(iniciarSesion(correo, temporal).getResponse().getContentAsString(),
+				"$.tokenAcceso");
+		mvc.perform(put("/api/usuarios/me/contrasena").header(HttpHeaders.AUTHORIZATION, "Bearer " + accesoTemporal)
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"contrasenaActual\":\"%s\",\"contrasenaNueva\":\"%s\"}".formatted(temporal, definitiva)))
+			.andExpect(status().isNoContent());
+		return JsonPath.read(iniciarSesion(correo, definitiva).getResponse().getContentAsString(), "$.tokenAcceso");
 	}
 
 	private ResultActions refrescar(String token) throws Exception {
