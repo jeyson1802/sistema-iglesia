@@ -103,9 +103,9 @@ class UsuarioIntegrationTest {
 		long usuario = semilla.crearUsuario("miembro@iglesia43.test", 43L, 5L, semilla.idRolBase("MIEMBRO"));
 		String token = administradorDe(43L);
 
-		actualizar(token, usuario, ajeno).andExpect(status().isBadRequest())
+		actualizar(token, usuario, "miembro@iglesia43.test", ajeno).andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.detail").value(containsString("no existe")));
-		actualizar(token, usuario, inactivo).andExpect(status().isBadRequest())
+		actualizar(token, usuario, "miembro@iglesia43.test", inactivo).andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.detail").value(containsString("inactivo")));
 	}
 
@@ -114,7 +114,8 @@ class UsuarioIntegrationTest {
 		long usuario = semilla.crearUsuario("miembro@iglesia44.test", 44L, 5L, semilla.idRolBase("MIEMBRO"));
 		String token = administradorDe(44L);
 
-		actualizar(token, usuario, semilla.idRolBase("ADMIN_SISTEMA")).andExpect(status().isForbidden());
+		actualizar(token, usuario, "miembro@iglesia44.test", semilla.idRolBase("ADMIN_SISTEMA"))
+			.andExpect(status().isForbidden());
 	}
 
 	@Test
@@ -201,7 +202,6 @@ class UsuarioIntegrationTest {
 			.andExpect(jsonPath("$.errores.correo").exists());
 	}
 
-	/** Lista ordenado por correo con los filtros dados como pares nombre, valor. */
 	@Test
 	void restablecerLaContrasenaLaVuelveTemporalYCierraLasSesiones(CapturedOutput salida) throws Exception {
 		long miembro = semilla.crearUsuario("restablecer@iglesia89.test", 89L, 5L, semilla.idRolBase("MIEMBRO"));
@@ -248,6 +248,39 @@ class UsuarioIntegrationTest {
 		assertThat(debeCambiarContrasena(companero)).isFalse();
 	}
 
+	@Test
+	void cambiarElCorreoLoNormalizaYCierraLasSesionesSinRegistrarCorreos(CapturedOutput salida) throws Exception {
+		long miembro = semilla.crearUsuario("anterior@iglesia93.test", 93L, 5L, semilla.idRolBase("MIEMBRO"));
+		Cookie refrescoAnterior = login("anterior@iglesia93.test", SemillaSeguridad.CONTRASENA).getResponse()
+			.getCookie(COOKIE_REFRESCO);
+
+		actualizar(administradorDe(93L), miembro, "Nuevo@Iglesia93.TEST", semilla.idRolBase("MIEMBRO"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.correo").value("nuevo@iglesia93.test"));
+
+		mvc.perform(post("/api/auth/refresh").cookie(refrescoAnterior)).andExpect(status().isUnauthorized());
+		login("nuevo@iglesia93.test", SemillaSeguridad.CONTRASENA);
+		mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+			.content("{\"correo\":\"anterior@iglesia93.test\",\"contrasena\":\"%s\"}"
+				.formatted(SemillaSeguridad.CONTRASENA)))
+			.andExpect(status().isUnauthorized());
+		assertThat(salida.getOut()).contains("Correo cambiado usuarioId=" + miembro + " por usuarioId=")
+			.doesNotContain("anterior@iglesia93.test")
+			.doesNotContain("nuevo@iglesia93.test");
+	}
+
+	@Test
+	void elCorreoDeOtroUsuarioOInvalidoNoCambiaNada() throws Exception {
+		long uno = semilla.crearUsuario("uno@iglesia94.test", 94L, 5L, semilla.idRolBase("MIEMBRO"));
+		semilla.crearUsuario("dos@iglesia94.test", 94L, 6L, semilla.idRolBase("MIEMBRO"));
+		String token = administradorDe(94L);
+
+		actualizar(token, uno, "DOS@iglesia94.test", semilla.idRolBase("MIEMBRO")).andExpect(status().isConflict());
+		actualizar(token, uno, "no-es-un-correo", semilla.idRolBase("MIEMBRO")).andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.errores.correo").exists());
+		assertThat(correoDe(uno)).isEqualTo("uno@iglesia94.test");
+	}
+
 	private ResultActions restablecer(String token, long usuarioId, String contrasenaTemporal) throws Exception {
 		return mvc.perform(put("/api/usuarios/{id}/contrasena", usuarioId)
 			.header(HttpHeaders.AUTHORIZATION, bearer(token))
@@ -260,6 +293,7 @@ class UsuarioIntegrationTest {
 				usuarioId);
 	}
 
+	/** Lista ordenado por correo con los filtros dados como pares nombre, valor. */
 	private ResultActions listar(String token, String... filtros) throws Exception {
 		MockHttpServletRequestBuilder peticion = get("/api/usuarios").param("sort", "correo,asc")
 			.header(HttpHeaders.AUTHORIZATION, bearer(token));
@@ -275,10 +309,14 @@ class UsuarioIntegrationTest {
 		return iniciarSesion(correo);
 	}
 
-	private ResultActions actualizar(String token, long usuarioId, long rolId) throws Exception {
+	private ResultActions actualizar(String token, long usuarioId, String correo, long rolId) throws Exception {
 		return mvc.perform(put("/api/usuarios/{id}", usuarioId).header(HttpHeaders.AUTHORIZATION, bearer(token))
 			.contentType(MediaType.APPLICATION_JSON)
-			.content("{\"rolIds\":[%d],\"miembroId\":5,\"activo\":true}".formatted(rolId)));
+			.content("{\"correo\":\"%s\",\"rolIds\":[%d],\"miembroId\":5,\"activo\":true}".formatted(correo, rolId)));
+	}
+
+	private String correoDe(long usuarioId) {
+		return jdbc.queryForObject("SELECT correo FROM usuario WHERE id = ?", String.class, usuarioId);
 	}
 
 	private String iniciarSesion(String correo) throws Exception {

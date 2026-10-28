@@ -131,7 +131,7 @@ class UsuarioServiceTest {
 		Usuario miembro = Usuario.nuevo("m@y.com", "h", 1L, 7L, RolesPrueba.bases(RolBase.MIEMBRO), false);
 		given(usuarios.findConRolesById(50L)).willReturn(Optional.of(miembro));
 
-		servicio.actualizar(50L, new ActualizarUsuarioRequest(rolIds(RolBase.LIDER), 7L, true));
+		servicio.actualizar(50L, new ActualizarUsuarioRequest("m@y.com", rolIds(RolBase.LIDER), 7L, true));
 
 		then(roles).should().rolesAsignables(rolIds(RolBase.LIDER), 1L);
 	}
@@ -175,7 +175,7 @@ class UsuarioServiceTest {
 		Usuario miembro = Usuario.nuevo("m@y.com", "h", 1L, 7L, RolesPrueba.bases(RolBase.MIEMBRO), false);
 		given(usuarios.findConRolesById(50L)).willReturn(Optional.of(miembro));
 
-		servicio.actualizar(50L, new ActualizarUsuarioRequest(rolIds(RolBase.LIDER), 7L, true));
+		servicio.actualizar(50L, new ActualizarUsuarioRequest("m@y.com", rolIds(RolBase.LIDER), 7L, true));
 
 		then(tokensRefresco).should().revocarTodos(miembro.getId());
 	}
@@ -185,15 +185,52 @@ class UsuarioServiceTest {
 		Usuario miembro = Usuario.nuevo("m@y.com", "h", 1L, 7L, RolesPrueba.bases(RolBase.MIEMBRO), false);
 		given(usuarios.findConRolesById(50L)).willReturn(Optional.of(miembro));
 
-		servicio.actualizar(50L, new ActualizarUsuarioRequest(rolIds(RolBase.MIEMBRO), 7L, true));
+		servicio.actualizar(50L, new ActualizarUsuarioRequest("m@y.com", rolIds(RolBase.MIEMBRO), 7L, true));
 
+		then(tokensRefresco).should(never()).revocarTodos(anyLong());
+	}
+
+	@Test
+	void cambiarElCorreoLoNormalizaYRevocaLasSesiones() {
+		Usuario miembro = Usuario.nuevo("m@y.com", "h", 1L, 7L, RolesPrueba.bases(RolBase.MIEMBRO), false);
+		given(usuarios.findConRolesById(50L)).willReturn(Optional.of(miembro));
+
+		UsuarioResponse respuesta = servicio.actualizar(50L,
+				new ActualizarUsuarioRequest(" Nuevo@Y.com ", rolIds(RolBase.MIEMBRO), 7L, true));
+
+		assertThat(respuesta.correo()).isEqualTo("nuevo@y.com");
+		then(usuarios).should().existsByCorreoAndIdNot("nuevo@y.com", 50L);
+		then(tokensRefresco).should().revocarTodos(miembro.getId());
+	}
+
+	@Test
+	void elMismoCorreoConOtrasMayusculasNoEsUnCambio() {
+		Usuario miembro = Usuario.nuevo("m@y.com", "h", 1L, 7L, RolesPrueba.bases(RolBase.MIEMBRO), false);
+		given(usuarios.findConRolesById(50L)).willReturn(Optional.of(miembro));
+
+		servicio.actualizar(50L, new ActualizarUsuarioRequest("M@Y.com", rolIds(RolBase.MIEMBRO), 7L, true));
+
+		then(tokensRefresco).should(never()).revocarTodos(anyLong());
+	}
+
+	@Test
+	void rechazaElCorreoDeOtroUsuarioAlActualizarSinCambiarNada() {
+		Usuario miembro = Usuario.nuevo("m@y.com", "h", 1L, 7L, RolesPrueba.bases(RolBase.MIEMBRO), false);
+		given(usuarios.findConRolesById(50L)).willReturn(Optional.of(miembro));
+		given(usuarios.existsByCorreoAndIdNot("otro@y.com", 50L)).willReturn(true);
+
+		assertThatThrownBy(() -> servicio.actualizar(50L,
+				new ActualizarUsuarioRequest("Otro@y.com", rolIds(RolBase.LIDER), 7L, true)))
+			.isInstanceOf(ConflictoException.class);
+		assertThat(miembro.getCorreo()).isEqualTo("m@y.com");
+		assertThat(miembro.getRolesBase()).containsExactly(RolBase.MIEMBRO);
 		then(tokensRefresco).should(never()).revocarTodos(anyLong());
 	}
 
 	@Test
 	void nadiePuedeModificarSuPropioUsuario() {
 		assertThatThrownBy(() -> servicio.actualizar(ADMIN_IGLESIA_1.usuarioId(),
-				new ActualizarUsuarioRequest(rolIds(RolBase.ADMIN_IGLESIA), null, false)))
+				new ActualizarUsuarioRequest("p@y.com", rolIds(RolBase.ADMIN_IGLESIA), null, false)))
 			.isInstanceOf(ReglaNegocioException.class);
 	}
 

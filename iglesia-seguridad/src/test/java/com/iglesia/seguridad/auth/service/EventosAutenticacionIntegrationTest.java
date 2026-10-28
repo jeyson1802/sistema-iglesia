@@ -86,7 +86,7 @@ class EventosAutenticacionIntegrationTest {
 			.getContentAsString(), "$.id");
 		mvc.perform(put("/api/usuarios/{id}", id).header(HttpHeaders.AUTHORIZATION, "Bearer " + acceso)
 			.contentType(MediaType.APPLICATION_JSON)
-			.content("{\"rolIds\":[2],\"activo\":false}"))
+			.content("{\"correo\":\"%s\",\"rolIds\":[2],\"activo\":false}".formatted(correo)))
 			.andExpect(status().isOk());
 
 		iniciarSesion(correo, contrasena).andExpect(status().isUnauthorized());

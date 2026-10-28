@@ -21,6 +21,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
 
 	boolean existsByCorreo(String correo);
 
+	boolean existsByCorreoAndIdNot(String correo, Long id);
+
 	boolean existsByIglesiaIdAndMiembroId(Long iglesiaId, Long miembroId);
 
 	boolean existsByIglesiaIdAndMiembroIdAndIdNot(Long iglesiaId, Long miembroId, Long id);

@@ -149,11 +149,13 @@ class UsuarioController {
 	@PutMapping("/{id}")
 	@PreAuthorize(Permisos.PUEDE_ADMINISTRAR_USUARIOS)
 	@Operation(summary = "Actualizar un usuario", description = """
-			Cambia los roles (`rolIds`), el miembro vinculado y el estado de un usuario. Requiere el permiso \
-			`usuarios.administrar`; nadie puede modificar sus propios roles ni su estado.
+			Cambia el correo, los roles (`rolIds`), el miembro vinculado y el estado de un usuario. Requiere el \
+			permiso `usuarios.administrar`; nadie puede modificar su propio usuario por esta vía.
 
-			Si algo cambia, se cierran todas las sesiones del usuario para que su próximo token refleje los \
-			cambios (o para impedirle el acceso si se desactivó). Mismas reglas de roles que al crear.""")
+			El correo se normaliza (sin espacios y en minúsculas) y debe ser único en todo el sistema. Si algo \
+			cambia, se cierran todas las sesiones del usuario para que su próximo token refleje los cambios (o \
+			para impedirle el acceso si se desactivó); si cambió el correo, debe entrar con el nuevo. Mismas \
+			reglas de roles que al crear.""")
 	@ApiResponse(responseCode = "200", description = "Usuario actualizado.")
 	@ApiResponse(responseCode = "400", description = RespuestasOpenApi.DATOS_INVALIDOS
 			+ " También si se intenta modificar el usuario propio, algún rol no existe, es de otra iglesia o está "
@@ -170,7 +172,7 @@ class UsuarioController {
 	@ApiResponse(responseCode = "404", description = NO_ENCONTRADO,
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
 					schema = @Schema(implementation = ProblemDetailEsquema.class)))
-	@ApiResponse(responseCode = "409", description = "El miembro ya tiene otro usuario.",
+	@ApiResponse(responseCode = "409", description = "El correo es de otro usuario o el miembro ya tiene otro usuario.",
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
 					schema = @Schema(implementation = ProblemDetailEsquema.class)))
 	UsuarioResponse actualizar(@Parameter(description = DESCRIPCION_ID, example = "12") @PathVariable Long id,

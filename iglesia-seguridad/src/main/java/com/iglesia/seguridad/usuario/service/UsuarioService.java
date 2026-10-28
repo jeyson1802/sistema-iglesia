@@ -42,6 +42,8 @@ public class UsuarioService {
 
 	private static final String USUARIO_NO_ENCONTRADO = "Usuario no encontrado";
 
+	private static final String CORREO_EN_USO = "Ya existe un usuario con ese correo";
+
 	private final UsuarioRepository usuarios;
 
 	private final PoliticaAdministracionUsuarios politica;
@@ -75,7 +77,7 @@ public class UsuarioService {
 		politica.verificarPuedeAdministrar(actor, solicitud.iglesiaId(), rolesBase(rolesAsignados));
 		String correo = Correo.normalizar(solicitud.correo());
 		if (usuarios.existsByCorreo(correo)) {
-			throw new ConflictoException("Ya existe un usuario con ese correo");
+			throw new ConflictoException(CORREO_EN_USO);
 		}
 		if (solicitud.miembroId() != null
 				&& usuarios.existsByIglesiaIdAndMiembroId(solicitud.iglesiaId(), solicitud.miembroId())) {
@@ -112,13 +114,24 @@ public class UsuarioService {
 		Usuario usuario = buscarAdministrable(actor, id);
 		Set<Rol> rolesAsignados = roles.rolesAsignables(solicitud.rolIds(), usuario.getIglesiaId());
 		politica.verificarPuedeAdministrar(actor, usuario.getIglesiaId(), rolesBase(rolesAsignados));
+		String correo = Correo.normalizar(solicitud.correo());
+		if (usuarios.existsByCorreoAndIdNot(correo, id)) {
+			throw new ConflictoException(CORREO_EN_USO);
+		}
 		if (solicitud.miembroId() != null
 				&& usuarios.existsByIglesiaIdAndMiembroIdAndIdNot(usuario.getIglesiaId(), solicitud.miembroId(), id)) {
 			throw new ConflictoException("El miembro ya tiene un usuario");
 		}
-		if (usuario.actualizar(rolesAsignados, solicitud.miembroId(), solicitud.activo())) {
-			// Fuerza a obtener un token nuevo con los datos actualizados (o impide el acceso si se desactivó).
+		boolean cambioCorreo = usuario.cambiarCorreo(correo);
+		boolean cambioAcceso = usuario.actualizar(rolesAsignados, solicitud.miembroId(), solicitud.activo());
+		if (cambioCorreo || cambioAcceso) {
+			// Fuerza a obtener un token nuevo con los datos actualizados (o impide el acceso si se desactivó o
+			// cambió el correo con el que inicia sesión).
 			tokensRefresco.revocarTodos(usuario.getId());
+		}
+		if (cambioCorreo) {
+			LOG.info("Correo cambiado usuarioId={} por usuarioId={}; sesiones revocadas", usuario.getId(),
+					actor.usuarioId());
 		}
 		LOG.info("Usuario actualizado id={} por usuarioId={}", usuario.getId(), actor.usuarioId());
 		return mapper.aRespuesta(usuario);

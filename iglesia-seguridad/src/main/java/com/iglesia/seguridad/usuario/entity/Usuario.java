@@ -114,6 +114,19 @@ public class Usuario {
 		return cambioAcceso;
 	}
 
+	/**
+	 * Cambia el correo con el que inicia sesión.
+	 * @return {@code true} si el correo normalizado es distinto del actual
+	 */
+	public boolean cambiarCorreo(String nuevoCorreo) {
+		String normalizado = Correo.normalizar(nuevoCorreo);
+		if (correo.equals(normalizado)) {
+			return false;
+		}
+		correo = normalizado;
+		return true;
+	}
+
 	/** El propio usuario elige su contraseña: deja de ser temporal. */
 	public void cambiarContrasena(String nuevoHash) {
 		hashContrasena = Objects.requireNonNull(nuevoHash);
