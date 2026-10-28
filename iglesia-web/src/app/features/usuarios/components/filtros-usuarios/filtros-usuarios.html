@@ -1,0 +1,17 @@
+<form [formGroup]="formulario" class="flex flex-col gap-4 sm:flex-row sm:items-end" role="search" aria-label="Filtrar usuarios" (submit)="$event.preventDefault()">
+    <div class="flex flex-col gap-2 sm:flex-1">
+        <label for="filtro-correo" class="font-medium">Correo</label>
+        <p-iconfield>
+            <p-inputicon styleClass="pi pi-search" />
+            <input pInputText id="filtro-correo" type="search" formControlName="correo" autocomplete="off" placeholder="Buscar por correo" [fluid]="true" />
+        </p-iconfield>
+    </div>
+    <div class="flex flex-col gap-2 sm:w-48">
+        <label for="filtro-estado" class="font-medium">Estado</label>
+        <p-select inputId="filtro-estado" formControlName="activo" [options]="opcionesEstado" optionLabel="etiqueta" optionValue="valor" placeholder="Todos" [fluid]="true" />
+    </div>
+    <div class="flex flex-col gap-2 sm:w-56">
+        <label for="filtro-rol" class="font-medium">Rol</label>
+        <p-select inputId="filtro-rol" formControlName="rolId" [options]="opcionesRol()" optionLabel="etiqueta" optionValue="valor" placeholder="Todos" [fluid]="true" />
+    </div>
+</form>
