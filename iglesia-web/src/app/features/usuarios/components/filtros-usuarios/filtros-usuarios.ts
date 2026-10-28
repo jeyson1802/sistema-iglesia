@@ -54,7 +54,8 @@ export class FiltrosUsuariosComponent {
         rolId: this.fb.control<number | null>(null)
     });
 
-    protected readonly opcionesEstado = OPCIONES_ESTADO;
+    // `p-select` espera un arreglo mutable.
+    protected readonly opcionesEstado = [...OPCIONES_ESTADO];
     protected readonly opcionesRol = computed<Opcion<number>[]>(() => [{ etiqueta: 'Todos', valor: null }, ...this.roles().map((rol) => ({ etiqueta: rol.nombre, valor: rol.id }))]);
 
     constructor() {

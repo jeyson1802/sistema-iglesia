@@ -70,7 +70,7 @@ describe('Rutas de la aplicación', () => {
     describe('sin sesión', () => {
         beforeEach(() => configurar(true));
 
-        for (const url of ['/', '/mi-perfil', '/administracion', '/miembros', '/roles', '/cuenta/contrasena']) {
+        for (const url of ['/', '/mi-perfil', '/administracion', '/miembros', '/usuarios', '/roles', '/cuenta/contrasena']) {
             it(`${url} redirige al login`, async () => {
                 expect(await navegarA(url)).toBe('/auth/login');
             });
@@ -123,6 +123,18 @@ describe('Rutas de la aplicación', () => {
             expect(await navegarA('/roles')).toBe('/roles');
         });
 
+        it('con el perfil Líder, /usuarios redirige a acceso denegado', async () => {
+            iniciarSesionCon('LIDER');
+
+            expect(await navegarA('/usuarios')).toBe('/auth/acceso-denegado');
+        });
+
+        it('con usuarios.ver, /usuarios abre la administración de usuarios', async () => {
+            iniciarSesionCon(perfilPersonalizado(12, 'Soporte', 'ADMIN_IGLESIA', ['usuarios.ver']));
+
+            expect(await navegarA('/usuarios')).toBe('/usuarios');
+        });
+
         it('cualquier perfil puede abrir el cambio de contraseña', async () => {
             iniciarSesionCon('MIEMBRO');
 
@@ -148,6 +160,7 @@ describe('Rutas de la aplicación', () => {
             expect(await navegarA('/')).toBe('/cuenta/contrasena');
             expect(await navegarA('/miembros')).toBe('/cuenta/contrasena');
             expect(await navegarA('/roles')).toBe('/cuenta/contrasena');
+            expect(await navegarA('/usuarios')).toBe('/cuenta/contrasena');
         });
 
         it('el cambio de contraseña se abre', async () => {

@@ -21,7 +21,10 @@ const ENTRADAS_APP: EntradaMenu[] = [
     },
     {
         label: 'Administración',
-        items: [{ label: 'Roles', icon: 'pi pi-fw pi-shield', routerLink: ['/roles'], permiso: 'roles.ver' }]
+        items: [
+            { label: 'Usuarios', icon: 'pi pi-fw pi-users', routerLink: ['/usuarios'], permiso: 'usuarios.ver' },
+            { label: 'Roles', icon: 'pi pi-fw pi-shield', routerLink: ['/roles'], permiso: 'roles.ver' }
+        ]
     }
 ];
 

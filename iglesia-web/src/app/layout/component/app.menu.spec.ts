@@ -53,6 +53,27 @@ describe('Menú lateral', () => {
             expect(etiquetasMenu).not.toContain('Miembros');
         });
 
+        it('con usuarios.ver aparece «Administración › Usuarios», antes de «Roles»', () => {
+            const administracion = construirMenu(perfilBase('ADMIN_IGLESIA'), true).find((grupo) => grupo.label === 'Administración');
+
+            expect(administracion?.items?.map((item) => item.label)).toEqual(['Usuarios', 'Roles']);
+            expect(administracion?.items?.[0].routerLink).toEqual(['/usuarios']);
+            expect(administracion?.items?.[0].icon).toContain('pi-users');
+        });
+
+        it('sin usuarios.ver no aparece «Usuarios»', () => {
+            const etiquetasMenu = etiquetas(construirMenu(perfilPersonalizado(11, 'Auditoría', 'ADMIN_IGLESIA', ['roles.ver']), true));
+
+            expect(etiquetasMenu).not.toContain('Usuarios');
+        });
+
+        it('con solo usuarios.ver aparece «Usuarios» y no «Roles»', () => {
+            const etiquetasMenu = etiquetas(construirMenu(perfilPersonalizado(12, 'Soporte', 'ADMIN_IGLESIA', ['usuarios.ver']), true));
+
+            expect(etiquetasMenu).toContain('Usuarios');
+            expect(etiquetasMenu).not.toContain('Roles');
+        });
+
         it('el Administrador del sistema ve «Roles» (tiene roles.ver) pero no «Miembros»', () => {
             const etiquetasMenu = etiquetas(construirMenu(perfilBase('ADMIN_SISTEMA'), true));
 
