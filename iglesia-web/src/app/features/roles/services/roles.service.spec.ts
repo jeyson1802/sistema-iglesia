@@ -7,7 +7,7 @@ import { RolesService } from './roles.service';
 
 describe('RolesService', () => {
     const rolesUrl = `${environment.seguridadUrl}/roles`;
-    const secretaria: RolAccesoResponse = { id: 10, nombre: 'Secretaría', rolBase: 'ADMIN_IGLESIA', base: false, activo: true, permisos: ['miembros.ver'], cantidadUsuarios: 0 };
+    const secretaria: RolAccesoResponse = { id: 10, nombre: 'Secretaría', rolBase: 'ADMIN_IGLESIA', base: false, activo: true, permisos: ['miembros.ver'], cantidadUsuarios: 0, requiereMiembro: false };
 
     let servicio: RolesService;
     let http: HttpTestingController;

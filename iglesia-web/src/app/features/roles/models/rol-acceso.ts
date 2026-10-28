@@ -10,6 +10,7 @@ export interface RolAccesoResponse {
     readonly activo: boolean;
     readonly permisos: readonly string[];
     readonly cantidadUsuarios: number;
+    readonly requiereMiembro: boolean;
 }
 
 /** Contrato de `PermisoResponse` en iglesia-seguridad. */
@@ -28,6 +29,8 @@ export interface RolAcceso {
     readonly activo: boolean;
     readonly permisos: readonly Permiso[];
     readonly cantidadUsuarios: number;
+    /** Solo se asigna al vincular el usuario con un miembro (lo decide el backend según el rol base). */
+    readonly requiereMiembro: boolean;
 }
 
 /** Permiso del catálogo fijo, con el módulo («Miembros») por el que se agrupa en el formulario. */

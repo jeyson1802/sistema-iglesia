@@ -1,0 +1,60 @@
+<p-dialog [(visible)]="visible" [header]="titulo()" [modal]="true" [draggable]="false" [dismissableMask]="!guardando()" [closable]="!guardando()" styleClass="w-full max-w-xl mx-4">
+    <div aria-live="polite">
+        @if (error()) {
+            <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-4">{{ error() }}</p-message>
+        }
+    </div>
+
+    <form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-2" novalidate>
+        <div class="flex flex-col gap-2">
+            <label for="usuario-correo" class="font-medium">Correo</label>
+            <input pInputText id="usuario-correo" type="email" formControlName="correo" autocomplete="off" [maxlength]="correoMax" placeholder="nombre@iglesia.org" [fluid]="true" />
+            @if (modo() === 'editar') {
+                <small class="text-muted-color">Es el correo con el que el usuario inicia sesión.</small>
+            }
+            <app-mensaje-error-campo [control]="formulario.controls.correo" [mensajes]="mensajesCorreo" />
+        </div>
+
+        @if (modo() === 'crear') {
+            <div class="flex flex-col gap-2">
+                <label for="usuario-contrasena" class="font-medium">Contraseña temporal</label>
+                <p-password inputId="usuario-contrasena" formControlName="contrasenaTemporal" autocomplete="new-password" [maxlength]="contrasenaMax" [toggleMask]="true" [feedback]="false" [fluid]="true" />
+                <small class="text-muted-color">{{ ayudaContrasena }}</small>
+                <app-mensaje-error-campo [control]="formulario.controls.contrasenaTemporal" [mensajes]="mensajesContrasena" />
+            </div>
+        }
+
+        <fieldset class="flex flex-col gap-3 border-0 p-0 m-0">
+            <legend class="font-medium mb-2">Roles</legend>
+            @for (rol of rolesMostrados(); track rol.id) {
+                <div class="flex flex-col gap-1">
+                    <div class="flex items-center gap-2">
+                        <p-checkbox [inputId]="'usuario-rol-' + rol.id" [binary]="true" [formControl]="controlRol(rol.id)" />
+                        <label [for]="'usuario-rol-' + rol.id" [class.text-muted-color]="esBloqueado(rol)">{{ rol.nombre }}</label>
+                    </div>
+                    @if (esBloqueado(rol)) {
+                        <small class="text-muted-color ml-7"><i class="pi pi-lock text-xs mr-1" aria-hidden="true"></i>Se gestiona al vincular el usuario con un miembro</small>
+                    }
+                </div>
+            } @empty {
+                <small class="text-muted-color">No hay roles que se puedan asignar.</small>
+            }
+            <app-mensaje-error-campo [control]="formulario.controls.roles" [mensajes]="mensajesRoles" />
+        </fieldset>
+
+        @if (modo() === 'editar') {
+            <div class="flex items-center gap-3">
+                <p-toggleswitch inputId="usuario-activo" formControlName="activo" />
+                <label for="usuario-activo" class="font-medium">Activo</label>
+            </div>
+            <small class="text-muted-color">Un usuario inactivo no puede iniciar sesión.</small>
+        }
+
+        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-4">
+            <p-button label="Cancelar" severity="secondary" [outlined]="true" [disabled]="guardando()" (onClick)="cerrar()" />
+            <p-button type="submit" label="Guardar" icon="pi pi-check" [loading]="guardando()" [disabled]="!valido() || guardando()" />
+        </div>
+    </form>
+</p-dialog>
+
+<p-confirmdialog styleClass="w-full max-w-md mx-4" />

@@ -4,8 +4,8 @@ import { GrupoPermisos, PermisoCatalogo, PermisoResponse, RolAcceso, RolAccesoRe
 
 /** Un rol cuyo rol base la interfaz no conoce no se puede mostrar ni editar: se descarta. */
 export function aRolAcceso(respuesta: RolAccesoResponse): RolAcceso | null {
-    const { id, nombre, rolBase, base, activo, permisos, cantidadUsuarios } = respuesta;
-    return esRol(rolBase) ? { id, nombre, rolBase, base, activo, permisos: permisos.filter(esPermiso), cantidadUsuarios } : null;
+    const { id, nombre, rolBase, base, activo, permisos, cantidadUsuarios, requiereMiembro } = respuesta;
+    return esRol(rolBase) ? { id, nombre, rolBase, base, activo, permisos: permisos.filter(esPermiso), cantidadUsuarios, requiereMiembro } : null;
 }
 
 export function aRolesAcceso(respuestas: readonly RolAccesoResponse[]): RolAcceso[] {

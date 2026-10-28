@@ -3,10 +3,10 @@ import { PermisoCatalogo, RolAcceso } from '../models/rol-acceso';
 
 /** Roles base como los devuelve `GET /api/roles` (ids y permisos de la semilla de Flyway). */
 export const ROLES_BASE: RolAcceso[] = [
-    { id: 1, nombre: 'Administrador del sistema', rolBase: 'ADMIN_SISTEMA', base: true, activo: true, permisos: ['usuarios.ver', 'usuarios.administrar', 'roles.ver'], cantidadUsuarios: 1 },
-    { id: 2, nombre: 'Administrador de iglesia', rolBase: 'ADMIN_IGLESIA', base: true, activo: true, permisos: [...PERMISOS], cantidadUsuarios: 2 },
-    { id: 3, nombre: 'Líder', rolBase: 'LIDER', base: true, activo: true, permisos: [], cantidadUsuarios: 5 },
-    { id: 4, nombre: 'Miembro', rolBase: 'MIEMBRO', base: true, activo: true, permisos: [], cantidadUsuarios: 40 }
+    { id: 1, nombre: 'Administrador del sistema', rolBase: 'ADMIN_SISTEMA', base: true, activo: true, permisos: ['usuarios.ver', 'usuarios.administrar', 'roles.ver'], cantidadUsuarios: 1, requiereMiembro: false },
+    { id: 2, nombre: 'Administrador de iglesia', rolBase: 'ADMIN_IGLESIA', base: true, activo: true, permisos: [...PERMISOS], cantidadUsuarios: 2, requiereMiembro: false },
+    { id: 3, nombre: 'Líder', rolBase: 'LIDER', base: true, activo: true, permisos: [], cantidadUsuarios: 5, requiereMiembro: true },
+    { id: 4, nombre: 'Miembro', rolBase: 'MIEMBRO', base: true, activo: true, permisos: [], cantidadUsuarios: 40, requiereMiembro: true }
 ];
 
 export const SECRETARIA: RolAcceso = {
@@ -16,7 +16,8 @@ export const SECRETARIA: RolAcceso = {
     base: false,
     activo: true,
     permisos: ['miembros.ver', 'miembros.crear'],
-    cantidadUsuarios: 3
+    cantidadUsuarios: 3,
+    requiereMiembro: false
 };
 
 /** Catálogo en el orden de `GET /api/permisos` (módulo y orden). */

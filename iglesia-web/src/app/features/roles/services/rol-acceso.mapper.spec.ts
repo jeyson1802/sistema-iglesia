@@ -10,7 +10,8 @@ describe('Mapper de roles de acceso', () => {
         base: false,
         activo: true,
         permisos: ['miembros.ver', 'miembros.crear'],
-        cantidadUsuarios: 3
+        cantidadUsuarios: 3,
+        requiereMiembro: false
     };
 
     it('adapta un rol de la API', () => {

@@ -25,57 +25,57 @@
     </ng-template>
     <ng-template #body let-usuario>
         @if (cargando()) {
-        <tr>
-            <td><p-skeleton width="70%" height="1.5rem" /></td>
-            <td><p-skeleton width="60%" height="1.5rem" /></td>
-            <td><p-skeleton width="50%" height="1.5rem" /></td>
-            <td><p-skeleton width="40%" height="1.5rem" /></td>
-            <td><p-skeleton width="30%" height="1.5rem" /></td>
-        </tr>
+            <tr>
+                <td><p-skeleton width="70%" height="1.5rem" /></td>
+                <td><p-skeleton width="60%" height="1.5rem" /></td>
+                <td><p-skeleton width="50%" height="1.5rem" /></td>
+                <td><p-skeleton width="40%" height="1.5rem" /></td>
+                <td><p-skeleton width="30%" height="1.5rem" /></td>
+            </tr>
         } @else {
-        <tr>
-            <td>
-                <div class="flex flex-wrap items-center gap-2">
-                    <span class="font-medium break-all">{{ usuario.correo }}</span>
-                    @if (esPropio(usuario)) {
-                    <p-tag value="Tú" severity="info" />
+            <tr>
+                <td>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="font-medium break-all">{{ usuario.correo }}</span>
+                        @if (esPropio(usuario)) {
+                            <p-tag value="Tú" severity="info" />
+                        }
+                    </div>
+                </td>
+                <td>
+                    <div class="flex flex-wrap gap-2">
+                        @for (rol of usuario.roles; track rol.id) {
+                            <p-tag [value]="rol.nombre" severity="secondary" />
+                        }
+                    </div>
+                </td>
+                <td>
+                    <div class="flex flex-wrap gap-2">
+                        <p-tag [value]="usuario.activo ? 'Activo' : 'Inactivo'" [severity]="usuario.activo ? 'success' : 'danger'" />
+                        @if (usuario.debeCambiarContrasena) {
+                            <p-tag value="Debe cambiar contraseña" severity="warn" icon="pi pi-key" />
+                        }
+                    </div>
+                </td>
+                <td class="whitespace-nowrap">{{ usuario.creadoEn | date: 'dd/MM/yyyy' }}</td>
+                <td>
+                    @if (puedeAdministrar() && !esPropio(usuario)) {
+                        <div class="flex justify-end gap-2">
+                            <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" severity="secondary" [ariaLabel]="'Editar ' + usuario.correo" pTooltip="Editar" tooltipPosition="top" (onClick)="editar.emit(usuario)" />
+                            <p-button
+                                icon="pi pi-key"
+                                [rounded]="true"
+                                [outlined]="true"
+                                severity="warn"
+                                [ariaLabel]="'Restablecer contraseña de ' + usuario.correo"
+                                pTooltip="Restablecer contraseña"
+                                tooltipPosition="top"
+                                (onClick)="restablecer.emit(usuario)"
+                            />
+                        </div>
                     }
-                </div>
-            </td>
-            <td>
-                <div class="flex flex-wrap gap-2">
-                    @for (rol of usuario.roles; track rol.id) {
-                    <p-tag [value]="rol.nombre" severity="secondary" />
-                    }
-                </div>
-            </td>
-            <td>
-                <div class="flex flex-wrap gap-2">
-                    <p-tag [value]="usuario.activo ? 'Activo' : 'Inactivo'" [severity]="usuario.activo ? 'success' : 'danger'" />
-                    @if (usuario.debeCambiarContrasena) {
-                    <p-tag value="Debe cambiar contraseña" severity="warn" icon="pi pi-key" />
-                    }
-                </div>
-            </td>
-            <td class="whitespace-nowrap">{{ usuario.creadoEn | date: 'dd/MM/yyyy' }}</td>
-            <td>
-                @if (puedeAdministrar() && !esPropio(usuario)) {
-                <div class="flex justify-end gap-2">
-                    <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" severity="secondary" [ariaLabel]="'Editar ' + usuario.correo" pTooltip="Editar" tooltipPosition="top" (onClick)="editar.emit(usuario)" />
-                    <p-button
-                        icon="pi pi-key"
-                        [rounded]="true"
-                        [outlined]="true"
-                        severity="warn"
-                        [ariaLabel]="'Restablecer contraseña de ' + usuario.correo"
-                        pTooltip="Restablecer contraseña"
-                        tooltipPosition="top"
-                        (onClick)="restablecer.emit(usuario)"
-                    />
-                </div>
-                }
-            </td>
-        </tr>
+                </td>
+            </tr>
         }
     </ng-template>
     <ng-template #emptymessage>
