@@ -1,0 +1,26 @@
+<p-dialog [(visible)]="visible" header="Restablecer contraseña" [modal]="true" [draggable]="false" [dismissableMask]="!guardando()" [closable]="!guardando()" styleClass="w-full max-w-md mx-4">
+    <p class="text-muted-color mt-0 mb-4">
+        Elige una contraseña temporal para <span class="font-medium text-surface-900 dark:text-surface-0 break-all">{{ usuario()?.correo }}</span
+        >. Deberá cambiarla al iniciar sesión, y se cerrarán todas sus sesiones abiertas.
+    </p>
+
+    <div aria-live="polite">
+        @if (error()) {
+            <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-4">{{ error() }}</p-message>
+        }
+    </div>
+
+    <form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-2" novalidate>
+        <div class="flex flex-col gap-2">
+            <label for="restablecer-contrasena" class="font-medium">Contraseña temporal</label>
+            <p-password inputId="restablecer-contrasena" formControlName="contrasenaTemporal" autocomplete="new-password" [maxlength]="contrasenaMax" [toggleMask]="true" [feedback]="false" [fluid]="true" />
+            <small class="text-muted-color">{{ ayudaContrasena }}</small>
+            <app-mensaje-error-campo [control]="formulario.controls.contrasenaTemporal" [mensajes]="mensajesContrasena" />
+        </div>
+
+        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-4">
+            <p-button label="Cancelar" severity="secondary" [outlined]="true" [disabled]="guardando()" (onClick)="cerrar()" />
+            <p-button type="submit" label="Restablecer" icon="pi pi-key" [loading]="guardando()" [disabled]="!valido() || guardando()" />
+        </div>
+    </form>
+</p-dialog>
