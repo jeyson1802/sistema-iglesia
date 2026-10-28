@@ -2,23 +2,32 @@ package com.iglesia.seguridad.usuario.controller;
 
 import com.jayway.jsonpath.JsonPath;
 
+import jakarta.servlet.http.Cookie;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import com.iglesia.seguridad.SemillaSeguridad;
 import com.iglesia.seguridad.TestcontainersConfiguration;
+import com.iglesia.seguridad.jwt.constant.ClaimsJwt;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -31,7 +40,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 @AutoConfigureMockMvc
+@ExtendWith(OutputCaptureExtension.class)
 class UsuarioIntegrationTest {
+
+	private static final String CONTRASENA_TEMPORAL = "TemporalRestablecida123";
+
+	private static final String COOKIE_REFRESCO = "iglesia_refresco";
 
 	@Autowired
 	private MockMvc mvc;
@@ -41,6 +55,9 @@ class UsuarioIntegrationTest {
 
 	@Autowired
 	private PasswordEncoder codificador;
+
+	@Autowired
+	private JwtDecoder decodificador;
 
 	private SemillaSeguridad semilla;
 
@@ -185,6 +202,64 @@ class UsuarioIntegrationTest {
 	}
 
 	/** Lista ordenado por correo con los filtros dados como pares nombre, valor. */
+	@Test
+	void restablecerLaContrasenaLaVuelveTemporalYCierraLasSesiones(CapturedOutput salida) throws Exception {
+		long miembro = semilla.crearUsuario("restablecer@iglesia89.test", 89L, 5L, semilla.idRolBase("MIEMBRO"));
+		Cookie refrescoAnterior = login("restablecer@iglesia89.test", SemillaSeguridad.CONTRASENA).getResponse()
+			.getCookie(COOKIE_REFRESCO);
+		String token = administradorDe(89L);
+
+		restablecer(token, miembro, CONTRASENA_TEMPORAL).andExpect(status().isNoContent());
+
+		mvc.perform(get("/api/usuarios/{id}", miembro).header(HttpHeaders.AUTHORIZATION, bearer(token)))
+			.andExpect(jsonPath("$.debeCambiarContrasena").value(true));
+		mvc.perform(post("/api/auth/refresh").cookie(refrescoAnterior)).andExpect(status().isUnauthorized());
+		String tokenTemporal = JsonPath.read(
+				login("restablecer@iglesia89.test", CONTRASENA_TEMPORAL).getResponse().getContentAsString(),
+				"$.tokenAcceso");
+		assertThat(decodificador.decode(tokenTemporal).<Boolean>getClaim(ClaimsJwt.CAMBIO_CONTRASENA)).isTrue();
+		assertThat(salida.getOut()).contains("Contraseña restablecida usuarioId=" + miembro + " por usuarioId=")
+			.doesNotContain(CONTRASENA_TEMPORAL);
+	}
+
+	@Test
+	void noSeRestableceLaPropiaContrasenaNiUnaDemasiadoCorta() throws Exception {
+		long miembro = semilla.crearUsuario("corta@iglesia90.test", 90L, 5L, semilla.idRolBase("MIEMBRO"));
+		long admin = semilla.crearUsuario("admin@iglesia90.test", 90L, null, semilla.idRolBase("ADMIN_IGLESIA"));
+		String token = iniciarSesion("admin@iglesia90.test");
+
+		restablecer(token, admin, CONTRASENA_TEMPORAL).andExpect(status().isBadRequest());
+		restablecer(token, miembro, "Corta12").andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.errores.contrasenaTemporal").exists());
+		assertThat(debeCambiarContrasena(miembro)).isFalse();
+	}
+
+	@Test
+	void noSeRestableceLaContrasenaDeOtraIglesiaNiSinUsuariosAdministrar() throws Exception {
+		long ajeno = semilla.crearUsuario("ajeno@iglesia91.test", 91L, 5L, semilla.idRolBase("MIEMBRO"));
+		long consulta = semilla.crearRolPersonalizado(92L, "Consulta", "ADMIN_IGLESIA", true, "usuarios.ver");
+		long companero = semilla.crearUsuario("companero@iglesia92.test", 92L, 5L, semilla.idRolBase("MIEMBRO"));
+		semilla.crearUsuario("consulta@iglesia92.test", 92L, null, consulta);
+
+		restablecer(administradorDe(92L), ajeno, CONTRASENA_TEMPORAL).andExpect(status().isNotFound());
+		restablecer(iniciarSesion("consulta@iglesia92.test"), companero, CONTRASENA_TEMPORAL)
+			.andExpect(status().isForbidden());
+		assertThat(debeCambiarContrasena(ajeno)).isFalse();
+		assertThat(debeCambiarContrasena(companero)).isFalse();
+	}
+
+	private ResultActions restablecer(String token, long usuarioId, String contrasenaTemporal) throws Exception {
+		return mvc.perform(put("/api/usuarios/{id}/contrasena", usuarioId)
+			.header(HttpHeaders.AUTHORIZATION, bearer(token))
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"contrasenaTemporal\":\"%s\"}".formatted(contrasenaTemporal)));
+	}
+
+	private boolean debeCambiarContrasena(long usuarioId) {
+		return jdbc.queryForObject("SELECT debe_cambiar_contrasena FROM usuario WHERE id = ?", Boolean.class,
+				usuarioId);
+	}
+
 	private ResultActions listar(String token, String... filtros) throws Exception {
 		MockHttpServletRequestBuilder peticion = get("/api/usuarios").param("sort", "correo,asc")
 			.header(HttpHeaders.AUTHORIZATION, bearer(token));
@@ -207,14 +282,16 @@ class UsuarioIntegrationTest {
 	}
 
 	private String iniciarSesion(String correo) throws Exception {
-		String respuesta = mvc
+		return JsonPath.read(login(correo, SemillaSeguridad.CONTRASENA).getResponse().getContentAsString(),
+				"$.tokenAcceso");
+	}
+
+	private MvcResult login(String correo, String contrasena) throws Exception {
+		return mvc
 			.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
-				.content("{\"correo\":\"%s\",\"contrasena\":\"%s\"}".formatted(correo, SemillaSeguridad.CONTRASENA)))
+				.content("{\"correo\":\"%s\",\"contrasena\":\"%s\"}".formatted(correo, contrasena)))
 			.andExpect(status().isOk())
-			.andReturn()
-			.getResponse()
-			.getContentAsString();
-		return JsonPath.read(respuesta, "$.tokenAcceso");
+			.andReturn();
 	}
 
 	private static String crearUsuario(String correo, long iglesiaId, Long miembroId, long rolId) {

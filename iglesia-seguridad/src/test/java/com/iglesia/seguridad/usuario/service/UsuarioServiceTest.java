@@ -30,6 +30,7 @@ import com.iglesia.seguridad.usuario.dto.CambiarContrasenaRequest;
 import com.iglesia.seguridad.usuario.dto.CrearUsuarioRequest;
 import com.iglesia.seguridad.usuario.dto.MiUsuarioResponse;
 import com.iglesia.seguridad.usuario.dto.PerfilResponse;
+import com.iglesia.seguridad.usuario.dto.RestablecerContrasenaRequest;
 import com.iglesia.seguridad.usuario.dto.RolAsignadoResponse;
 import com.iglesia.seguridad.usuario.dto.UsuarioResponse;
 import com.iglesia.seguridad.usuario.entity.Usuario;
@@ -211,6 +212,39 @@ class UsuarioServiceTest {
 
 		assertThat(propio.getHashContrasena()).isEqualTo("hash-nuevo");
 		then(tokensRefresco).should().revocarTodos(propio.getId());
+	}
+
+	@Test
+	void restablecerLaContrasenaLaVuelveTemporalYRevocaSesiones() {
+		Usuario miembro = Usuario.nuevo("m@y.com", "hash-anterior", 1L, 7L, RolesPrueba.bases(RolBase.MIEMBRO), false);
+		given(usuarios.findConRolesById(5L)).willReturn(Optional.of(miembro));
+		given(codificador.encode("Temporal123")).willReturn("hash-temporal");
+
+		servicio.restablecerContrasena(5L, new RestablecerContrasenaRequest("Temporal123"));
+
+		assertThat(miembro.getHashContrasena()).isEqualTo("hash-temporal");
+		assertThat(miembro.isDebeCambiarContrasena()).isTrue();
+		then(tokensRefresco).should().revocarTodos(miembro.getId());
+	}
+
+	@Test
+	void nadieRestableceSuPropiaContrasenaDesdeLaAdministracion() {
+		assertThatThrownBy(() -> servicio.restablecerContrasena(ADMIN_IGLESIA_1.usuarioId(),
+				new RestablecerContrasenaRequest("Temporal123")))
+			.isInstanceOf(ReglaNegocioException.class);
+		then(usuarios).should(never()).findConRolesById(anyLong());
+	}
+
+	@Test
+	void unUsuarioDeOtraIglesiaNoExisteAlRestablecerSuContrasena() {
+		Usuario ajeno = Usuario.nuevo("x@y.com", "hash-anterior", 2L, null, RolesPrueba.bases(RolBase.ADMIN_IGLESIA),
+				false);
+		given(usuarios.findConRolesById(9L)).willReturn(Optional.of(ajeno));
+
+		assertThatThrownBy(() -> servicio.restablecerContrasena(9L, new RestablecerContrasenaRequest("Temporal123")))
+			.isInstanceOf(RecursoNoEncontradoException.class);
+		assertThat(ajeno.getHashContrasena()).isEqualTo("hash-anterior");
+		then(tokensRefresco).should(never()).revocarTodos(any());
 	}
 
 }

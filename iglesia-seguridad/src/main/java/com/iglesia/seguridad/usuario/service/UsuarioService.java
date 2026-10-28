@@ -26,6 +26,7 @@ import com.iglesia.seguridad.usuario.dto.CambiarContrasenaRequest;
 import com.iglesia.seguridad.usuario.dto.CrearUsuarioRequest;
 import com.iglesia.seguridad.usuario.dto.FiltroUsuarios;
 import com.iglesia.seguridad.usuario.dto.MiUsuarioResponse;
+import com.iglesia.seguridad.usuario.dto.RestablecerContrasenaRequest;
 import com.iglesia.seguridad.usuario.dto.UsuarioResponse;
 import com.iglesia.seguridad.usuario.entity.Usuario;
 import com.iglesia.seguridad.usuario.mapper.UsuarioMapper;
@@ -137,6 +138,23 @@ public class UsuarioService {
 		usuario.cambiarContrasena(codificador.encode(solicitud.contrasenaNueva()));
 		tokensRefresco.revocarTodos(usuario.getId());
 		LOG.info("Contraseña cambiada usuarioId={}; sesiones revocadas", usuario.getId());
+	}
+
+	/**
+	 * Fija una contraseña temporal a otro usuario: deberá cambiarla en su próximo inicio de sesión. Cierra sus
+	 * sesiones para que no pueda seguir renovando un token emitido con la contraseña anterior.
+	 */
+	@Transactional
+	public void restablecerContrasena(Long id, RestablecerContrasenaRequest solicitud) {
+		UsuarioAutenticado actor = proveedorUsuario.actual();
+		if (actor.usuarioId().equals(id)) {
+			throw new ReglaNegocioException("Para cambiar su propia contraseña use «Cambiar contraseña»");
+		}
+		Usuario usuario = buscarAdministrable(actor, id);
+		usuario.restablecerContrasena(codificador.encode(solicitud.contrasenaTemporal()));
+		tokensRefresco.revocarTodos(usuario.getId());
+		LOG.info("Contraseña restablecida usuarioId={} por usuarioId={}; sesiones revocadas", usuario.getId(),
+				actor.usuarioId());
 	}
 
 	/** Los usuarios fuera del alcance del actor se tratan como inexistentes para no revelar su existencia. */

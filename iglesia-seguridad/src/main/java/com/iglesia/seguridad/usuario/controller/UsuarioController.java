@@ -38,6 +38,7 @@ import com.iglesia.seguridad.usuario.dto.CambiarContrasenaRequest;
 import com.iglesia.seguridad.usuario.dto.CrearUsuarioRequest;
 import com.iglesia.seguridad.usuario.dto.FiltroUsuarios;
 import com.iglesia.seguridad.usuario.dto.MiUsuarioResponse;
+import com.iglesia.seguridad.usuario.dto.RestablecerContrasenaRequest;
 import com.iglesia.seguridad.usuario.dto.UsuarioResponse;
 import com.iglesia.seguridad.usuario.service.UsuarioService;
 
@@ -177,6 +178,36 @@ class UsuarioController {
 		return servicio.actualizar(id, solicitud);
 	}
 
+	@PutMapping("/{id}/contrasena")
+	@PreAuthorize(Permisos.PUEDE_ADMINISTRAR_USUARIOS)
+	@Operation(summary = "Restablecer la contraseña de un usuario", description = """
+			Fija una contraseña temporal a otro usuario. Requiere el permiso `usuarios.administrar`; para la \
+			contraseña propia se usa `PUT /api/usuarios/me/contrasena`, que pide la actual.
+
+			El usuario queda con `debeCambiarContrasena: true`: tras iniciar sesión con la contraseña temporal, \
+			solo puede consultar su usuario y cambiarla. Se cierran todas sus sesiones: los tokens de refresco \
+			existentes dejan de servir. Mismas reglas de alcance que al actualizar.""")
+	@ApiResponse(responseCode = "204", description = "Contraseña restablecida.")
+	@ApiResponse(responseCode = "400", description = RespuestasOpenApi.DATOS_INVALIDOS
+			+ " También si se intenta restablecer la contraseña propia.",
+			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+					schema = @Schema(implementation = ProblemDetailEsquema.class)))
+	@ApiResponse(responseCode = "401", description = RespuestasOpenApi.NO_AUTENTICADO,
+			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+					schema = @Schema(implementation = ProblemDetailEsquema.class)))
+	@ApiResponse(responseCode = "403", description = RespuestasOpenApi.SIN_PERMISO,
+			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+					schema = @Schema(implementation = ProblemDetailEsquema.class)))
+	@ApiResponse(responseCode = "404", description = NO_ENCONTRADO,
+			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+					schema = @Schema(implementation = ProblemDetailEsquema.class)))
+	ResponseEntity<Void> restablecerContrasena(
+			@Parameter(description = DESCRIPCION_ID, example = "12") @PathVariable Long id,
+			@Valid @RequestBody RestablecerContrasenaRequest solicitud) {
+		servicio.restablecerContrasena(id, solicitud);
+		return ResponseEntity.noContent().build();
+	}
+
 	@GetMapping("/me")
 	@Operation(summary = "Obtener mi usuario", description = """
 			Datos del usuario autenticado con sus perfiles: uno por cada rol activo, con su rol base y sus \
@@ -193,8 +224,9 @@ class UsuarioController {
 	@PutMapping("/me/contrasena")
 	@Operation(summary = "Cambiar mi contraseña", description = """
 			Cambia la contraseña del usuario autenticado tras confirmar la actual. Disponible para cualquier \
-			usuario autenticado. Cierra todas sus sesiones: los tokens de refresco existentes dejan de servir y \
-			debe iniciar sesión de nuevo cuando expire el token de acceso.""")
+			usuario autenticado, también con una contraseña temporal, que deja de serlo. Cierra todas sus \
+			sesiones: los tokens de refresco existentes dejan de servir y debe iniciar sesión de nuevo cuando \
+			expire el token de acceso.""")
 	@ApiResponse(responseCode = "204", description = "Contraseña cambiada.")
 	@ApiResponse(responseCode = "400", description = RespuestasOpenApi.DATOS_INVALIDOS
 			+ " También si la contraseña actual no es correcta.",
