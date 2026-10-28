@@ -1,6 +1,6 @@
 # SPEC 04 — Administración de usuarios
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 01, SPEC 02 (API de usuarios con `rolIds` y permisos `usuarios.*`), SPEC 03 (OpenAPI y trazabilidad)
 > **Fecha:** 2026-10-26
 > **Objetivo:** Que el administrador de una iglesia liste, cree y edite los usuarios de su iglesia (correo, roles y estado), les restablezca la contraseña desde la interfaz y nunca pueda dejar la iglesia sin administrador, y que todo usuario con una contraseña temporal esté obligado a cambiarla antes de usar el sistema.
