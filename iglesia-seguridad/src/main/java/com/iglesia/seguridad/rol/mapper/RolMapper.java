@@ -12,7 +12,7 @@ public class RolMapper {
 
 	public RolResponse aRespuesta(Rol rol, long cantidadUsuarios) {
 		return new RolResponse(rol.getId(), rol.getNombre(), rol.rolBaseEfectivo(), rol.esBase(), rol.isActivo(),
-				rol.getPermisos().stream().map(Permiso::getCodigo).sorted().toList(), cantidadUsuarios);
+				rol.rolBaseEfectivo().requiereMiembro(), rol.getPermisos().stream().map(Permiso::getCodigo).sorted().toList(), cantidadUsuarios);
 	}
 
 	public PermisoResponse aRespuesta(Permiso permiso) {

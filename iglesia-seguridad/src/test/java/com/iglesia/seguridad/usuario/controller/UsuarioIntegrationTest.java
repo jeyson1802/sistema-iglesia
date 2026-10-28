@@ -72,6 +72,7 @@ class UsuarioIntegrationTest {
 			.contentType(MediaType.APPLICATION_JSON)
 			.content(crearUsuario("secretaria@iglesia42.test", 42L, null, secretaria)))
 			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.debeCambiarContrasena").value(true))
 			.andExpect(jsonPath("$.roles[0].id").value(secretaria))
 			.andExpect(jsonPath("$.roles[0].nombre").value("Secretaría"))
 			.andExpect(jsonPath("$.roles[0].rolBase").value("ADMIN_IGLESIA"));
@@ -122,6 +123,7 @@ class UsuarioIntegrationTest {
 		mvc.perform(get("/api/usuarios/me").header(HttpHeaders.AUTHORIZATION, bearer(token)))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.miembroId").value(8))
+			.andExpect(jsonPath("$.debeCambiarContrasena").value(false))
 			.andExpect(jsonPath("$.perfiles.length()").value(2))
 			.andExpect(jsonPath("$.perfiles[0].id").value(secretaria))
 			.andExpect(jsonPath("$.perfiles[0].nombre").value("Secretaría"))

@@ -61,7 +61,7 @@ class CambioContrasenaPendienteIntegrationTest {
 
 	@Test
 	void conContrasenaTemporalSoloPermiteConsultarSuUsuarioYCambiarla() throws Exception {
-		String token = administradorConContrasenaTemporal("temporal@iglesia61.test", 61L);
+		String token = administradorConContrasenaTemporal("temporal@iglesia71.test", 71L);
 
 		assertThat(cambioContrasena(token)).isTrue();
 		mvc.perform(get("/api/usuarios/me").header(HttpHeaders.AUTHORIZATION, bearer(token)))
@@ -72,8 +72,8 @@ class CambioContrasenaPendienteIntegrationTest {
 
 	@Test
 	void despuesDeCambiarLaContrasenaElNuevoLoginYaNoTieneElCambioPendiente() throws Exception {
-		String correo = "temporal@iglesia62.test";
-		String token = administradorConContrasenaTemporal(correo, 62L);
+		String correo = "temporal@iglesia72.test";
+		String token = administradorConContrasenaTemporal(correo, 72L);
 
 		mvc.perform(put("/api/usuarios/me/contrasena").header(HttpHeaders.AUTHORIZATION, bearer(token))
 			.contentType(MediaType.APPLICATION_JSON)
@@ -92,9 +92,9 @@ class CambioContrasenaPendienteIntegrationTest {
 
 	@Test
 	void sinContrasenaTemporalElLoginEmiteElClaimEnFalse() throws Exception {
-		semilla.crearUsuario("definitiva@iglesia63.test", 63L, null, semilla.idRolBase("ADMIN_IGLESIA"));
+		semilla.crearUsuario("definitiva@iglesia73.test", 73L, null, semilla.idRolBase("ADMIN_IGLESIA"));
 
-		assertThat(cambioContrasena(iniciarSesion("definitiva@iglesia63.test", SemillaSeguridad.CONTRASENA)))
+		assertThat(cambioContrasena(iniciarSesion("definitiva@iglesia73.test", SemillaSeguridad.CONTRASENA)))
 			.isFalse();
 	}
 

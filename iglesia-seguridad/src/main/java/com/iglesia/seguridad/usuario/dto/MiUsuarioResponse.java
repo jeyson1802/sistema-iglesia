@@ -12,6 +12,9 @@ public record MiUsuarioResponse(
 				nullable = true) Long iglesiaId,
 		@Schema(description = "Miembro de iglesia-api vinculado, si tiene.", example = "25",
 				nullable = true) Long miembroId,
+		@Schema(description = "`true` si su contraseña es temporal: mientras no la cambie con "
+				+ "`PUT /api/usuarios/me/contrasena`, el resto de endpoints responde 403.", example = "false")
+		boolean debeCambiarContrasena,
 		@Schema(description = "Un perfil por cada rol activo, ordenados por la jerarquía de su rol base y luego "
 				+ "por nombre. Los roles desactivados no aparecen.",
 				example = "[{\"id\": 7, \"nombre\": \"Secretaría\", \"rolBase\": \"ADMIN_IGLESIA\", "

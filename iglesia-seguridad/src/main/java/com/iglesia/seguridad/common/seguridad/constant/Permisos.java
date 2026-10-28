@@ -20,6 +20,10 @@ public final class Permisos {
 
 	public static final String PUEDE_VER_ROLES = "hasAuthority('" + ROLES_VER + "')";
 
+	/** Solo para listar roles: quien asigna roles a usuarios necesita verlos, aunque no pueda editarlos. */
+	public static final String PUEDE_VER_ROLES_O_ASIGNARLOS = "hasAnyAuthority('" + ROLES_VER + "', '"
+			+ USUARIOS_ADMINISTRAR + "')";
+
 	public static final String PUEDE_ADMINISTRAR_ROLES = "hasAuthority('" + ROLES_ADMINISTRAR + "')";
 
 	private Permisos() {

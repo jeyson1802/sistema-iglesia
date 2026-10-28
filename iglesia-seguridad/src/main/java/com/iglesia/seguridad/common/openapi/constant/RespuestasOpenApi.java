@@ -9,7 +9,8 @@ public final class RespuestasOpenApi {
 	public static final String NO_AUTENTICADO = "No autenticado: falta el token de acceso, es inválido o expiró. "
 			+ "Renovarlo con `POST /api/auth/refresh`.";
 
-	public static final String SIN_PERMISO = "Acceso denegado: el usuario autenticado no tiene el permiso requerido.";
+	public static final String SIN_PERMISO = "Acceso denegado: el usuario autenticado no tiene el permiso requerido "
+			+ "o tiene una contraseña temporal que debe cambiar antes de continuar.";
 
 	private RespuestasOpenApi() {
 	}

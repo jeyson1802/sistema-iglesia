@@ -14,6 +14,9 @@ public record UsuarioResponse(
 		@Schema(description = "Miembro de iglesia-api vinculado, si tiene.", example = "25",
 				nullable = true) Long miembroId,
 		@Schema(description = "Si puede iniciar sesión.", example = "true") boolean activo,
+		@Schema(description = "`true` si su contraseña es temporal (la eligió un administrador al crearlo o al "
+				+ "restablecerla) y debe cambiarla antes de usar el sistema.", example = "false")
+		boolean debeCambiarContrasena,
 		@Schema(description = "Roles de acceso del usuario (base y personalizados), ordenados por la jerarquía de "
 				+ "su rol base y luego por nombre.",
 				example = "[{\"id\": 7, \"nombre\": \"Secretaría\", \"rolBase\": \"ADMIN_IGLESIA\"}]")

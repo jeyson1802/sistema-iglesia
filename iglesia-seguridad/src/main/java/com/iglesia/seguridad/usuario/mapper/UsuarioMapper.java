@@ -24,12 +24,13 @@ public class UsuarioMapper {
 
 	public UsuarioResponse aRespuesta(Usuario usuario) {
 		return new UsuarioResponse(usuario.getId(), usuario.getCorreo(), usuario.getIglesiaId(), usuario.getMiembroId(),
-				usuario.isActivo(), ordenar(usuario.getRoles(), this::aRolAsignado), usuario.getCreadoEn());
+				usuario.isActivo(), usuario.isDebeCambiarContrasena(), ordenar(usuario.getRoles(), this::aRolAsignado),
+				usuario.getCreadoEn());
 	}
 
 	public MiUsuarioResponse aMiUsuario(Usuario usuario) {
 		return new MiUsuarioResponse(usuario.getId(), usuario.getCorreo(), usuario.getIglesiaId(),
-				usuario.getMiembroId(), ordenar(usuario.getRolesActivos(), this::aPerfil));
+				usuario.getMiembroId(), usuario.isDebeCambiarContrasena(), ordenar(usuario.getRolesActivos(), this::aPerfil));
 	}
 
 	private RolAsignadoResponse aRolAsignado(Rol rol) {

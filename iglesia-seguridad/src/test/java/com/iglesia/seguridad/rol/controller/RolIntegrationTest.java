@@ -236,6 +236,39 @@ class RolIntegrationTest {
 		crear(token, "Secretaría", "ADMIN_IGLESIA", "miembros.ver").andExpect(status().isForbidden());
 	}
 
+	@Test
+	void quienAdministraUsuariosSinRolesVerPuedeListarLosRolesPeroNoModificarlos() throws Exception {
+		long asignador = semilla.crearRolPersonalizado(81L, "Asignador", "ADMIN_IGLESIA", true, "usuarios.ver",
+				"usuarios.administrar");
+		semilla.crearUsuario("asignador@iglesia81.test", 81L, null, asignador);
+		String token = iniciarSesion("asignador@iglesia81.test");
+
+		mvc.perform(get("/api/roles").header(HttpHeaders.AUTHORIZATION, bearer(token)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$[*].nombre", hasItem("Asignador")));
+		mvc.perform(get("/api/roles/{id}", asignador).header(HttpHeaders.AUTHORIZATION, bearer(token)))
+			.andExpect(status().isForbidden());
+		crear(token, "Otro", "ADMIN_IGLESIA", "miembros.ver").andExpect(status().isForbidden());
+	}
+
+	@Test
+	void requiereMiembroSoloEnLiderMiembroYSusDerivados() throws Exception {
+		long coordinador = semilla.crearRolPersonalizado(82L, "Coordinador", "LIDER", true);
+		semilla.crearRolPersonalizado(82L, "Servidor", "MIEMBRO", true);
+		semilla.crearRolPersonalizado(82L, "Secretaría", "ADMIN_IGLESIA", true, "miembros.ver");
+		String token = administradorDe(82L);
+
+		mvc.perform(get("/api/roles").header(HttpHeaders.AUTHORIZATION, bearer(token)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$[?(@.rolBase == 'ADMIN_SISTEMA')].requiereMiembro", contains(false)))
+			.andExpect(jsonPath("$[?(@.rolBase == 'ADMIN_IGLESIA')].requiereMiembro", contains(false, false)))
+			.andExpect(jsonPath("$[?(@.rolBase == 'LIDER')].requiereMiembro", contains(true, true)))
+			.andExpect(jsonPath("$[?(@.rolBase == 'MIEMBRO')].requiereMiembro", contains(true, true)));
+		mvc.perform(get("/api/roles/{id}", coordinador).header(HttpHeaders.AUTHORIZATION, bearer(token)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.requiereMiembro").value(true));
+	}
+
 	private ResultActions crear(String token, String nombre, String rolBase, String... permisos) throws Exception {
 		return crearConRolBaseId(token, nombre, semilla.idRolBase(rolBase), permisos);
 	}

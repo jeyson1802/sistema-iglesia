@@ -15,6 +15,8 @@ public record RolResponse(
 		@Schema(description = "`true` si es uno de los 4 roles base, que no se pueden editar ni desactivar.",
 				example = "false") boolean base,
 		@Schema(description = "Si se puede asignar y si aporta permisos a sus usuarios.", example = "true") boolean activo,
+		@Schema(description = "`true` si su rol base es `LIDER` o `MIEMBRO`: solo se puede asignar a un usuario "
+				+ "vinculado con un miembro de la iglesia.", example = "false") boolean requiereMiembro,
 		@Schema(description = "Códigos de los permisos del rol, ordenados.",
 				example = "[\"miembros.crear\", \"miembros.ver\"]") List<String> permisos,
 		@Schema(description = "Usuarios que tienen el rol asignado, contando solo los de la iglesia de quien "

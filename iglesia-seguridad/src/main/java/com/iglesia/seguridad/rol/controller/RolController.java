@@ -41,8 +41,8 @@ import com.iglesia.seguridad.rol.service.RolService;
 @Tag(name = "Roles", description = """
 		Roles de acceso de la iglesia. Los 4 roles base (`ADMIN_SISTEMA`, `ADMIN_IGLESIA`, `LIDER` y `MIEMBRO`) son \
 		globales y de solo lectura. Cada iglesia crea sus roles personalizados: heredan de un rol base su ámbito y su \
-		página de inicio, y sus permisos son un subconjunto de los del rol base. Consultar exige `roles.ver` y \
-		modificar, `roles.administrar`. Los roles personalizados de otra iglesia se responden como inexistentes \
+		página de inicio, y sus permisos son un subconjunto de los del rol base. Consultar exige `roles.ver` \
+		(listar también se permite con `usuarios.administrar`) y modificar, `roles.administrar`. Los roles personalizados de otra iglesia se responden como inexistentes \
 		(404). Los cambios de permisos llegan a los usuarios en el siguiente refresco de su token.""")
 class RolController {
 
@@ -59,11 +59,13 @@ class RolController {
 	}
 
 	@GetMapping
-	@PreAuthorize(Permisos.PUEDE_VER_ROLES)
+	@PreAuthorize(Permisos.PUEDE_VER_ROLES_O_ASIGNARLOS)
 	@Operation(summary = "Listar roles", description = """
 			Los roles base y los personalizados de la iglesia de quien consulta (activos e inactivos): primero \
 			los base y luego los personalizados, por jerarquía de su rol base y por nombre. Requiere el permiso \
-			`roles.ver`. `ADMIN_SISTEMA`, que no pertenece a ninguna iglesia, solo ve los roles base.""")
+			`roles.ver` o `usuarios.administrar` (quien asigna roles a usuarios necesita verlos, aunque no pueda \
+			editarlos). `requiereMiembro` indica los roles que solo se asignan a usuarios vinculados con un \
+			miembro. `ADMIN_SISTEMA`, que no pertenece a ninguna iglesia, solo ve los roles base.""")
 	@ApiResponse(responseCode = "200", description = "Roles visibles para quien consulta.")
 	@ApiResponse(responseCode = "401", description = RespuestasOpenApi.NO_AUTENTICADO,
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
