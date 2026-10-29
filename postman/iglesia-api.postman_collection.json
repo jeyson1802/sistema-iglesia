@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "b79cd32e-0856-5b97-890c-865dcb49f693",
     "name": "iglesia-api",
-    "description": "Backend de negocio del Sistema Iglesia (multi-iglesia). Valida el JWT que emite iglesia-seguridad y toma la iglesia del token, nunca de un parámetro.\n\n**Uso:** selecciona el entorno «Sistema Iglesia - local». Los endpoints protegidos usan `{{tokenAcceso}}`, que se obtiene con «1. Autenticación → Iniciar sesión» de la colección iglesia-seguridad.\n\n**Trazabilidad:** la colección verifica en cada respuesta la cabecera `X-Trace-Id`. Ante un error, busca ese valor en los logs del backend para ver la petición completa.",
+    "description": "Backend de negocio del Sistema Iglesia (multi-iglesia). Valida el JWT que emite iglesia-seguridad y toma la iglesia del token, nunca de un parámetro.\n\n**Uso:** selecciona el entorno «Sistema Iglesia - local». Los endpoints protegidos usan `{{tokenAcceso}}`, que se obtiene con «1. Autenticación → Iniciar sesión» de la colección iglesia-seguridad. «1. Iglesias» exige el token de un administrador del sistema (permisos `iglesias.ver` e `iglesias.administrar`).\n\n**Trazabilidad:** la colección verifica en cada respuesta la cabecera `X-Trace-Id`. Ante un error, busca ese valor en los logs del backend para ver la petición completa.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -37,7 +37,233 @@
   ],
   "item": [
     {
-      "name": "1. Infraestructura",
+      "name": "1. Iglesias",
+      "description": "Catálogo de iglesias (tenants). Solo para el administrador del sistema: iniciar sesión con un usuario `ADMIN_SISTEMA` en la colección iglesia-seguridad. Consultar exige `iglesias.ver` y dar de alta o renombrar, `iglesias.administrar`. El catálogo nunca se filtra por la iglesia del token.\n\nCada ejecución da de alta una iglesia «Prueba Postman …» con un nombre único (no se pueden borrar iglesias).",
+      "item": [
+        {
+          "name": "Listar iglesias",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/iglesias",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "iglesias"
+              ]
+            },
+            "description": "Todas las iglesias del catálogo, ordenadas por nombre. Requiere `iglesias.ver`; sin el permiso responde 403."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const iglesias = pm.response.json();",
+                  "pm.test('Devuelve una lista con id, nombre y fecha de alta', () => {",
+                  "  pm.expect(iglesias).to.be.an('array');",
+                  "  iglesias.forEach((iglesia) => pm.expect(iglesia).to.have.all.keys('id', 'nombre', 'creadaEn'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dar de alta una iglesia",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/iglesias",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "iglesias"
+              ]
+            },
+            "description": "Agrega una iglesia al catálogo. Requiere `iglesias.administrar`. El nombre es obligatorio (máx. 150), se guarda sin espacios al inicio ni al final y es único sin distinguir mayúsculas (409 si se repite). Responde 201 con la cabecera `Location`. Su primer administrador se crea después en iglesia-seguridad («Crear usuario» con este `iglesiaId` y el rol base `ADMIN_IGLESIA`).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"  {{nombreIglesiaNueva}}  \"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Nombre único en cada ejecución: el catálogo no admite nombres repetidos.",
+                  "pm.collectionVariables.set('nombreIglesiaNueva', `Prueba Postman ${Date.now()}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Indica la URL de la iglesia creada', () => pm.expect(pm.response.headers.get('Location')).to.match(/\\/api\\/iglesias\\/\\d+$/));",
+                  "const iglesia = pm.response.json();",
+                  "pm.test('Guarda el nombre sin espacios alrededor', () => pm.expect(iglesia.nombre).to.eql(pm.collectionVariables.get('nombreIglesiaNueva')));",
+                  "pm.environment.set('iglesiaNuevaId', iglesia.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dar de alta con un nombre repetido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/iglesias",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "iglesias"
+              ]
+            },
+            "description": "Mismo nombre que la iglesia recién creada, en mayúsculas: el nombre es único sin distinguir mayúsculas, así que responde 409 con un `ProblemDetail`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"{{nombreIglesiaRepetido}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('nombreIglesiaRepetido', pm.collectionVariables.get('nombreIglesiaNueva').toUpperCase());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Explica que el nombre ya existe', () => pm.expect(pm.response.json().detail).to.eql('Ya existe una iglesia con ese nombre'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener iglesia",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/iglesias/{{iglesiaNuevaId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "iglesias",
+                "{{iglesiaNuevaId}}"
+              ]
+            },
+            "description": "Datos de una iglesia del catálogo. Requiere `iglesias.ver`. Si no existe: 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Es la iglesia creada', () => pm.expect(pm.response.json().id).to.eql(Number(pm.environment.get('iglesiaNuevaId'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Renombrar iglesia",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/iglesias/{{iglesiaNuevaId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "iglesias",
+                "{{iglesiaNuevaId}}"
+              ]
+            },
+            "description": "Cambia el nombre, el único dato editable. Requiere `iglesias.administrar`. Mismas reglas que al crear; se pueden cambiar solo las mayúsculas del nombre actual. Si no existe: 404; si el nombre es de otra iglesia: 409.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"{{nombreIglesiaNueva}} renombrada\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene el nombre nuevo', () => pm.expect(pm.response.json().nombre).to.eql(`${pm.collectionVariables.get('nombreIglesiaNueva')} renombrada`));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Infraestructura",
       "description": "Endpoints públicos de soporte.",
       "auth": {
         "type": "noauth"
@@ -75,7 +301,7 @@
       ]
     },
     {
-      "name": "2. Documentación",
+      "name": "3. Documentación",
       "description": "Especificación OpenAPI 3 del backend. Solo responde con el perfil `local` (en producción está deshabilitada y responde 404). La versión navegable está en `{{apiUrl}}/swagger-ui.html`.",
       "auth": {
         "type": "noauth"
