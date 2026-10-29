@@ -1,0 +1,28 @@
+<section aria-labelledby="titulo-ultimas">
+    <h2 id="titulo-ultimas" class="text-base font-semibold text-muted-color m-0 mb-3">Últimas marcas</h2>
+    @if (marcas().length === 0) {
+    <p class="text-muted-color m-0">Aquí aparecerán las personas que marques.</p>
+    } @else {
+    <ul class="list-none p-0 m-0 flex flex-col divide-y divide-surface-200 dark:divide-surface-700">
+        @for (marca of marcas(); track marca.miembroId) {
+        <li class="flex items-center justify-between gap-3 py-2">
+            <span class="min-w-0">
+                <span class="block font-medium truncate">{{ marca.nombreCompleto }}</span>
+                <span class="text-muted-color text-sm tabular-nums">{{ hora(marca.registradaEn) }}{{ marca.nivel ? ' · ' + marca.nivel : '' }}</span>
+            </span>
+            <p-button
+                label="Deshacer"
+                icon="pi pi-undo"
+                severity="secondary"
+                [text]="true"
+                size="small"
+                [loading]="deshaciendo() === marca.miembroId"
+                [disabled]="deshaciendo() !== null"
+                [ariaLabel]="'Deshacer la marca de ' + marca.nombreCompleto"
+                (onClick)="deshacer.emit(marca)"
+            />
+        </li>
+        }
+    </ul>
+    }
+</section>

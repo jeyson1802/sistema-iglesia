@@ -41,6 +41,7 @@ import com.iglesia.api.common.seguridad.constant.Permisos;
 import com.iglesia.api.miembros.constant.LimitesMiembro;
 import com.iglesia.api.miembros.dto.EslabonCadenaResponse;
 import com.iglesia.api.miembros.dto.FiltroMiembros;
+import com.iglesia.api.miembros.dto.FotocheckResponse;
 import com.iglesia.api.miembros.dto.GuardarMiembroRequest;
 import com.iglesia.api.miembros.dto.LideradoResponse;
 import com.iglesia.api.miembros.dto.MiembroResponse;
@@ -99,6 +100,27 @@ class MiembroController {
 	Page<MiembroResumenResponse> listar(@Valid @ParameterObject FiltroMiembros filtro,
 			@ParameterObject @PageableDefault(sort = { "apellidos", "nombres" }) Pageable paginacion) {
 		return servicio.listar(filtro, paginacion);
+	}
+
+	@GetMapping("/fotochecks")
+	@PreAuthorize(Permisos.PUEDE_VER_MIEMBROS)
+	@Operation(summary = "Datos para imprimir fotochecks en lote", description = """
+			Nombres, nivel y código del QR de los miembros del ámbito del usuario que cumplen los mismos filtros del \
+			listado, ordenados por apellidos, para imprimir sus fotochecks (10 por hoja A4) en el navegador. Genera el \
+			código de quien aún no tiene. Hasta 500 por impresión: con más responde 400 y hay que filtrar. Requiere \
+			`miembros.ver`.""")
+	@ApiResponse(responseCode = "200", description = "Fotochecks a imprimir (puede estar vacía).")
+	@ApiResponse(responseCode = "400", description = "Parámetro inválido o más de 500 miembros con esos filtros.",
+			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+				schema = @Schema(implementation = ProblemDetailEsquema.class)))
+	@ApiResponse(responseCode = "401", description = RespuestasOpenApi.NO_AUTENTICADO,
+			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+				schema = @Schema(implementation = ProblemDetailEsquema.class)))
+	@ApiResponse(responseCode = "403", description = RespuestasOpenApi.SIN_PERMISO,
+			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+				schema = @Schema(implementation = ProblemDetailEsquema.class)))
+	List<FotocheckResponse> fotochecks(@Valid @ParameterObject FiltroMiembros filtro) {
+		return servicio.fotochecks(filtro);
 	}
 
 	@GetMapping("/opciones")

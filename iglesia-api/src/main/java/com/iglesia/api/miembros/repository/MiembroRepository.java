@@ -34,6 +34,14 @@ public interface MiembroRepository extends JpaRepository<Miembro, Long>, JpaSpec
 
 	Optional<Miembro> findByPastorPrincipalTrue();
 
+	@EntityGraph(attributePaths = { "nivel" })
+	Optional<Miembro> findByCodigoAsistencia(String codigoAsistencia);
+
+	boolean existsByCodigoAsistencia(String codigoAsistencia);
+
+	@EntityGraph(attributePaths = { "nivel" })
+	List<Miembro> findWithNivelByIdIn(Collection<Long> ids);
+
 	long countByLiderIdAndActivoTrue(Long liderId);
 
 	boolean existsByGrupoIdAndActivoTrue(Long grupoId);

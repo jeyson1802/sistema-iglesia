@@ -119,6 +119,20 @@ class RolIntegrationTest {
 	}
 
 	@Test
+	void losPermisosDeAsistenciaLosTieneElAdministradorDeIglesiaYElLiderSoloSusGrupos() {
+		String permisosDe = """
+				select array_to_string(array_agg(rp.permiso_codigo order by rp.permiso_codigo), ',')
+				from rol_permiso rp join rol r on r.id = rp.rol_id
+				where r.codigo = ? and rp.permiso_codigo like 'asistencia.%'""";
+
+		assertThat(jdbc.queryForObject(permisosDe, String.class, "ADMIN_IGLESIA")).isEqualTo(String.join(",",
+				Permisos.ASISTENCIA_CONFIGURAR, Permisos.ASISTENCIA_REGISTRAR, Permisos.ASISTENCIA_VER));
+		assertThat(jdbc.queryForObject(permisosDe, String.class, "LIDER")).isEqualTo(Permisos.ASISTENCIA_GRUPO);
+		assertThat(jdbc.queryForObject(permisosDe, String.class, "MIEMBRO")).isNull();
+		assertThat(jdbc.queryForObject(permisosDe, String.class, "ADMIN_SISTEMA")).isNull();
+	}
+
+	@Test
 	void soloElAdministradorDeIglesiaPersonalizaSuIglesia() {
 		String rolesCon = """
 				select array_to_string(array_agg(r.codigo order by r.codigo), ',')

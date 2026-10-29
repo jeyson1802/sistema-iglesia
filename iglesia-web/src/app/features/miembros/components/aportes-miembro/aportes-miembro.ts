@@ -9,7 +9,7 @@ import { SesionService } from '@/app/core/auth/services/sesion.service';
 import { veAportesDeTodaLaIglesia } from '@/app/features/aportes/models/ambito-aportes';
 import { Aporte, DESCRIPCION_MEDIO, FiltroAportes, LIMITES_APORTE, MedioAporte } from '@/app/features/aportes/models/aporte';
 import { filtroAUrl } from '@/app/features/aportes/models/filtro-url';
-import { rangoDe } from '@/app/features/aportes/models/periodo';
+import { rangoDe } from '@/app/shared/utils/periodo';
 import { AportesService } from '@/app/features/aportes/services/aportes.service';
 import { ConfiguracionAportesService } from '@/app/features/aportes/services/configuracion-aportes.service';
 import { MonedaPipe } from '@/app/shared/pipes/moneda.pipe';

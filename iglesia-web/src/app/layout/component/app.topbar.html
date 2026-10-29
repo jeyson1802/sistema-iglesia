@@ -10,8 +10,9 @@
 
     <div class="layout-topbar-actions">
         @if (actuandoEnIglesia()) {
-        <div class="flex items-center gap-2">
-            <p-tag severity="warn" icon="pi pi-building" styleClass="hidden md:inline-flex" [value]="'Operando en: ' + (nombreIglesia() ?? '…')" role="status" />
+        <!-- En el móvil no cabe: el aviso y «Salir de la iglesia» pasan al menú de usuario y el avatar lleva un punto. -->
+        <div class="hidden md:flex items-center gap-2">
+            <p-tag severity="warn" icon="pi pi-building" [value]="'Operando en: ' + (nombreIglesia() ?? '…')" role="status" />
             <p-button
                 label="Salir de la iglesia"
                 icon="pi pi-sign-out"
@@ -37,10 +38,12 @@
             class="flex items-center gap-3 px-2 py-1 rounded-border cursor-pointer transition-colors duration-150 hover:bg-emphasis focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             aria-haspopup="menu"
             aria-controls="menu-usuario"
-            [attr.aria-label]="'Menú de usuario: ' + correo()"
+            [attr.aria-label]="etiquetaMenuUsuario()"
             (click)="menuUsuario.toggle($event)"
         >
-            <p-avatar icon="pi pi-user" shape="circle" aria-hidden="true" />
+            <p-overlaybadge severity="warn" [badgeDisabled]="!actuandoEnIglesia()" aria-hidden="true">
+                <p-avatar icon="pi pi-user" shape="circle" />
+            </p-overlaybadge>
             <span class="hidden md:flex flex-col items-start leading-tight text-left">
                 <span class="text-sm font-medium text-surface-900 dark:text-surface-0">{{ correo() }}</span>
                 <span class="text-xs text-muted-color">{{ nombrePerfil() }}</span>
@@ -52,6 +55,21 @@
                 <div class="px-3 py-2 border-b border-surface md:hidden">
                     <div class="text-sm font-medium text-surface-900 dark:text-surface-0 break-all">{{ correo() }}</div>
                     <div class="text-xs text-muted-color">{{ nombrePerfil() }}</div>
+                    @if (actuandoEnIglesia()) {
+                    <p-tag severity="warn" icon="pi pi-building" [value]="'Operando en: ' + (nombreIglesia() ?? '…')" styleClass="mt-3 max-w-full whitespace-normal text-left" />
+                    <p-button
+                        label="Salir de la iglesia"
+                        icon="pi pi-sign-out"
+                        size="small"
+                        severity="secondary"
+                        [outlined]="true"
+                        [fluid]="true"
+                        styleClass="mt-2"
+                        [loading]="saliendo()"
+                        [disabled]="saliendo()"
+                        (onClick)="menuUsuario.hide(); salirDeIglesia()"
+                    />
+                    }
                 </div>
             </ng-template>
         </p-menu>

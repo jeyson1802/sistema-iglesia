@@ -1,0 +1,29 @@
+<!-- Blanco y negro fijos a propósito: el fotocheck se imprime y el QR debe leerse igual en modo oscuro. -->
+<article class="relative flex shrink-0 overflow-hidden w-[85.6mm] h-[54mm] bg-white text-black border border-surface-300 rounded-lg print:break-inside-avoid" [attr.aria-label]="'Fotocheck de ' + datos().nombres + ' ' + datos().apellidos">
+    <span class="absolute inset-x-0 top-0 h-[2.5mm] bg-primary" aria-hidden="true"></span>
+    <div class="flex flex-col justify-between min-w-0 flex-1 pt-[5mm] pb-[4mm] pl-[4mm] pr-[2mm]">
+        <div class="flex items-center gap-[2mm] min-w-0">
+            @if (logo(); as url) {
+            <img [src]="url" alt="" class="h-[9mm] w-auto max-w-[18mm] object-contain shrink-0" />
+            } @else {
+            <span aria-hidden="true" class="flex items-center justify-center shrink-0 h-[9mm] w-[9mm] rounded-full bg-primary text-primary-contrast font-marca text-[3.5mm]">{{ monograma() }}</span>
+            }
+            <span class="font-marca text-[3.6mm] leading-tight line-clamp-2">{{ nombreIglesia() }}</span>
+        </div>
+        <div class="min-w-0">
+            <p class="m-0 font-bold text-[4.2mm] leading-tight line-clamp-2">{{ datos().nombres }}</p>
+            <p class="m-0 font-semibold text-[3.6mm] leading-tight line-clamp-2">{{ datos().apellidos }}</p>
+            @if (datos().nivel; as nivel) {
+            <p class="m-0 mt-[1mm] text-[3mm] uppercase tracking-wide">{{ nivel }}</p>
+            }
+        </div>
+    </div>
+    <div class="flex flex-col items-center justify-center shrink-0 w-[34mm] pt-[3mm] pr-[3mm] pb-[2mm]">
+        @if (qr(); as imagen) {
+        <img [src]="imagen" alt="Código QR de asistencia" class="w-[29mm] h-[29mm]" />
+        } @else {
+        <span class="w-[29mm] h-[29mm] bg-white" aria-hidden="true"></span>
+        }
+        <span class="font-mono text-[2.8mm] tracking-wider whitespace-nowrap">{{ codigoImpreso() }}</span>
+    </div>
+</article>

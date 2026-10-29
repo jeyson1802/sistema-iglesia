@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "b79cd32e-0856-5b97-890c-865dcb49f693",
     "name": "iglesia-api",
-    "description": "Backend de negocio del Sistema Iglesia (multi-iglesia). Valida el JWT que emite iglesia-seguridad y toma la iglesia del token, nunca de un parámetro.\n\n**Uso:** selecciona el entorno «Sistema Iglesia - local». Los endpoints protegidos usan `{{tokenAcceso}}`. La colección es autosuficiente: «1. Iglesias» inicia sesión con `{{correo}}`/`{{contrasena}}` de un administrador del sistema, crea una iglesia de prueba y entra a operarla; las carpetas 2 a 8 trabajan dentro de ella y «11. Cierre» sale. «1. Iglesias» exige el token de un administrador del sistema (permisos `iglesias.ver` e `iglesias.administrar`).\n\n**Trazabilidad:** la colección verifica en cada respuesta la cabecera `X-Trace-Id`. Ante un error, busca ese valor en los logs del backend para ver la petición completa.",
+    "description": "Backend de negocio del Sistema Iglesia (multi-iglesia). Valida el JWT que emite iglesia-seguridad y toma la iglesia del token, nunca de un parámetro.\n\n**Uso:** selecciona el entorno «Sistema Iglesia - local». Los endpoints protegidos usan `{{tokenAcceso}}`. La colección es autosuficiente: «1. Iglesias» inicia sesión con `{{correo}}`/`{{contrasena}}` de un administrador del sistema, crea una iglesia de prueba y entra a operarla; las carpetas 2 a 10 trabajan dentro de ella y «13. Cierre» sale. «1. Iglesias» exige el token de un administrador del sistema (permisos `iglesias.ver` e `iglesias.administrar`).\n\n**Trazabilidad:** la colección verifica en cada respuesta la cabecera `X-Trace-Id`. Ante un error, busca ese valor en los logs del backend para ver la petición completa.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -3965,7 +3965,1830 @@
       ]
     },
     {
-      "name": "9. Infraestructura",
+      "name": "9. Asistencia",
+      "description": "Horarios de culto, apertura de reuniones, toma de asistencia con el QR y a mano, eventos, historial y la asistencia vista desde la ficha. Configurar exige `asistencia.configurar`; tomar asistencia, `asistencia.registrar` (o `asistencia.grupo` en los grupos que se lideran); el historial, `asistencia.ver`. Usa el miembro, el pastor y el grupo de las carpetas anteriores. Las fechas (`{{hoy}}`, `{{manana}}`, `{{en3dias}}`, `{{en8dias}}`) y el día de la semana (`{{diaHoy}}`) los calcula el script previo de la carpeta.",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const hoy = new Date();",
+              "const iso = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);",
+              "const enDias = n => iso(new Date(hoy.getTime() + n * 86400000));",
+              "pm.variables.set('hoy', iso(hoy));",
+              "pm.variables.set('manana', enDias(1));",
+              "pm.variables.set('en3dias', enDias(3));",
+              "pm.variables.set('en8dias', enDias(8));",
+              "pm.variables.set('diaHoy', ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'][hoy.getDay()]);"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "name": "Crear horario de culto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/cultos-programados",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "cultos-programados"
+              ]
+            },
+            "description": "Crea un culto fijo de la iglesia. Para que aparezca en «Reuniones de hoy», el script previo de la carpeta usa el día de la semana actual (`{{diaHoy}}`). Requiere `asistencia.configurar`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Culto de oración\",\n  \"diaSemana\": \"{{diaHoy}}\",\n  \"hora\": \"19:30\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Indica la URL del horario', () => pm.expect(pm.response.headers.get('Location')).to.match(/\\/api\\/cultos-programados\\/\\d+$/));",
+                  "pm.test('Queda activo', () => pm.expect(pm.response.json().activo).to.eql(true));",
+                  "pm.environment.set('cultoProgramadoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear horario con un nombre repetido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/cultos-programados",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "cultos-programados"
+              ]
+            },
+            "description": "El nombre es único en la iglesia sin distinguir mayúsculas: responde 409 con el error en el campo `nombre`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"CULTO DE ORACIÓN\",\n  \"diaSemana\": \"DOMINGO\",\n  \"hora\": \"10:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Señala el campo nombre', () => pm.expect(pm.response.json().errores.nombre).to.exist);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar horario de culto",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/cultos-programados/{{cultoProgramadoId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "cultos-programados",
+                "{{cultoProgramadoId}}"
+              ]
+            },
+            "description": "Cambia nombre, día u hora. Las reuniones ya registradas conservan lo que tenían.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Culto de oración\",\n  \"diaSemana\": \"{{diaHoy}}\",\n  \"hora\": \"19:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cambia la hora', () => pm.expect(pm.response.json().hora).to.match(/^19:00/));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar horarios de culto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/cultos-programados",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "cultos-programados"
+              ]
+            },
+            "description": "Horarios activos e inactivos, de lunes a domingo y por hora. Requiere `asistencia.configurar` o `asistencia.registrar`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Incluye el horario creado', () => pm.expect(pm.response.json().map(c => c.id)).to.include(pm.environment.get('cultoProgramadoId')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reuniones de hoy",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones/hoy",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones",
+                "hoy"
+              ]
+            },
+            "description": "Reuniones de hoy donde se puede tomar asistencia: las abiertas (con `id`) y, por abrir (sin `id`), los cultos y grupos del día."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('El culto de hoy aparece por abrir', () => { const c = pm.response.json().find(r => r.cultoProgramadoId === pm.environment.get('cultoProgramadoId')); pm.expect(c).to.exist; pm.expect(c.id).to.eql(null); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Abrir la reunión del culto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones"
+              ]
+            },
+            "description": "Crea la reunión del culto en la fecha (no futura) la primera vez que alguien toma asistencia: responde 201.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cultoProgramadoId\": {{cultoProgramadoId}},\n  \"fecha\": \"{{hoy}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Es un culto sin asistentes', () => { const r = pm.response.json(); pm.expect(r.tipo).to.eql('CULTO'); pm.expect(r.totalAsistentes).to.eql(0); });",
+                  "pm.environment.set('reunionId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Abrir la misma reunión otra vez",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones"
+              ]
+            },
+            "description": "Si la reunión ya existe la devuelve con 200: dos equipos que la abren a la vez trabajan sobre la misma.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cultoProgramadoId\": {{cultoProgramadoId}},\n  \"fecha\": \"{{hoy}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Es la misma reunión', () => pm.expect(pm.response.json().id).to.eql(pm.environment.get('reunionId')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Abrir con fecha futura",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones"
+              ]
+            },
+            "description": "No se abren reuniones de cultos o grupos en fechas futuras: responde 400.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cultoProgramadoId\": {{cultoProgramadoId}},\n  \"fecha\": \"{{manana}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener el código del QR",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros/{{miembroId}}/codigo-asistencia",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros",
+                "{{miembroId}}",
+                "codigo-asistencia"
+              ]
+            },
+            "description": "Código del QR personal y el texto que se codifica en él (`ASIS:` + código). Si el miembro no tenía, se genera. Requiere `miembros.ver`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const q = pm.response.json();",
+                  "pm.test('El QR lleva el prefijo y el código', () => pm.expect(q.contenidoQr).to.eql('ASIS:' + q.codigo));",
+                  "pm.environment.set('codigoQr', q.contenidoQr);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Datos para imprimir fotochecks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros/fotochecks?activo=true",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros",
+                "fotochecks"
+              ],
+              "query": [
+                {
+                  "key": "activo",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Nombres, nivel y código del QR de los miembros que cumplen los filtros del listado (hasta 500), para imprimir sus fotochecks en lote. Genera el código de quien no tiene. Requiere `miembros.ver`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cada fotocheck trae su QR', () => pm.response.json().forEach(f => pm.expect(f.contenidoQr).to.eql('ASIS:' + f.codigo)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Marcar con el QR",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones/{{reunionId}}/asistencias/codigo",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones",
+                "{{reunionId}}",
+                "asistencias",
+                "codigo"
+              ]
+            },
+            "description": "Marca al dueño del código leído por la cámara o el lector. Responde 201 con el nombre y el total para el contador.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"{{codigoQr}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Marca al miembro', () => { const m = pm.response.json(); pm.expect(m.miembroId).to.eql(pm.environment.get('miembroId')); pm.expect(m.yaRegistrado).to.eql(false); pm.expect(m.totalAsistentes).to.eql(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Marcar con el QR otra vez",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones/{{reunionId}}/asistencias/codigo",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones",
+                "{{reunionId}}",
+                "asistencias",
+                "codigo"
+              ]
+            },
+            "description": "Volver a leer a alguien no es un error: responde 200 con `yaRegistrado = true` y el total no cambia.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"{{codigoQr}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Avisa que ya estaba', () => { const m = pm.response.json(); pm.expect(m.yaRegistrado).to.eql(true); pm.expect(m.totalAsistentes).to.eql(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Marcar con un QR que no es de asistencia",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones/{{reunionId}}/asistencias/codigo",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones",
+                "{{reunionId}}",
+                "asistencias",
+                "codigo"
+              ]
+            },
+            "description": "Un QR ajeno (un pago, una web) responde 400 sin registrar lo leído en los logs.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"https://pago.example/qr\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Explica el motivo', () => pm.expect(pm.response.json().detail).to.eql('Este QR no es un código de asistencia'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar miembros para marcar a mano",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones/{{reunionId}}/miembros?q=prueba",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones",
+                "{{reunionId}}",
+                "miembros"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "prueba"
+                }
+              ]
+            },
+            "description": "Hasta 20 miembros activos cuyo nombre contiene `q` (mínimo 2 caracteres), con si ya están presentes. Lo usa el ujier aunque no tenga `miembros.ver`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Devuelve una lista', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Marcar a mano",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones/{{reunionId}}/asistencias",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones",
+                "{{reunionId}}",
+                "asistencias"
+              ]
+            },
+            "description": "Marca a un miembro elegido de la lista o del buscador. Responde 201 (o 200 si ya estaba).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"miembroId\": {{pastorId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Sube el total', () => pm.expect(pm.response.json().totalAsistentes).to.eql(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Asistentes de la reunión",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones/{{reunionId}}/asistentes?page=0&size=10",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones",
+                "{{reunionId}}",
+                "asistentes"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Página de asistentes, los últimos marcados primero, con su medio (QR o MANUAL). `q` filtra por nombre."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Están los dos, el último primero', () => { const p = pm.response.json(); pm.expect(p.page.totalElements).to.eql(2); pm.expect(p.content[0].medio).to.eql('MANUAL'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Quitar una asistencia",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones/{{reunionId}}/asistencias/{{pastorId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones",
+                "{{reunionId}}",
+                "asistencias",
+                "{{pastorId}}"
+              ]
+            },
+            "description": "El «Deshacer» de la pantalla de escaneo: borra la marca. Responde 204."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Quitar una asistencia que no existe",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones/{{reunionId}}/asistencias/{{pastorId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones",
+                "{{reunionId}}",
+                "asistencias",
+                "{{pastorId}}"
+              ]
+            },
+            "description": "Si el miembro no está marcado responde 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Abrir la reunión del grupo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones"
+              ]
+            },
+            "description": "Abre la reunión semanal del grupo de «5. Grupos y configuración». El líder con `asistencia.grupo` solo puede abrir las de sus grupos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grupoId\": {{grupoId}},\n  \"fecha\": \"{{hoy}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201 o 200', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "pm.test('Es del grupo', () => pm.expect(pm.response.json().grupoId).to.eql(pm.environment.get('grupoId')));",
+                  "pm.environment.set('reunionGrupoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Integrantes de la reunión del grupo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones/{{reunionGrupoId}}/integrantes",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones",
+                "{{reunionGrupoId}}",
+                "integrantes"
+              ]
+            },
+            "description": "Lista para marcar a mano: integrantes activos con si están presentes y, al final, quienes vinieron de otro grupo."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Todos son integrantes y nadie está presente aún', () => pm.response.json().forEach(m => { pm.expect(m.integrante).to.eql(true); pm.expect(m.presente).to.eql(false); }));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Integrantes de una reunión de culto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones/{{reunionId}}/integrantes",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones",
+                "{{reunionId}}",
+                "integrantes"
+              ]
+            },
+            "description": "Solo las reuniones de grupo tienen integrantes: responde 400."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear un evento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones/eventos",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones",
+                "eventos"
+              ]
+            },
+            "description": "Crea un evento de tres días desde mañana: una reunión por día. Puede ser futuro. Requiere `asistencia.configurar`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Convención anual\",\n  \"fechaInicio\": \"{{manana}}\",\n  \"fechaFin\": \"{{en3dias}}\",\n  \"hora\": \"18:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "const e = pm.response.json();",
+                  "pm.test('Una reunión por día', () => { pm.expect(e).to.have.length(3); pm.expect(e[0].tipo).to.eql('EVENTO'); });",
+                  "pm.environment.set('eventoId', e[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear un evento de más de una semana",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones/eventos",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones",
+                "eventos"
+              ]
+            },
+            "description": "Un evento dura como mucho 7 días: responde 400 con el error en `fechaFin`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Retiro\",\n  \"fechaInicio\": \"{{hoy}}\",\n  \"fechaFin\": \"{{en8dias}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Señala la fecha de fin', () => pm.expect(pm.response.json().errores.fechaFin).to.exist);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Marcar en un evento futuro",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones/{{eventoId}}/asistencias",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones",
+                "{{eventoId}}",
+                "asistencias"
+              ]
+            },
+            "description": "La asistencia solo se toma desde la fecha de la reunión: responde 400.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"miembroId\": {{miembroId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar un evento",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones/{{eventoId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones",
+                "{{eventoId}}"
+              ]
+            },
+            "description": "Elimina el día de un evento creado por error, si no tiene asistentes. Responde 204."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar la reunión de un culto",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones/{{reunionId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones",
+                "{{reunionId}}"
+              ]
+            },
+            "description": "Solo se eliminan eventos: responde 409."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Explica el motivo', () => pm.expect(pm.response.json().detail).to.eql('Solo se pueden eliminar eventos'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Historial de reuniones",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones?desde={{hoy}}&hasta={{hoy}}&tipo=CULTO&page=0&size=10",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "{{hoy}}"
+                },
+                {
+                  "key": "hasta",
+                  "value": "{{hoy}}"
+                },
+                {
+                  "key": "tipo",
+                  "value": "CULTO"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Página de reuniones con su total, de la más reciente a la más antigua, con filtros de rango, tipo y grupo. Requiere `asistencia.ver` (o `asistencia.grupo` para las de sus grupos)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Trae la reunión con su total', () => { const r = pm.response.json().content.find(x => x.id === pm.environment.get('reunionId')); pm.expect(r.totalAsistentes).to.eql(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Historial con un rango invertido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones?desde={{manana}}&hasta={{hoy}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "{{manana}}"
+                },
+                {
+                  "key": "hasta",
+                  "value": "{{hoy}}"
+                }
+              ]
+            },
+            "description": "`hasta` anterior a `desde` responde 400."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Asistencia del miembro",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros/{{miembroId}}/asistencia",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros",
+                "{{miembroId}}",
+                "asistencia"
+              ]
+            },
+            "description": "Seguimiento de asistencia del miembro: porcentaje de 8 semanas y tendencia, faltas seguidas, última asistencia, alertas, evolución de 12 semanas y últimas reuniones. Los cultos de una misma fecha cuentan como uno."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cuenta la reunión de hoy', () => { const a = pm.response.json(); pm.expect(a.asistidas).to.be.at.least(1); pm.expect(a.ultimas[0].id).to.exist; });",
+                  "pm.test('Trae el seguimiento', () => { const a = pm.response.json(); pm.expect(a.semanas).to.have.lengthOf(12); pm.expect(a.alertas).to.be.an('array'); pm.expect(a.ultimaAsistencia).to.eql(pm.variables.get('hoy')); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Regenerar el código del QR",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros/{{miembroId}}/codigo-asistencia",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros",
+                "{{miembroId}}",
+                "codigo-asistencia"
+              ]
+            },
+            "description": "Reemplaza el código (p. ej. si se perdió el fotocheck): el anterior deja de valer al instante. Requiere `miembros.editar`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('El código cambia', () => pm.expect(pm.response.json().contenidoQr).to.not.eql(pm.environment.get('codigoQr')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Marcar con el código anterior",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/reuniones/{{reunionId}}/asistencias/codigo",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "reuniones",
+                "{{reunionId}}",
+                "asistencias",
+                "codigo"
+              ]
+            },
+            "description": "El código reemplazado ya no pertenece a nadie: responde 404.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"{{codigoQr}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Explica el motivo', () => pm.expect(pm.response.json().detail).to.eql('Código no encontrado en esta iglesia'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Desactivar horario de culto",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/cultos-programados/{{cultoProgramadoId}}/estado",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "cultos-programados",
+                "{{cultoProgramadoId}}",
+                "estado"
+              ]
+            },
+            "description": "Deja de aparecer en las reuniones de hoy y de contar para el porcentaje; su historial se conserva.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Queda inactivo', () => pm.expect(pm.response.json().activo).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "10. Seguimiento de asistencia",
+      "description": "Quién está faltando y cómo evoluciona la asistencia, por persona, grupo y servicio, y las reglas de las alertas. Usa el miembro, el grupo y la reunión de culto de hoy de la carpeta «9. Asistencia».",
+      "item": [
+        {
+          "name": "Reglas de seguimiento",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/configuracion-seguimiento",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "configuracion-seguimiento"
+              ]
+            },
+            "description": "Reglas de las alertas de la iglesia del token: faltas seguidas, puntos de caída y días como nuevo. Sin configurar valen 3, 30 y 90. Requiere `asistencia.ver` o `asistencia.configurar`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Trae las tres reglas', () => { const r = pm.response.json(); ['faltasSeguidas', 'puntosCaida', 'diasNuevo'].forEach(k => pm.expect(r[k]).to.be.a('number')); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cambiar reglas fuera de límite",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/configuracion-seguimiento",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "configuracion-seguimiento"
+              ]
+            },
+            "description": "Las faltas seguidas van de 2 a 10, los puntos de caída de 10 a 80 y los días como nuevo de 30 a 180: fuera de esos límites responde 400.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"faltasSeguidas\": 1,\n  \"puntosCaida\": 30,\n  \"diasNuevo\": 90\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Es un ProblemDetail con traceId', () => pm.expect(pm.response.json().traceId).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cambiar reglas de seguimiento",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/configuracion-seguimiento",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "configuracion-seguimiento"
+              ]
+            },
+            "description": "Reemplaza las reglas de las alertas; se aplican en la siguiente consulta. Requiere `asistencia.configurar`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"faltasSeguidas\": 3,\n  \"puntosCaida\": 30,\n  \"diasNuevo\": 90\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Guarda los valores', () => pm.expect(pm.response.json()).to.eql({ faltasSeguidas: 3, puntosCaida: 30, diasNuevo: 90 }));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Historial de ocasiones del miembro",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros/{{miembroId}}/asistencia/ocasiones?page=0&size=20",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros",
+                "{{miembroId}}",
+                "asistencia",
+                "ocasiones"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Cada ocasión que le correspondió al miembro: días de culto (los cultos de una fecha cuentan como uno), reuniones de su grupo y eventos a los que fue (`EXTRA`). Lo de hoy al que aún no asistió no cuenta como falta. Paginado, lo más reciente primero."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Es una página', () => { const b = pm.response.json(); pm.expect(b.content).to.be.an('array'); pm.expect(b.page.totalElements).to.be.a('number'); });",
+                  "pm.test('Hoy asistió al culto', () => { const o = pm.response.json().content.find(x => x.fecha === pm.variables.get('hoy') && x.tipo === 'CULTO'); pm.expect(o.estado).to.eql('ASISTIO'); pm.expect(o.asistioA).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ocasiones en que faltó",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros/{{miembroId}}/asistencia/ocasiones?estado=FALTO",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros",
+                "{{miembroId}}",
+                "asistencia",
+                "ocasiones"
+              ],
+              "query": [
+                {
+                  "key": "estado",
+                  "value": "FALTO"
+                }
+              ]
+            },
+            "description": "Filtra el historial por estado (`ASISTIO`, `FALTO` o `EXTRA`)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Solo faltas', () => pm.response.json().content.forEach(o => pm.expect(o.estado).to.eql('FALTO')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ocasiones con un rango invertido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros/{{miembroId}}/asistencia/ocasiones?desde={{manana}}&hasta={{hoy}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros",
+                "{{miembroId}}",
+                "asistencia",
+                "ocasiones"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "{{manana}}"
+                },
+                {
+                  "key": "hasta",
+                  "value": "{{hoy}}"
+                }
+              ]
+            },
+            "description": "La fecha final no puede ser anterior a la inicial: 400."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Es un ProblemDetail con traceId', () => pm.expect(pm.response.json().traceId).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Lista de seguimiento",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/seguimiento-asistencia?todos=true&page=0&size=20",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "seguimiento-asistencia"
+              ],
+              "query": [
+                {
+                  "key": "todos",
+                  "value": "true"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Miembros activos con sus indicadores y alertas, de mayor a menor riesgo. Sin `todos=true` solo vienen los que tienen alertas. Con `asistencia.ver`, toda la iglesia; con `asistencia.grupo`, la red del líder."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Es una página', () => { const b = pm.response.json(); pm.expect(b.content).to.be.an('array'); pm.expect(b.page.totalElements).to.be.a('number'); });",
+                  "pm.test('Incluye al miembro con sus indicadores', () => { const p = pm.response.json().content.find(x => x.miembroId === pm.environment.get('miembroId')); pm.expect(p).to.exist; pm.expect(p.alertas).to.be.an('array'); pm.expect(p.faltasSeguidas).to.be.a('number'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Lista filtrada por alerta",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/seguimiento-asistencia?alerta=FALTAS_SEGUIDAS",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "seguimiento-asistencia"
+              ],
+              "query": [
+                {
+                  "key": "alerta",
+                  "value": "FALTAS_SEGUIDAS"
+                }
+              ]
+            },
+            "description": "Solo quienes tienen la alerta indicada: `FALTAS_SEGUIDAS`, `NUEVO_SIN_VOLVER` o `ASISTENCIA_EN_CAIDA`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Es una página', () => { const b = pm.response.json(); pm.expect(b.content).to.be.an('array'); pm.expect(b.page.totalElements).to.be.a('number'); });",
+                  "pm.test('Todos tienen la alerta', () => pm.response.json().content.forEach(p => pm.expect(p.alertas).to.include('FALTAS_SEGUIDAS')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Lista con una alerta desconocida",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/seguimiento-asistencia?alerta=OTRA",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "seguimiento-asistencia"
+              ],
+              "query": [
+                {
+                  "key": "alerta",
+                  "value": "OTRA"
+                }
+              ]
+            },
+            "description": "Una alerta que no existe es un filtro inválido: 400."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Es un ProblemDetail con traceId', () => pm.expect(pm.response.json().traceId).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cantidad de personas por alerta",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/seguimiento-asistencia/conteos",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "seguimiento-asistencia",
+                "conteos"
+              ]
+            },
+            "description": "Cuántas personas del alcance tienen cada alerta, para los filtros rápidos. Acepta `grupoId` y `q` como la lista."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Trae cada conteo', () => { const c = pm.response.json(); ['conAlertas', 'faltasSeguidas', 'nuevoSinVolver', 'asistenciaEnCaida'].forEach(k => pm.expect(c[k]).to.be.a('number')); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Seguimiento del grupo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/grupos/{{grupoId}}/seguimiento",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "grupos",
+                "{{grupoId}}",
+                "seguimiento"
+              ]
+            },
+            "description": "Evolución semanal del grupo en las últimas 12 semanas y sus integrantes por riesgo. Con `asistencia.grupo`, solo los grupos que lidera."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Doce semanas e integrantes', () => { const g = pm.response.json(); pm.expect(g.semanas).to.have.lengthOf(12); pm.expect(g.integrantes).to.be.an('array'); });",
+                  "pm.test('Esta semana hubo reunión', () => pm.expect(pm.response.json().semanas[11].reuniones).to.be.at.least(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Seguimiento de un grupo inexistente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/grupos/999999999/seguimiento",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "grupos",
+                "999999999",
+                "seguimiento"
+              ]
+            },
+            "description": "Un grupo que no existe en la iglesia del token (o que el líder no lidera) responde 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Es un ProblemDetail con traceId', () => pm.expect(pm.response.json().traceId).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Evolución de los servicios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/seguimiento-asistencia/servicios",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "seguimiento-asistencia",
+                "servicios"
+              ]
+            },
+            "description": "Últimas 12 semanas: asistentes de cada culto, personas distintas en los días de culto y asistencia de los grupos. Requiere `asistencia.ver`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Series alineadas con las semanas', () => { const s = pm.response.json(); pm.expect(s.semanas).to.have.lengthOf(12); pm.expect(s.personasEnCultos).to.have.lengthOf(12); s.cultos.forEach(c => pm.expect(c.asistentes).to.have.lengthOf(12)); });",
+                  "pm.test('Esta semana hubo culto', () => pm.expect(pm.response.json().personasEnCultos[11]).to.be.at.least(1));"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const hoy = new Date();",
+              "const iso = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);",
+              "const enDias = n => iso(new Date(hoy.getTime() + n * 86400000));",
+              "pm.variables.set('hoy', iso(hoy));",
+              "pm.variables.set('manana', enDias(1));",
+              "pm.variables.set('en3dias', enDias(3));",
+              "pm.variables.set('en8dias', enDias(8));",
+              "pm.variables.set('diaHoy', ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'][hoy.getDay()]);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. Infraestructura",
       "description": "Endpoints públicos de soporte.",
       "auth": {
         "type": "noauth"
@@ -4003,7 +5826,7 @@
       ]
     },
     {
-      "name": "10. Documentación",
+      "name": "12. Documentación",
       "description": "Especificación OpenAPI 3 del backend. Solo responde con el perfil `local` (en producción está deshabilitada y responde 404). La versión navegable está en `{{apiUrl}}/swagger-ui.html`.",
       "auth": {
         "type": "noauth"
@@ -4045,7 +5868,7 @@
       ]
     },
     {
-      "name": "11. Cierre",
+      "name": "13. Cierre",
       "description": "Deja la sesión como estaba: el administrador del sistema sale de la iglesia de prueba.",
       "item": [
         {

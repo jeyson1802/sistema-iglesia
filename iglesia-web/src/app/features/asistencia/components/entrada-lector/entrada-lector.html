@@ -1,0 +1,20 @@
+<div class="flex flex-col items-center gap-3 py-6">
+    <i class="pi pi-barcode text-5xl text-muted-color" aria-hidden="true"></i>
+    <label for="entrada-lector" class="font-semibold text-xl text-center">Pase el fotocheck por el lector</label>
+    <input
+        #entrada
+        pInputText
+        id="entrada-lector"
+        [formControl]="campo"
+        (keydown.enter)="enviar($event)"
+        (blur)="recuperarFoco()"
+        autocomplete="off"
+        autocapitalize="characters"
+        spellcheck="false"
+        enterkeyhint="send"
+        placeholder="o escriba el código y presione Enter"
+        aria-describedby="entrada-lector-ayuda"
+        class="w-full max-w-xl text-center text-2xl py-4 tracking-widest"
+    />
+    <small id="entrada-lector-ayuda" class="text-muted-color text-center">El lector debe ser 2D (lee QR). El código impreso bajo el QR también se puede escribir a mano.</small>
+</div>

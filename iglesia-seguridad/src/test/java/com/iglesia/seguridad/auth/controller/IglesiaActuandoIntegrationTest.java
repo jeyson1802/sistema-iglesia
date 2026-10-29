@@ -94,7 +94,8 @@ class IglesiaActuandoIntegrationTest {
 		assertThat(dentro.getClaimAsStringList(ClaimsJwt.PERMISOS)).containsExactlyInAnyOrder("iglesias.administrar",
 				"iglesias.ver", "miembros.crear", "miembros.desactivar", "miembros.editar", "miembros.ver",
 				"niveles.administrar", "grupos.ver", "grupos.administrar", "aportes.ver", "aportes.registrar",
-				"aportes.editar", "aportes.anular", "aportes.configurar", "iglesia.personalizar", "roles.administrar",
+				"aportes.editar", "aportes.anular", "aportes.configurar", "iglesia.personalizar", "asistencia.registrar",
+				"asistencia.ver", "asistencia.configurar", "roles.administrar",
 				"roles.ver",
 				"usuarios.administrar", "usuarios.ver");
 

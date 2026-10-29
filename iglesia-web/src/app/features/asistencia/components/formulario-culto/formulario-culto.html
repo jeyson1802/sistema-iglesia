@@ -1,0 +1,33 @@
+<p-dialog [(visible)]="visible" [header]="titulo()" [modal]="true" [draggable]="false" [dismissableMask]="!guardando()" [closable]="!guardando()" styleClass="w-full max-w-md mx-4">
+    <div aria-live="polite">
+        @if (error()) {
+        <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-4">{{ error() }}</p-message>
+        }
+    </div>
+
+    <form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-4" novalidate>
+        <div class="flex flex-col gap-2">
+            <label for="culto-nombre" class="font-medium">Nombre</label>
+            <input pInputText id="culto-nombre" formControlName="nombre" autocomplete="off" [maxlength]="nombreMax" placeholder="Ej.: Culto dominical" [fluid]="true" />
+            <app-mensaje-error-campo [control]="formulario.controls.nombre" [mensajes]="mensajesNombre" />
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <span id="culto-dia" class="font-medium">Día</span>
+            <p-selectbutton [options]="dias" optionValue="valor" optionLabel="etiqueta" formControlName="diaSemana" [allowEmpty]="false" ariaLabelledBy="culto-dia" styleClass="flex-wrap">
+                <ng-template #item let-dia> <span aria-hidden="true" class="w-4 text-center">{{ dia.inicial }}</span><span class="sr-only">{{ dia.etiqueta }}</span> </ng-template>
+            </p-selectbutton>
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <label for="culto-hora" class="font-medium">Hora</label>
+            <p-datepicker inputId="culto-hora" formControlName="hora" [timeOnly]="true" hourFormat="24" [showIcon]="true" iconDisplay="input" placeholder="HH:mm" [fluid]="true" />
+            <app-mensaje-error-campo [control]="formulario.controls.hora" [mensajes]="mensajesHora" />
+        </div>
+
+        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-2">
+            <p-button label="Cancelar" severity="secondary" [outlined]="true" [disabled]="guardando()" (onClick)="cerrar()" />
+            <p-button type="submit" label="Guardar" icon="pi pi-check" [loading]="guardando()" [disabled]="!valido() || guardando()" />
+        </div>
+    </form>
+</p-dialog>

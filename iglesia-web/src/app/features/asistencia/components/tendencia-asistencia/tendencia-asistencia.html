@@ -1,0 +1,3 @@
+@if (descripcion(); as descripcion) {
+<p-tag [value]="descripcion.etiqueta" [icon]="descripcion.icono" [severity]="descripcion.severidad" [attr.aria-label]="descripcion.etiqueta + ': antes ' + anterior() + ' %'" />
+}

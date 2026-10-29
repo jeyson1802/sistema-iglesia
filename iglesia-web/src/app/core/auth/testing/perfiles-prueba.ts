@@ -9,8 +9,8 @@ const PERMISOS_IGLESIAS: readonly Permiso[] = ['iglesias.ver', 'iglesias.adminis
 /** Permisos que siembra Flyway para cada rol base. */
 const PERMISOS_ROL_BASE: Record<Rol, readonly Permiso[]> = {
     ADMIN_SISTEMA: ['usuarios.ver', 'usuarios.administrar', 'roles.ver', ...PERMISOS_IGLESIAS],
-    ADMIN_IGLESIA: PERMISOS.filter((permiso) => !PERMISOS_IGLESIAS.includes(permiso)),
-    LIDER: ['miembros.ver', 'aportes.ver'],
+    ADMIN_IGLESIA: PERMISOS.filter((permiso) => !PERMISOS_IGLESIAS.includes(permiso) && permiso !== 'asistencia.grupo'),
+    LIDER: ['miembros.ver', 'aportes.ver', 'asistencia.grupo'],
     MIEMBRO: []
 };
 

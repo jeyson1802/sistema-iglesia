@@ -1,0 +1,47 @@
+<div class="card">
+    <header class="mb-6">
+        <h1 class="font-semibold text-2xl text-surface-900 dark:text-surface-0 m-0">Seguimiento</h1>
+        <p class="text-muted-color m-0 mt-1">@if (esLider()) { Las personas de tu red que están faltando: tu lista de a quién llamar. } @else { Quién está faltando y cómo evoluciona la asistencia de la iglesia. }</p>
+    </header>
+
+    <p-tabs [value]="pestana()" (valueChange)="cambiarPestana($event)">
+        @if (puedeVerServicios()) {
+        <p-tablist>
+            <p-tab value="personas"><i class="pi pi-users mr-2" aria-hidden="true"></i>Personas</p-tab>
+            <p-tab value="servicios"><i class="pi pi-chart-line mr-2" aria-hidden="true"></i>Servicios</p-tab>
+        </p-tablist>
+        }
+        <p-tabpanels styleClass="px-0">
+            <p-tabpanel value="personas">
+                <app-filtros-seguimiento [filtro]="filtro()" [conteos]="conteos()" [grupos]="opcionesGrupo()" [etiquetaGrupo]="nombreGrupo()" (filtrar)="filtrar($event)" />
+                <div class="mt-6">
+                    @if (error()) {
+                    <div class="flex flex-col items-center gap-3 py-8 text-center" role="alert">
+                        <span class="text-muted-color">No se pudo cargar el seguimiento.</span>
+                        <p-button label="Reintentar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="cargar()" />
+                    </div>
+                    } @else {
+                    <app-tabla-seguimiento [personas]="personas()" [totalRegistros]="total()" [pagina]="pagina()" [tamanoPagina]="tamanoPagina()" [cargando]="cargando()" (cambiarPagina)="cambiarPagina($event)" (ver)="ver($event)" />
+                    }
+                </div>
+            </p-tabpanel>
+            @if (puedeVerServicios()) {
+            <p-tabpanel value="servicios">
+                @if (cargandoServicios()) {
+                <div class="flex flex-col gap-3" role="status" aria-label="Cargando servicios">
+                    <p-skeleton height="16rem" />
+                    <p-skeleton height="8rem" />
+                </div>
+                } @else if (errorServicios()) {
+                <div class="flex flex-col items-center gap-3 py-8 text-center" role="alert">
+                    <span class="text-muted-color">No se pudo cargar la evolución de los servicios.</span>
+                    <p-button label="Reintentar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="cargarServicios()" />
+                </div>
+                } @else if (servicios(); as servicios) {
+                <app-servicios-seguimiento [servicios]="servicios" [nombreGrupos]="nombreGrupos()" />
+                }
+            </p-tabpanel>
+            }
+        </p-tabpanels>
+    </p-tabs>
+</div>

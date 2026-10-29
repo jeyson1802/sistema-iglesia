@@ -8,13 +8,16 @@ import java.util.Map;
 import org.springframework.stereotype.Component;
 
 import com.iglesia.api.common.api.dto.ReferenciaResponse;
+import com.iglesia.api.miembros.dto.FotocheckResponse;
 import com.iglesia.api.miembros.dto.EslabonCadenaResponse;
 import com.iglesia.api.miembros.dto.LideradoResponse;
 import com.iglesia.api.miembros.dto.MiembroResponse;
 import com.iglesia.api.miembros.dto.MiembroResumenResponse;
 import com.iglesia.api.miembros.dto.OpcionMiembroResponse;
 import com.iglesia.api.miembros.entity.Miembro;
+import com.iglesia.api.miembros.model.CodigoAsistencia;
 import com.iglesia.api.miembros.model.IntegranteGrupo;
+import com.iglesia.api.miembros.model.MiembroAsistente;
 import com.iglesia.api.niveles.mapper.NivelMapper;
 import com.iglesia.api.ubigeo.dto.UbicacionResponse;
 
@@ -75,6 +78,18 @@ public class MiembroMapper {
 	public IntegranteGrupo aIntegrante(Miembro miembro) {
 		String nivel = miembro.getNivel() == null ? null : miembro.getNivel().getNombre();
 		return new IntegranteGrupo(miembro.getId(), miembro.nombreCompleto(), nivel, miembro.getGrupoId());
+	}
+
+	public FotocheckResponse aFotocheck(Miembro miembro) {
+		CodigoAsistencia codigo = new CodigoAsistencia(miembro.getCodigoAsistencia());
+		return new FotocheckResponse(miembro.getId(), miembro.getNombres(), miembro.getApellidos(),
+				miembro.getNivel() == null ? null : miembro.getNivel().getNombre(), codigo.valor(), codigo.contenidoQr());
+	}
+
+	public MiembroAsistente aAsistente(Miembro miembro) {
+		String nivel = miembro.getNivel() == null ? null : miembro.getNivel().getNombre();
+		return new MiembroAsistente(miembro.getId(), miembro.nombreCompleto(), nivel, miembro.getGrupoId(),
+				miembro.isActivo());
 	}
 
 	public ReferenciaResponse aReferencia(Miembro miembro) {

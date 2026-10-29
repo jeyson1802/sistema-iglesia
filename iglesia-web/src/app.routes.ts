@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { environment } from './environments/environment';
-import { autenticadoGuard, contrasenaVigenteGuard, iglesiaFijadaGuard, inicioRedirect, perfilSeleccionadoGuard } from './app/core/auth/guards/auth.guards';
+import { autenticadoGuard, contrasenaVigenteGuard, iglesiaFijadaGuard, inicioRedirect, perfilSeleccionadoGuard, permisoGuard } from './app/core/auth/guards/auth.guards';
 import { AppLayout } from './app/layout/component/app.layout';
 import { Notfound } from './app/pages/notfound/notfound';
 
@@ -35,9 +35,17 @@ export function crearRutasApp(produccion: boolean): Routes {
                 { path: 'niveles', canActivate: [iglesiaFijadaGuard], loadChildren: () => import('./app/features/niveles/niveles.routes') },
                 { path: 'grupos', canActivate: [iglesiaFijadaGuard], loadChildren: () => import('./app/features/grupos/grupos.routes') },
                 { path: 'aportes', canActivate: [iglesiaFijadaGuard], loadChildren: () => import('./app/features/aportes/aportes.routes') },
+                { path: 'asistencia', canActivate: [iglesiaFijadaGuard], loadChildren: () => import('./app/features/asistencia/asistencia.routes') },
                 { path: 'mi-iglesia', canActivate: [iglesiaFijadaGuard], loadChildren: () => import('./app/features/mi-iglesia/mi-iglesia.routes') },
                 ...soloEnDesarrollo(RUTAS_DEMO_EN_LAYOUT)
             ]
+        },
+        // Impresión fuera del layout: solo salen las hojas, sin menú ni barra superior.
+        {
+            path: 'imprimir/fotochecks',
+            title: 'Imprimir fotochecks',
+            canActivate: [autenticadoGuard, perfilSeleccionadoGuard, iglesiaFijadaGuard, permisoGuard('miembros.ver')],
+            loadComponent: () => import('./app/features/miembros/pages/imprimir-fotochecks').then((m) => m.ImprimirFotochecksComponent)
         },
         ...soloEnDesarrollo(RUTAS_DEMO_FUERA_DEL_LAYOUT),
         { path: 'notfound', component: Notfound },

@@ -3,7 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
 import { environment } from '@/environments/environment';
 import { Page } from '@/app/core/models/page';
-import { EslabonCadena, FiltroMiembros, Liderado, GuardarMiembro, Miembro, MiembroResponse, MiembroResumen, PAGINA_MIEMBROS } from '../models/miembro';
+import { CodigoAsistencia, EslabonCadena, FiltroMiembros, Fotocheck, Liderado, GuardarMiembro, Miembro, MiembroResponse, MiembroResumen, PAGINA_MIEMBROS } from '../models/miembro';
 import { aMiembro } from './miembro.mapper';
 
 const ORDEN_LISTADO = ['apellidos,asc', 'nombres,asc'];
@@ -61,13 +61,34 @@ export class MiembrosService {
     designarPastorPrincipal(id: number): Observable<Miembro> {
         return this.http.put<MiembroResponse>(`${this.miembrosUrl}/${id}/pastor-principal`, null).pipe(map(aMiembro));
     }
+
+    /** Código del QR de asistencia (el backend lo genera si el miembro aún no tiene). */
+    codigoAsistencia(id: number): Observable<CodigoAsistencia> {
+        return this.http.get<CodigoAsistencia>(`${this.miembrosUrl}/${id}/codigo-asistencia`);
+    }
+
+    /** Reemplaza el código: el fotocheck anterior deja de valer. */
+    regenerarCodigoAsistencia(id: number): Observable<CodigoAsistencia> {
+        return this.http.post<CodigoAsistencia>(`${this.miembrosUrl}/${id}/codigo-asistencia`, null);
+    }
+
+    /** Fotochecks de los miembros que cumplen el filtro del listado (hasta 500), para imprimir en lote. */
+    fotochecks(filtro: FiltroMiembros): Observable<Fotocheck[]> {
+        return this.http.get<Fotocheck[]>(`${this.miembrosUrl}/fotochecks`, { params: parametrosDeFiltro(filtro) });
+    }
 }
 
-function parametrosDeListado({ q, condicion, nivelId, liderId, ubigeo, activo }: FiltroMiembros, pagina: number, tamano: number): HttpParams {
-    let parametros = new HttpParams().set('page', pagina).set('size', tamano);
+function parametrosDeListado(filtro: FiltroMiembros, pagina: number, tamano: number): HttpParams {
+    let parametros = parametrosDeFiltro(filtro).set('page', pagina).set('size', tamano);
     for (const orden of ORDEN_LISTADO) {
         parametros = parametros.append('sort', orden);
     }
+    return parametros;
+}
+
+/** Solo los filtros con valor. */
+function parametrosDeFiltro({ q, condicion, nivelId, liderId, ubigeo, activo }: FiltroMiembros): HttpParams {
+    let parametros = new HttpParams();
     const opcionales: Record<string, string | number | boolean | null> = { q: q.trim() || null, condicion, nivelId, liderId, ubigeo, activo };
     for (const [nombre, valor] of Object.entries(opcionales)) {
         if (valor !== null) {

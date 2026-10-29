@@ -148,6 +148,18 @@ describe('AppTopbar', () => {
             expect(botonSalir()?.textContent).toContain('Salir de la iglesia');
         });
 
+        it('en el móvil el menú de usuario avisa dónde opera y ofrece salir; el avatar lleva un punto', async () => {
+            nombreComercial.set('Iglesia del Norte');
+            await entrarA(5);
+            await abrirMenuUsuario();
+
+            const menu = document.querySelector('#menu-usuario') as HTMLElement;
+            expect(menu.textContent).toContain('Operando en: Iglesia del Norte');
+            expect(menu.querySelector('.md\\:hidden button')?.textContent).toContain('Salir de la iglesia');
+            expect(html().querySelector('p-overlaybadge .p-badge')).toBeTruthy();
+            expect(html().querySelector('#boton-menu-usuario')?.getAttribute('aria-label')).toContain('operando en Iglesia del Norte');
+        });
+
         it('mientras no tiene el nombre comercial muestra el número de la iglesia', async () => {
             await entrarA(5);
 

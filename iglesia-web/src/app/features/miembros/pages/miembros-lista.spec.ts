@@ -104,4 +104,24 @@ describe('MiembrosListaComponent', () => {
         expect(html().textContent).toContain('No se pudieron cargar los miembros.');
         expect(html().textContent).toContain('Reintentar');
     });
+
+    it('«Imprimir fotochecks» abre la vista de impresión con los filtros actuales', async () => {
+        await crear();
+        const abrir = spyOn(window, 'open');
+        const boton = Array.from(html().querySelectorAll('button')).find((b) => b.textContent?.includes('Imprimir fotochecks (1)'));
+
+        boton?.click();
+
+        expect(abrir).toHaveBeenCalledWith('/imprimir/fotochecks?activo=true', '_blank', 'noopener');
+    });
+
+    it('con más de 500 miembros pide filtrar antes de imprimir fotochecks', async () => {
+        servicio.listar.and.returnValue(of({ ...pagina, page: { ...pagina.page, totalElements: 501 } }));
+        await crear();
+        fixture.detectChanges();
+
+        const boton = Array.from(html().querySelectorAll('button')).find((b) => b.textContent?.includes('Imprimir fotochecks'));
+        expect(boton?.disabled).toBeTrue();
+        expect(html().textContent).toContain('filtra hasta 500 miembros');
+    });
 });

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { catchError, finalize, of, Subscription } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
@@ -8,7 +8,8 @@ import { NivelesService } from '@/app/features/niveles/services/niveles.service'
 import { FiltrosMiembrosComponent } from '../components/filtros-miembros/filtros-miembros';
 import { TablaMiembrosComponent } from '../components/tabla-miembros/tabla-miembros';
 import { PaginaPedida, paginaACargar } from '@/app/shared/utils/paginacion';
-import { FILTRO_MIEMBROS_INICIAL, FiltroMiembros, MiembroResumen, PAGINA_MIEMBROS } from '../models/miembro';
+import { FILTRO_MIEMBROS_INICIAL, FiltroMiembros, FOTOCHECKS_MAX, MiembroResumen, PAGINA_MIEMBROS } from '../models/miembro';
+import { filtroFotochecksAUrl, RUTA_IMPRIMIR_FOTOCHECKS } from '../models/fotochecks-url';
 import { MiembrosService } from '../services/miembros.service';
 
 const MENSAJE_ERROR_CARGA = 'No se pudieron cargar los miembros.';
@@ -27,6 +28,7 @@ export class MiembrosListaComponent {
     private readonly servicio = inject(MiembrosService);
     private readonly nivelesServicio = inject(NivelesService);
     private readonly sesion = inject(SesionService);
+    private readonly router = inject(Router);
 
     protected readonly miembros = signal<readonly MiembroResumen[]>([]);
     protected readonly totalRegistros = signal(0);
@@ -40,6 +42,8 @@ export class MiembrosListaComponent {
     private carga?: Subscription;
 
     protected readonly puedeCrear = computed(() => this.sesion.tienePermiso('miembros.crear'));
+    protected readonly fotochecksMax = FOTOCHECKS_MAX;
+    protected readonly demasiadosFotochecks = computed(() => this.totalRegistros() > FOTOCHECKS_MAX);
 
     constructor() {
         inject(DestroyRef).onDestroy(() => this.carga?.unsubscribe());
@@ -60,6 +64,12 @@ export class MiembrosListaComponent {
         const pagina = paginaACargar(pedida, this.tamanoPagina());
         this.tamanoPagina.set(pedida.tamano);
         this.cargarPagina(pagina);
+    }
+
+    /** Abre en otra pestaña la vista de impresión con los mismos filtros del listado. */
+    protected imprimirFotochecks(): void {
+        const url = this.router.serializeUrl(this.router.createUrlTree([RUTA_IMPRIMIR_FOTOCHECKS], { queryParams: filtroFotochecksAUrl(this.filtro()) }));
+        window.open(url, '_blank', 'noopener');
     }
 
     /** Pide la página al backend; una petición nueva cancela la anterior para que no llegue una respuesta vieja. */

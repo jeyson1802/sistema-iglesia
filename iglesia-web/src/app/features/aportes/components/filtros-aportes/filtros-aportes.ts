@@ -11,7 +11,7 @@ import { SelectorMiembroComponent } from '@/app/shared/components/selector-miemb
 import { hoyIso } from '@/app/shared/utils/fecha';
 import { DESCRIPCION_MEDIO, FiltroAportes, LIMITES_APORTE, MEDIOS_APORTE, MedioAporte } from '../../models/aporte';
 import { CategoriaAporte } from '../../models/configuracion-aportes';
-import { aFecha, diasDe, ETIQUETA_PERIODO, Periodo, periodoDe, PERIODOS, rangoDe } from '../../models/periodo';
+import { aFecha, diasDe, ETIQUETA_PERIODO, Periodo, periodoDe, PERIODOS, rangoDe } from '@/app/shared/utils/periodo';
 
 /** Filtro activo que se muestra como chip y se puede quitar. */
 interface ChipFiltro {

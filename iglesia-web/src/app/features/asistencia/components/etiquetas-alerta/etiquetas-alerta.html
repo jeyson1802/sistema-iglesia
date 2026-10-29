@@ -1,0 +1,9 @@
+@if (alertas().length > 0) {
+<ul class="list-none p-0 m-0 flex flex-wrap gap-1" aria-label="Alertas">
+    @for (alerta of alertas(); track alerta) {
+    <li><p-tag [value]="etiqueta(alerta)" [severity]="descripcion[alerta].severidad" [icon]="descripcion[alerta].icono" [pTooltip]="descripcion[alerta].ayuda" tooltipPosition="top" /></li>
+    }
+</ul>
+} @else if (mostrarAlDia()) {
+<p-tag value="Al día" severity="success" icon="pi pi-check" />
+}

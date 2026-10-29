@@ -1,0 +1,55 @@
+<p-dialog [(visible)]="visible" header="¿Qué equipo uso?" [modal]="true" [draggable]="false" [dismissableMask]="true" styleClass="w-full max-w-2xl mx-4">
+    <div class="flex flex-col gap-5">
+        <p class="m-0"><strong>Para empezar no se necesita comprar nada:</strong> la cámara del celular basta. El lector se agrega después si la fila de la entrada principal es muy larga.</p>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-120">
+                <caption class="sr-only">
+                    Comparación entre la cámara del celular y un lector de códigos 2D
+                </caption>
+                <thead>
+                    <tr class="border-b border-surface">
+                        <th scope="col" class="py-2 pr-3"><span class="sr-only">Aspecto</span></th>
+                        <th scope="col" class="py-2 pr-3"><i class="pi pi-mobile mr-2" aria-hidden="true"></i>Cámara del celular</th>
+                        <th scope="col" class="py-2"><i class="pi pi-barcode mr-2" aria-hidden="true"></i>Lector de códigos 2D</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (fila of comparacion; track fila.aspecto) {
+                    <tr class="border-b border-surface">
+                        <th scope="row" class="py-2 pr-3 font-medium align-top">{{ fila.aspecto }}</th>
+                        <td class="py-2 pr-3 align-top">{{ fila.celular }}</td>
+                        <td class="py-2 align-top">{{ fila.lector }}</td>
+                    </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="flex gap-3 p-4 rounded-border bg-surface-100 dark:bg-surface-800">
+            <i class="pi pi-exclamation-triangle text-xl text-orange-500" aria-hidden="true"></i>
+            <p class="m-0">
+                <strong>El lector debe ser 2D («imager»).</strong> Los lectores láser o «infrarrojos» de luz roja, como los de supermercado, suelen ser 1D: leen solo códigos de barras y <strong>no leen QR</strong>. Al comprar, verifica que diga «2D»
+                o «QR».
+            </p>
+        </div>
+
+        <div>
+            <h3 class="text-base font-semibold m-0 mb-2">Cómo funciona</h3>
+            <ul class="m-0 pl-5 flex flex-col gap-1">
+                <li><strong>Cámara:</strong> la página pide permiso al navegador y busca el QR varias veces por segundo. No hay que instalar ninguna app.</li>
+                <li><strong>Lector:</strong> se conecta por USB o Bluetooth y funciona como un teclado: escribe el código y Enter. No necesita drivers.</li>
+            </ul>
+        </div>
+
+        <div>
+            <h3 class="text-base font-semibold m-0 mb-2">Para un culto grande</h3>
+            <ul class="m-0 pl-5 flex flex-col gap-1">
+                <li>En la entrada principal, una laptop o tableta con un lector 2D.</li>
+                <li>En las demás puertas, servidores con su celular en modo «Cámara».</li>
+                <li>Para quien olvidó su fotocheck, el modo «Manual».</li>
+            </ul>
+            <p class="m-0 mt-2 text-muted-color">Todos marcan la misma reunión a la vez y el contador suma lo de todos.</p>
+        </div>
+    </div>
+</p-dialog>

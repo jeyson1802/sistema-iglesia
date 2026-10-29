@@ -1,6 +1,6 @@
 # SPEC 07 — Aportes de los miembros
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 02 (permisos y roles), SPEC 03 (OpenAPI y trazabilidad), SPEC 05 (acceso global del administrador del sistema), SPEC 06 (registro de miembros)
 > **Fecha:** 2026-10-29
 > **Objetivo:** Que cada iglesia registre, consulte y corrija los aportes de sus miembros (diezmos, ofrendas y las categorías que ella misma defina) en la moneda que configure, con su monto, medio de pago, petición y observación; que vea los totales por categoría y por medio en cualquier rango de fechas; y que cada líder consulte sus propios aportes.

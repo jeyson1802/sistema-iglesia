@@ -111,6 +111,13 @@ describe('Guards de autenticación', () => {
         it('sin perfil activo redirige a acceso denegado', () => {
             expect(urlDe(ejecutar(permisoGuard('miembros.ver')))).toBe('/auth/acceso-denegado');
         });
+
+        it('con varios permisos basta tener uno', () => {
+            perfilActivo.set(perfilPersonalizado(11, 'Ujier', 'ADMIN_IGLESIA', ['asistencia.registrar']));
+
+            expect(ejecutar(permisoGuard('asistencia.ver', 'asistencia.registrar'))).toBeTrue();
+            expect(urlDe(ejecutar(permisoGuard('asistencia.ver', 'asistencia.configurar')))).toBe('/auth/acceso-denegado');
+        });
     });
 
     describe('iglesiaFijadaGuard', () => {

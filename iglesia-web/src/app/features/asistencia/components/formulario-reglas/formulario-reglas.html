@@ -1,0 +1,28 @@
+<form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-4" aria-labelledby="titulo-reglas-seguimiento" novalidate>
+    @if (error()) {
+    <p-message severity="error" icon="pi pi-times-circle">{{ error() }}</p-message>
+    }
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="flex flex-col gap-2">
+            <label for="regla-faltas" class="font-medium">Faltas seguidas para avisar</label>
+            <p-inputnumber inputId="regla-faltas" formControlName="faltasSeguidas" [min]="limites.faltasSeguidas.min" [max]="limites.faltasSeguidas.max" [showButtons]="true" [fluid]="true" suffix=" faltas" ariaDescribedBy="ayuda-regla-faltas" />
+            <small id="ayuda-regla-faltas" class="text-muted-color">Días de culto o reuniones del grupo sin asistir, uno tras otro.</small>
+            <app-mensaje-error-campo [control]="formulario.controls.faltasSeguidas" [mensajes]="mensajesFaltas" />
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="regla-caida" class="font-medium">Caída para avisar</label>
+            <p-inputnumber inputId="regla-caida" formControlName="puntosCaida" [min]="limites.puntosCaida.min" [max]="limites.puntosCaida.max" [showButtons]="true" [step]="5" [fluid]="true" suffix=" puntos" ariaDescribedBy="ayuda-regla-caida" />
+            <small id="ayuda-regla-caida" class="text-muted-color">Puntos que baja su asistencia del último mes frente a los dos meses anteriores.</small>
+            <app-mensaje-error-campo [control]="formulario.controls.puntosCaida" [mensajes]="mensajesCaida" />
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="regla-nuevo" class="font-medium">Se considera nuevo durante</label>
+            <p-inputnumber inputId="regla-nuevo" formControlName="diasNuevo" [min]="limites.diasNuevo.min" [max]="limites.diasNuevo.max" [showButtons]="true" [step]="15" [fluid]="true" suffix=" días" ariaDescribedBy="ayuda-regla-nuevo" />
+            <small id="ayuda-regla-nuevo" class="text-muted-color">Desde su ingreso. Si no vuelve en ese tiempo, aparece como «Nuevo sin volver».</small>
+            <app-mensaje-error-campo [control]="formulario.controls.diasNuevo" [mensajes]="mensajesNuevo" />
+        </div>
+    </div>
+    <div class="flex justify-end">
+        <p-button type="submit" label="Guardar reglas" icon="pi pi-check" [loading]="guardando()" [disabled]="formulario.pristine" />
+    </div>
+</form>

@@ -1,0 +1,42 @@
+<div class="flex flex-col gap-4">
+    <div>
+        <label for="manual-busqueda" class="sr-only">{{ etiqueta() }}</label>
+        <p-iconfield>
+            <p-inputicon [styleClass]="buscando() ? 'pi pi-spin pi-spinner' : 'pi pi-search'" />
+            <input pInputText id="manual-busqueda" type="search" [formControl]="busqueda" [placeholder]="etiqueta()" autocomplete="off" class="w-full" />
+        </p-iconfield>
+    </div>
+
+    @if (busqueda.value.trim().length < minimo) {
+    <p class="text-muted-color m-0">Escribe al menos {{ minimo }} letras del nombre o apellido.</p>
+    } @else if (!buscando() && resultados().length === 0) {
+    <p class="text-muted-color m-0" role="status">No se encontró a nadie activo con «{{ busqueda.value.trim() }}».</p>
+    } @else {
+    <p-table [value]="filas()" [paginator]="true" [rows]="filasPorPagina" [rowsPerPageOptions]="opcionesPorPagina" [showCurrentPageReport]="true" [currentPageReportTemplate]="plantillaReporte" [alwaysShowPaginator]="true" dataKey="miembroId">
+        <ng-template #body let-miembro>
+            <tr>
+                <td class="w-full">
+                    <span class="block font-medium">{{ miembro.nombreCompleto }}</span>
+                    <span class="text-muted-color text-sm">{{ miembro.nivel ?? 'Sin nivel' }}{{ miembro.integrante ? ' · Del grupo' : '' }}</span>
+                </td>
+                <td class="text-right whitespace-nowrap">
+                    @if (miembro.presente) {
+                    <p-button
+                        label="Presente"
+                        icon="pi pi-check"
+                        severity="success"
+                        [outlined]="true"
+                        [loading]="procesando() === miembro.miembroId"
+                        [disabled]="procesando() !== null"
+                        [ariaLabel]="miembro.nombreCompleto + ' está presente. Quitar'"
+                        (onClick)="quitar.emit(miembro)"
+                    />
+                    } @else {
+                    <p-button label="Marcar" icon="pi pi-plus" [loading]="procesando() === miembro.miembroId" [disabled]="procesando() !== null" [ariaLabel]="'Marcar a ' + miembro.nombreCompleto" (onClick)="marcar.emit(miembro)" />
+                    }
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+    }
+</div>

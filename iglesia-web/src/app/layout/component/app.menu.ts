@@ -7,11 +7,12 @@ import { veAportesDeTodaLaIglesia } from '@/app/features/aportes/models/ambito-a
 import { SesionService } from '@/app/core/auth/services/sesion.service';
 import { ConfiguracionIglesiaService, NOMBRES_GRUPOS_POR_DEFECTO } from '@/app/core/configuracion/configuracion-iglesia.service';
 import { RUTA_IGLESIAS, RUTA_MI_IGLESIA } from '@/app/core/iglesias/models/rutas-iglesias';
+import { RUTA_SEGUIMIENTO } from '@/app/features/asistencia/models/rutas-asistencia';
 import { AppMenuitem } from './app.menuitem';
 
-/** Entrada del menú con el permiso que exige; sin `permiso`, la ven todos. */
+/** Entrada del menú con los permisos que exige (basta uno); sin `permisos`, la ven todos. */
 export interface EntradaMenu extends MenuItem {
-    readonly permiso?: Permiso;
+    readonly permisos?: readonly Permiso[];
     /** Muestra datos de una iglesia: se oculta mientras no se opere en ninguna (vista global del administrador del sistema). */
     readonly requiereIglesia?: boolean;
     readonly items?: EntradaMenu[];
@@ -25,24 +26,27 @@ export interface EntradaMenu extends MenuItem {
 const entradasApp = (nombreGrupos: string, etiquetaAportes: string): EntradaMenu[] => [
     {
         label: 'Sistema',
-        items: [{ label: 'Iglesias', icon: 'pi pi-fw pi-building', routerLink: [RUTA_IGLESIAS], permiso: 'iglesias.ver' }]
+        items: [{ label: 'Iglesias', icon: 'pi pi-fw pi-building', routerLink: [RUTA_IGLESIAS], permisos: ['iglesias.ver'] }]
     },
     {
         label: 'Iglesia',
         items: [
-            { label: 'Miembros', icon: 'pi pi-fw pi-users', routerLink: ['/miembros'], permiso: 'miembros.ver', requiereIglesia: true },
-            { label: nombreGrupos, icon: 'pi pi-fw pi-sitemap', routerLink: ['/grupos'], permiso: 'grupos.ver', requiereIglesia: true },
-            { label: etiquetaAportes, icon: 'pi pi-fw pi-wallet', routerLink: ['/aportes'], permiso: 'aportes.ver', requiereIglesia: true }
+            { label: 'Miembros', icon: 'pi pi-fw pi-users', routerLink: ['/miembros'], permisos: ['miembros.ver'], requiereIglesia: true },
+            { label: nombreGrupos, icon: 'pi pi-fw pi-sitemap', routerLink: ['/grupos'], permisos: ['grupos.ver'], requiereIglesia: true },
+            { label: etiquetaAportes, icon: 'pi pi-fw pi-wallet', routerLink: ['/aportes'], permisos: ['aportes.ver'], requiereIglesia: true },
+            { label: 'Asistencia', icon: 'pi pi-fw pi-check-square', routerLink: ['/asistencia'], permisos: ['asistencia.registrar', 'asistencia.grupo', 'asistencia.ver'], requiereIglesia: true },
+            { label: 'Seguimiento', icon: 'pi pi-fw pi-chart-line', routerLink: [RUTA_SEGUIMIENTO], permisos: ['asistencia.ver', 'asistencia.grupo'], requiereIglesia: true }
         ]
     },
     {
         label: 'Administración',
         items: [
-            { label: 'Mi iglesia', icon: 'pi pi-fw pi-building', routerLink: [RUTA_MI_IGLESIA], permiso: 'iglesia.personalizar', requiereIglesia: true },
-            { label: 'Usuarios', icon: 'pi pi-fw pi-users', routerLink: ['/usuarios'], permiso: 'usuarios.ver', requiereIglesia: true },
-            { label: 'Roles', icon: 'pi pi-fw pi-shield', routerLink: ['/roles'], permiso: 'roles.ver', requiereIglesia: true },
-            { label: 'Niveles', icon: 'pi pi-fw pi-sort-amount-up', routerLink: ['/niveles'], permiso: 'niveles.administrar', requiereIglesia: true },
-            { label: 'Configuración de aportes', icon: 'pi pi-fw pi-cog', routerLink: ['/aportes/configuracion'], permiso: 'aportes.configurar', requiereIglesia: true }
+            { label: 'Mi iglesia', icon: 'pi pi-fw pi-building', routerLink: [RUTA_MI_IGLESIA], permisos: ['iglesia.personalizar'], requiereIglesia: true },
+            { label: 'Usuarios', icon: 'pi pi-fw pi-users', routerLink: ['/usuarios'], permisos: ['usuarios.ver'], requiereIglesia: true },
+            { label: 'Roles', icon: 'pi pi-fw pi-shield', routerLink: ['/roles'], permisos: ['roles.ver'], requiereIglesia: true },
+            { label: 'Niveles', icon: 'pi pi-fw pi-sort-amount-up', routerLink: ['/niveles'], permisos: ['niveles.administrar'], requiereIglesia: true },
+            { label: 'Configuración de aportes', icon: 'pi pi-fw pi-cog', routerLink: ['/aportes/configuracion'], permisos: ['aportes.configurar'], requiereIglesia: true },
+            { label: 'Horarios de culto', icon: 'pi pi-fw pi-clock', routerLink: ['/asistencia/configuracion'], permisos: ['asistencia.configurar'], requiereIglesia: true }
         ]
     }
 ];
@@ -67,8 +71,8 @@ export function construirMenu(perfil: Perfil | null, operaEnIglesia: boolean, no
 
 function filtrar(entradas: readonly EntradaMenu[], alcance: AlcanceMenu): MenuItem[] {
     return entradas
-        .filter(({ permiso, requiereIglesia }) => (!permiso || alcance.permisos.has(permiso)) && (!requiereIglesia || alcance.operaEnIglesia))
-        .map(({ permiso: _permiso, requiereIglesia: _requiereIglesia, items, ...entrada }): MenuItem => (items ? { ...entrada, items: filtrar(items, alcance) } : entrada))
+        .filter(({ permisos, requiereIglesia }) => (!permisos || permisos.some((permiso) => alcance.permisos.has(permiso))) && (!requiereIglesia || alcance.operaEnIglesia))
+        .map(({ permisos: _permisos, requiereIglesia: _requiereIglesia, items, ...entrada }): MenuItem => (items ? { ...entrada, items: filtrar(items, alcance) } : entrada))
         .filter((entrada) => !entrada.items || entrada.items.length > 0);
 }
 

@@ -1,0 +1,31 @@
+<main class="min-h-screen bg-surface-100 dark:bg-surface-950 print:bg-white print:min-h-0">
+    <header class="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-surface-0 dark:bg-surface-900 border-b border-surface print:hidden">
+        <div class="flex items-center gap-2 min-w-0">
+            <p-button icon="pi pi-arrow-left" [text]="true" [rounded]="true" severity="secondary" ariaLabel="Volver" (onClick)="volver()" />
+            <h1 class="text-xl font-semibold m-0 truncate">Imprimir fotochecks @if (!cargando() && !error()) {({{ fotochecks().length }})}</h1>
+        </div>
+        <p-button label="Imprimir" icon="pi pi-print" [disabled]="cargando() || !!error() || fotochecks().length === 0" (onClick)="imprimir()" />
+    </header>
+
+    <div class="flex flex-col items-center gap-6 p-4 print:p-0 print:gap-0">
+        @if (cargando()) {
+        <p-skeleton width="210mm" height="297mm" styleClass="max-w-full" />
+        } @else if (error(); as mensaje) {
+        <p-message severity="error" icon="pi pi-times-circle" styleClass="w-full max-w-xl">{{ mensaje }}</p-message>
+        } @else if (fotochecks().length === 0) {
+        <p class="text-muted-color m-0">No hay miembros con esos filtros.</p>
+        } @else {
+        <p class="text-muted-color text-sm m-0 print:hidden">Hojas A4, {{ porHoja }} fotochecks por hoja. Recorta por las líneas punteadas.</p>
+        @for (hoja of hojas(); track $index) {
+        <section class="bg-white shadow print:shadow-none w-[210mm] max-w-full overflow-x-auto p-[10mm] print:p-0 print:break-after-page" [attr.aria-label]="'Hoja ' + ($index + 1)">
+            <div class="grid grid-cols-[repeat(2,85.6mm)] justify-center">
+                @for (fotocheck of hoja; track fotocheck.miembroId) {
+                <div class="border border-dashed border-surface-400 [&_article]:rounded-none [&_article]:border-0">
+                    <app-fotocheck [datos]="fotocheck" />
+                </div>
+                }
+            </div>
+        </section>
+        } }
+    </div>
+</main>

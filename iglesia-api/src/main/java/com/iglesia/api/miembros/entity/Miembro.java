@@ -22,6 +22,7 @@ import org.hibernate.type.SqlTypes;
 
 import com.iglesia.api.common.multiiglesia.entity.EntidadDeIglesia;
 import com.iglesia.api.miembros.constant.LimitesMiembro;
+import com.iglesia.api.miembros.model.CodigoAsistencia;
 import com.iglesia.api.miembros.model.CondicionMiembro;
 import com.iglesia.api.miembros.model.DatosFicha;
 import com.iglesia.api.miembros.model.EstadoCivil;
@@ -123,6 +124,10 @@ public class Miembro extends EntidadDeIglesia {
 	@Column(name = "activo", nullable = false)
 	private boolean activo = true;
 
+	/** Código del QR de asistencia; nulo hasta que se genera. */
+	@Column(name = "codigo_asistencia", length = 16)
+	private String codigoAsistencia;
+
 	@CreationTimestamp
 	@Column(name = "creado_en", nullable = false, updatable = false)
 	private Instant creadoEn;
@@ -182,6 +187,15 @@ public class Miembro extends EntidadDeIglesia {
 
 	public void cambiarEstado(boolean nuevoEstado) {
 		activo = nuevoEstado;
+	}
+
+	/** Asigna (o reemplaza, al regenerarlo) el código del QR de asistencia: el anterior deja de valer. */
+	public void asignarCodigoAsistencia(CodigoAsistencia codigo) {
+		codigoAsistencia = codigo.valor();
+	}
+
+	public String getCodigoAsistencia() {
+		return codigoAsistencia;
 	}
 
 	public String nombreCompleto() {

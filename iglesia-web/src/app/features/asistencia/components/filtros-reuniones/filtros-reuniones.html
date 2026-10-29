@@ -1,0 +1,16 @@
+<section aria-label="Filtros del historial" class="flex flex-col lg:flex-row lg:items-end gap-4">
+    <div class="flex flex-col gap-2">
+        <span id="historial-periodo" class="font-medium">Período</span>
+        <p-selectbutton [options]="periodos" optionLabel="etiqueta" optionValue="valor" [ngModel]="periodo()" (ngModelChange)="elegirPeriodo($event)" [allowEmpty]="false" ariaLabelledBy="historial-periodo" styleClass="flex-wrap" />
+    </div>
+    @if (periodo() === 'PERSONALIZADO') {
+    <div class="flex flex-col gap-2">
+        <label for="historial-rango" class="font-medium">Rango de fechas</label>
+        <p-datepicker inputId="historial-rango" selectionMode="range" [ngModel]="rango()" (ngModelChange)="elegirRango($event)" [maxDate]="hoy" dateFormat="dd/mm/yy" [readonlyInput]="true" [showIcon]="true" placeholder="Desde – hasta" />
+    </div>
+    }
+    <div class="flex flex-col gap-2 lg:w-48">
+        <label for="historial-tipo" class="font-medium">Tipo</label>
+        <p-select inputId="historial-tipo" [options]="tipos" optionLabel="etiqueta" optionValue="valor" [ngModel]="filtro().tipo" (ngModelChange)="elegirTipo($event ?? null)" [showClear]="true" placeholder="Todos" [fluid]="true" />
+    </div>
+</section>

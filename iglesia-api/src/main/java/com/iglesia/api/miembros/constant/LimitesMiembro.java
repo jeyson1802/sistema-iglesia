@@ -36,6 +36,9 @@ public final class LimitesMiembro {
 	/** Máximo de sugerencias del selector de miembro y de candidatos de un grupo. */
 	public static final int OPCIONES_MAX = 20;
 
+	/** Máximo de fotochecks por impresión en lote. */
+	public static final int FOTOCHECKS_MAX = 500;
+
 	private LimitesMiembro() {
 	}
 

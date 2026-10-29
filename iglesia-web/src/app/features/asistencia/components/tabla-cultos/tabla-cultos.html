@@ -1,0 +1,74 @@
+@if (cargando()) {
+<div class="flex flex-col gap-4" role="status" aria-label="Cargando horarios de culto">
+    @for (fila of filasCarga; track fila) {
+    <div class="flex items-center gap-4">
+        <p-skeleton width="35%" height="1.5rem" />
+        <p-skeleton width="15%" height="1.5rem" />
+        <p-skeleton width="10%" height="1.5rem" />
+    </div>
+    }
+</div>
+} @else {
+<p-table
+    [value]="filas()"
+    [paginator]="true"
+    [rows]="filasPorPagina"
+    [rowsPerPageOptions]="opcionesPorPagina"
+    [showCurrentPageReport]="true"
+    [currentPageReportTemplate]="plantillaReporte"
+    [alwaysShowPaginator]="true"
+    [rowHover]="true"
+    dataKey="id"
+    [scrollable]="true"
+    tableStyleClass="min-w-140"
+>
+    <ng-template #header>
+        <tr>
+            <th scope="col">Nombre</th>
+            <th scope="col">Día</th>
+            <th scope="col">Hora</th>
+            <th scope="col">Estado</th>
+            <th scope="col"><span class="sr-only">Acciones</span></th>
+        </tr>
+    </ng-template>
+    <ng-template #body let-culto>
+        <tr [class.opacity-60]="!culto.activo">
+            <td class="font-medium">{{ culto.nombre }}</td>
+            <td>{{ etiquetaDia(culto.diaSemana) }}</td>
+            <td class="tabular-nums">{{ hora(culto.hora) }}</td>
+            <td><p-tag [value]="culto.activo ? 'Activo' : 'Inactivo'" [severity]="culto.activo ? 'success' : 'danger'" /></td>
+            <td>
+                <div class="flex justify-end gap-2">
+                    <p-button
+                        icon="pi pi-pencil"
+                        [rounded]="true"
+                        [text]="true"
+                        severity="secondary"
+                        [ariaLabel]="'Editar ' + culto.nombre"
+                        pTooltip="Editar"
+                        tooltipPosition="top"
+                        [disabled]="procesando() === culto.id"
+                        (onClick)="editar.emit(culto)"
+                    />
+                    <p-button
+                        [icon]="culto.activo ? 'pi pi-ban' : 'pi pi-check-circle'"
+                        [rounded]="true"
+                        [text]="true"
+                        [severity]="culto.activo ? 'danger' : 'success'"
+                        [ariaLabel]="(culto.activo ? 'Desactivar ' : 'Activar ') + culto.nombre"
+                        [pTooltip]="culto.activo ? 'Desactivar' : 'Activar'"
+                        tooltipPosition="top"
+                        [loading]="procesando() === culto.id"
+                        (onClick)="cambiarEstado.emit(culto)"
+                    />
+                </div>
+            </td>
+        </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+        <tr>
+            <td colspan="5" class="text-center text-muted-color py-8">Aún no hay horarios de culto. Crea el primero con «Nuevo culto».</td>
+        </tr>
+    </ng-template>
+</p-table>
+}

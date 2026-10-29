@@ -1,0 +1,82 @@
+@if (cargando()) {
+<div class="card flex flex-col gap-3" role="status" aria-label="Cargando reunión">
+    <p-skeleton width="50%" height="2rem" />
+    <p-skeleton height="3rem" />
+    <p-skeleton height="16rem" />
+</div>
+} @else if (error()) {
+<div class="card flex flex-col items-center gap-4 py-8 text-center" role="alert">
+    <i class="pi pi-exclamation-circle text-4xl text-muted-color" aria-hidden="true"></i>
+    <span class="font-medium text-surface-900 dark:text-surface-0">{{ error() }}</span>
+    <p-button label="Volver a Asistencia" severity="secondary" [outlined]="true" [routerLink]="rutaInicio" />
+</div>
+} @else if (reunion(); as reunion) {
+<div class="flex flex-col gap-4 max-w-3xl mx-auto">
+    <header class="card mb-0 sticky top-20 z-10 flex items-center justify-between gap-3 py-4">
+        <div class="min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+                @if (tipo(); as tipo) {
+                <p-tag [value]="tipo.etiqueta" [severity]="tipo.severidad" />
+                }
+                <span class="text-muted-color text-sm truncate first-letter:uppercase">{{ cuando() }}</span>
+            </div>
+            <h1 class="font-semibold text-lg sm:text-xl text-surface-900 dark:text-surface-0 m-0 truncate">{{ reunion.nombre }}</h1>
+        </div>
+        <div class="text-right shrink-0" aria-live="polite" aria-atomic="true">
+            <span class="block text-4xl sm:text-5xl font-bold tabular-nums text-primary leading-none">{{ total() }}</span>
+            <span class="text-muted-color text-sm">presentes</span>
+        </div>
+    </header>
+
+    @if (!enLinea()) {
+    <div class="sticky top-44 z-10 flex items-center gap-3 rounded-border bg-red-600 text-white px-4 py-3 font-semibold" role="alert">
+        <i class="pi pi-wifi text-xl" aria-hidden="true"></i>
+        Sin conexión: no se están guardando las asistencias
+    </div>
+    }
+
+    <section class="card mb-0 flex flex-col gap-4" aria-label="Tomar asistencia">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <p-selectbutton [options]="opcionesModo" optionLabel="etiqueta" optionValue="valor" [ngModel]="modo()" (ngModelChange)="elegirModo($event)" [allowEmpty]="false" ariaLabel="Modo de marcado">
+                <ng-template #item let-opcion> <i [class]="opcion.icono" aria-hidden="true"></i><span>{{ opcion.etiqueta }}</span> </ng-template>
+            </p-selectbutton>
+            <p-button label="¿Qué equipo uso?" icon="pi pi-question-circle" severity="secondary" [text]="true" size="small" (onClick)="ayudaVisible.set(true)" />
+        </div>
+
+        @if (modo() !== 'MANUAL') {
+        <app-resultado-marca [resultado]="resultado()" />
+        } @switch (modo()) { @case ('CAMARA') {
+        <app-escaner-camara [pausado]="!enLinea()" (leido)="leer($event)" (cambiarModo)="elegirModo($event)" />
+        } @case ('LECTOR') {
+        <app-entrada-lector [pausado]="!enLinea() || ayudaVisible()" (leido)="leer($event)" />
+        } @case ('MANUAL') { @if (esGrupo()) {
+        <app-lista-integrantes [integrantes]="integrantes()" [cargando]="cargandoIntegrantes()" [procesando]="procesandoIntegrantes()" (cambiar)="cambiarPresencia($event)" (marcarTodos)="marcarTodos()" />
+        <h2 class="text-base font-semibold m-0 mt-2">¿Vino alguien que no es del grupo?</h2>
+        }
+        <app-marcado-manual
+            [resultados]="resultados()"
+            [buscando]="buscando()"
+            [procesando]="procesandoManual()"
+            [etiqueta]="esGrupo() ? 'Buscar a otra persona por nombre' : 'Buscar por nombre'"
+            (buscar)="buscar($event)"
+            (marcar)="marcarManual($event)"
+            (quitar)="quitarManual($event)"
+        />
+        } }
+    </section>
+
+    @if (modo() !== 'MANUAL') {
+    <div class="card mb-0">
+        <app-ultimas-marcas [marcas]="ultimas()" [deshaciendo]="deshaciendo()" (deshacer)="deshacer($event)" />
+    </div>
+    }
+
+    <div class="flex justify-center sm:justify-end">
+        <p-button label="Terminar" icon="pi pi-check" severity="secondary" [outlined]="true" (onClick)="terminar()" styleClass="w-full sm:w-auto" />
+    </div>
+</div>
+}
+
+<app-ayuda-equipos [(visible)]="ayudaVisible" />
+<p-confirmdialog styleClass="w-full max-w-md mx-4" />
+<p-toast position="top-right" />

@@ -3,3 +3,14 @@ export function hoyIso(ahora: Date = new Date()): string {
     const dosDigitos = (valor: number): string => String(valor).padStart(2, '0');
     return `${ahora.getFullYear()}-${dosDigitos(ahora.getMonth() + 1)}-${dosDigitos(ahora.getDate())}`;
 }
+
+/** Fecha `yyyy-MM-dd` con el día de la semana en español: «dom., 25/10/2026». */
+export function fechaConDia(iso: string): string {
+    const [anio, mes, dia] = iso.split('-').map(Number);
+    return new Date(anio, mes - 1, dia).toLocaleDateString('es', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+/** Fecha de hoy en palabras, en español: «jueves, 29 de octubre». */
+export function hoyEnPalabras(ahora: Date = new Date()): string {
+    return ahora.toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
+}

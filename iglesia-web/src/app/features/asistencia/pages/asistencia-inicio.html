@@ -1,0 +1,80 @@
+<div class="flex flex-col gap-8">
+    @if (puedeMarcar()) {
+    <section class="card mb-0" aria-labelledby="titulo-hoy">
+        <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div>
+                <h1 id="titulo-hoy" class="font-semibold text-xl text-surface-900 dark:text-surface-0 m-0 mb-1">Hoy</h1>
+                <p class="text-muted-color m-0 first-letter:uppercase">{{ hoyTexto }}</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <p-button label="Tomar asistencia de otra fecha" icon="pi pi-calendar" severity="secondary" [text]="true" (onClick)="otraFecha()" />
+                @if (puedeConfigurar()) {
+                <p-button label="Crear evento" icon="pi pi-plus" severity="secondary" [outlined]="true" (onClick)="nuevoEvento()" />
+                }
+            </div>
+        </header>
+
+        @if (cargandoHoy()) {
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4" role="status" aria-label="Cargando reuniones de hoy">
+            @for (fila of [1, 2, 3]; track fila) {
+            <p-skeleton height="9rem" />
+            }
+        </div>
+        } @else if (errorHoy()) {
+        <div class="flex flex-col items-center gap-4 py-8 text-center" role="alert">
+            <i class="pi pi-exclamation-circle text-4xl text-muted-color" aria-hidden="true"></i>
+            <span class="font-medium text-surface-900 dark:text-surface-0">{{ errorHoy() }}</span>
+            <p-button label="Reintentar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="cargarHoy()" />
+        </div>
+        } @else if (hoy().length === 0) {
+        <div class="flex flex-col items-center gap-3 py-8 text-center">
+            <i class="pi pi-calendar-times text-5xl text-muted-color" aria-hidden="true"></i>
+            <span class="font-medium text-lg text-surface-900 dark:text-surface-0">Hoy no hay cultos ni reuniones programadas</span>
+            @if (puedeConfigurar()) {
+            <div class="flex flex-wrap justify-center gap-2 mt-2">
+                <p-button label="Crear evento" icon="pi pi-plus" (onClick)="nuevoEvento()" />
+                <p-button label="Configurar horarios de culto" icon="pi pi-clock" severity="secondary" [outlined]="true" routerLink="/asistencia/configuracion" />
+            </div>
+            }
+        </div>
+        } @else {
+        <ul class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 list-none p-0 m-0">
+            @for (reunion of hoy(); track clave(reunion)) {
+            <li><app-tarjeta-reunion-hoy [reunion]="reunion" [abriendo]="abriendo() === clave(reunion)" (tomar)="tomar($event)" /></li>
+            }
+        </ul>
+        }
+    </section>
+    } @if (puedeVerHistorial()) {
+    <section class="card mb-0" aria-labelledby="titulo-historial">
+        <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div>
+                @if (puedeMarcar()) {
+                <h2 id="titulo-historial" class="font-semibold text-xl text-surface-900 dark:text-surface-0 m-0 mb-1">Historial</h2>
+                } @else {
+                <h1 id="titulo-historial" class="font-semibold text-xl text-surface-900 dark:text-surface-0 m-0 mb-1">Asistencia</h1>
+                }
+                <p class="text-muted-color m-0">Reuniones con su total de asistentes. Toca una para ver quiénes vinieron.</p>
+            </div>
+            @if (!puedeMarcar() && puedeConfigurar()) {
+            <p-button label="Crear evento" icon="pi pi-plus" severity="secondary" [outlined]="true" (onClick)="nuevoEvento()" />
+            }
+        </header>
+        <div class="mb-6">
+            <app-filtros-reuniones [filtro]="filtro()" (cambiar)="filtrar($event)" />
+        </div>
+        @if (errorHistorial()) {
+        <div class="flex flex-col items-center gap-4 py-8 text-center" role="alert">
+            <span class="font-medium text-surface-900 dark:text-surface-0">{{ errorHistorial() }}</span>
+            <p-button label="Reintentar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="recargarHistorial()" />
+        </div>
+        } @else {
+        <app-tabla-reuniones [reuniones]="historial()" [totalRegistros]="totalHistorial()" [pagina]="pagina()" [tamanoPagina]="tamanoPagina()" [cargando]="cargandoHistorial()" (cambiarPagina)="cambiarPagina($event)" (ver)="verDetalle($event)" />
+        }
+    </section>
+    }
+</div>
+
+<app-formulario-evento [(visible)]="eventoVisible" [guardando]="creandoEvento()" [error]="errorEvento()" (guardar)="crearEvento($event)" />
+<app-abrir-otra-fecha [(visible)]="otraFechaVisible" [origenes]="origenes()" [abriendo]="abriendoOtraFecha()" [error]="errorOtraFecha()" (abrir)="abrirOtraFecha($event)" />
+<p-toast position="top-right" />

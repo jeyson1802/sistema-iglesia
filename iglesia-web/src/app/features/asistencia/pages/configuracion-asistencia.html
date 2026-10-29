@@ -1,0 +1,45 @@
+<div class="card">
+    <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+            <h1 class="font-semibold text-xl text-surface-900 dark:text-surface-0 m-0 mb-2">Horarios de culto</h1>
+            <p class="text-muted-color m-0">Los cultos fijos de cada semana. El día que corresponde aparecen en «Asistencia» listos para tomar asistencia.</p>
+        </div>
+        <p-button label="Nuevo culto" icon="pi pi-plus" (onClick)="nuevo()" />
+    </header>
+
+    <div aria-live="polite">
+        @if (errorAccion()) {
+        <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-4">{{ errorAccion() }}</p-message>
+        }
+    </div>
+
+    @if (errorCarga()) {
+    <div class="flex flex-col items-center gap-4 py-8 text-center" role="alert">
+        <i class="pi pi-exclamation-circle text-4xl text-muted-color" aria-hidden="true"></i>
+        <span class="font-medium text-surface-900 dark:text-surface-0">{{ errorCarga() }}</span>
+        <p-button label="Reintentar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="cargar()" />
+    </div>
+    } @else {
+    <app-tabla-cultos [cultos]="cultos()" [cargando]="cargando()" [procesando]="procesando()" (editar)="editar($event)" (cambiarEstado)="cambiarEstado($event)" />
+    }
+</div>
+
+<section class="card" aria-labelledby="titulo-reglas-seguimiento">
+    <h2 id="titulo-reglas-seguimiento" class="font-semibold text-xl text-surface-900 dark:text-surface-0 m-0 mb-2">Reglas de seguimiento</h2>
+    <p class="text-muted-color m-0 mb-6">Cuándo avisa «Seguimiento» que alguien necesita una llamada. Cuentan los días de culto y las reuniones de su grupo; los eventos nunca cuentan como falta.</p>
+    <div aria-live="polite">
+        @if (reglasGuardadas()) {
+        <p-message severity="success" icon="pi pi-check-circle" styleClass="mb-4">Reglas guardadas. Las alertas ya se calculan con ellas.</p-message>
+        }
+    </div>
+    @if (errorCargaReglas()) {
+    <div class="flex flex-col items-start gap-2" role="alert">
+        <span class="text-muted-color">{{ errorCargaReglas() }}</span>
+        <p-button label="Reintentar" icon="pi pi-refresh" size="small" severity="secondary" [outlined]="true" (onClick)="cargarReglas()" />
+    </div>
+    } @else if (reglas(); as reglas) {
+    <app-formulario-reglas [reglas]="reglas" [guardando]="guardandoReglas()" [error]="errorReglas()" (guardar)="guardarReglas($event)" />
+    }
+</section>
+
+<app-formulario-culto [(visible)]="dialogoVisible" [culto]="cultoEditado()" [guardando]="guardando()" [error]="errorDialogo()" (guardar)="guardar($event)" />

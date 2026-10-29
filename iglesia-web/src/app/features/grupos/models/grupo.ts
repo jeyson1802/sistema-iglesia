@@ -1,18 +1,9 @@
 import { Referencia } from '@/app/core/models/referencia';
+import { DiaSemana } from '@/app/core/models/dia-semana';
 import { Ubicacion } from '@/app/core/models/ubicacion';
 
-export const DIAS_SEMANA = ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO'] as const;
-export type DiaSemana = (typeof DIAS_SEMANA)[number];
-
-export const ETIQUETA_DIA: Record<DiaSemana, string> = {
-    LUNES: 'Lunes',
-    MARTES: 'Martes',
-    MIERCOLES: 'Miércoles',
-    JUEVES: 'Jueves',
-    VIERNES: 'Viernes',
-    SABADO: 'Sábado',
-    DOMINGO: 'Domingo'
-};
+export { DIAS_SEMANA, ETIQUETA_DIA } from '@/app/core/models/dia-semana';
+export type { DiaSemana } from '@/app/core/models/dia-semana';
 
 /** Contrato de `GrupoResponse` en iglesia-api. Un grupo no tiene nombre: es «el grupo de» su líder. */
 export interface GrupoResponse {

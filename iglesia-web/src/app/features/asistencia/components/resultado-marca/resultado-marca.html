@@ -1,0 +1,13 @@
+<div aria-live="assertive" aria-atomic="true" class="min-h-20">
+    @if (resultado(); as resultado) {
+    <div [class]="'flex items-center gap-4 rounded-border px-5 py-4 shadow-md ' + estilo()?.clases" [attr.role]="resultado.tipo === 'error' ? 'alert' : 'status'">
+        <i [class]="estilo()?.icono + ' text-4xl'" aria-hidden="true"></i>
+        <div class="min-w-0">
+            <p class="m-0 font-bold text-xl leading-tight truncate">{{ resultado.titulo }}</p>
+            @if (resultado.detalle) {
+            <p class="m-0 text-base">{{ resultado.detalle }}</p>
+            }
+        </div>
+    </div>
+    }
+</div>

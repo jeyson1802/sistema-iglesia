@@ -153,3 +153,20 @@ export const LIMITES_MIEMBRO = {
 export const PATRON_TELEFONO = /^[0-9 +-]*$/;
 
 export const nombreCompleto = ({ nombres, apellidos }: Pick<MiembroResumen, 'nombres' | 'apellidos'>): string => `${nombres} ${apellidos}`;
+
+/** Contrato de `CodigoAsistenciaResponse`: código del QR personal y el texto que se codifica en él. */
+export interface CodigoAsistencia {
+    readonly codigo: string;
+    readonly contenidoQr: string;
+}
+
+/** Contrato de `FotocheckResponse`: datos para imprimir el fotocheck de un miembro. */
+export interface Fotocheck extends CodigoAsistencia {
+    readonly miembroId: number;
+    readonly nombres: string;
+    readonly apellidos: string;
+    readonly nivel: string | null;
+}
+
+/** Tope de fotochecks por impresión en lote (`LimitesMiembro.FOTOCHECKS_MAX`). */
+export const FOTOCHECKS_MAX = 500;

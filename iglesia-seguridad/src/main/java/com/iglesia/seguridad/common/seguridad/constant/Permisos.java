@@ -26,6 +26,14 @@ public final class Permisos {
 
 	public static final String IGLESIA_PERSONALIZAR = "iglesia.personalizar";
 
+	public static final String ASISTENCIA_REGISTRAR = "asistencia.registrar";
+
+	public static final String ASISTENCIA_GRUPO = "asistencia.grupo";
+
+	public static final String ASISTENCIA_VER = "asistencia.ver";
+
+	public static final String ASISTENCIA_CONFIGURAR = "asistencia.configurar";
+
 	public static final String USUARIOS_VER = "usuarios.ver";
 
 	public static final String USUARIOS_ADMINISTRAR = "usuarios.administrar";

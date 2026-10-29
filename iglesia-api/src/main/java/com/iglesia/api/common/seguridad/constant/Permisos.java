@@ -36,6 +36,14 @@ public final class Permisos {
 
 	public static final String APORTES_CONFIGURAR = "aportes.configurar";
 
+	public static final String ASISTENCIA_REGISTRAR = "asistencia.registrar";
+
+	public static final String ASISTENCIA_GRUPO = "asistencia.grupo";
+
+	public static final String ASISTENCIA_VER = "asistencia.ver";
+
+	public static final String ASISTENCIA_CONFIGURAR = "asistencia.configurar";
+
 	public static final String PUEDE_VER_IGLESIAS = "hasAuthority('" + IGLESIAS_VER + "')";
 
 	public static final String PUEDE_ADMINISTRAR_IGLESIAS = "hasAuthority('" + IGLESIAS_ADMINISTRAR + "')";
@@ -74,6 +82,38 @@ public final class Permisos {
 	/** Quien registra o configura aportes necesita ver las categorías y la moneda para elegirlas. */
 	public static final String PUEDE_CONSULTAR_CONFIGURACION_APORTES = "hasAnyAuthority('" + APORTES_VER + "', '"
 			+ APORTES_REGISTRAR + "', '" + APORTES_CONFIGURAR + "')";
+
+	public static final String PUEDE_CONFIGURAR_ASISTENCIA = "hasAuthority('" + ASISTENCIA_CONFIGURAR + "')";
+
+	/** Quien toma asistencia en cultos necesita ver los horarios para elegir el culto. */
+	public static final String PUEDE_CONSULTAR_CULTOS = "hasAnyAuthority('" + ASISTENCIA_CONFIGURAR + "', '"
+			+ ASISTENCIA_REGISTRAR + "')";
+
+	/** Tomar asistencia en todas las reuniones o, el líder, en las de sus grupos (el servicio aplica el ámbito). */
+	public static final String PUEDE_TOMAR_ASISTENCIA = "hasAnyAuthority('" + ASISTENCIA_REGISTRAR + "', '"
+			+ ASISTENCIA_GRUPO + "')";
+
+	/** Ver el historial de toda la iglesia o, el líder, el de sus grupos (el servicio aplica el ámbito). */
+	public static final String PUEDE_VER_HISTORIAL_ASISTENCIA = "hasAnyAuthority('" + ASISTENCIA_VER + "', '"
+			+ ASISTENCIA_GRUPO + "')";
+
+	/** Los asistentes de una reunión los ve quien toma asistencia en ella y quien ve el historial. */
+	public static final String PUEDE_VER_ASISTENTES = "hasAnyAuthority('" + ASISTENCIA_VER + "', '"
+			+ ASISTENCIA_REGISTRAR + "', '" + ASISTENCIA_GRUPO + "')";
+
+	/** La asistencia de un miembro la ve quien ve toda la asistencia o quien ve su ficha (el servicio aplica el ámbito). */
+	public static final String PUEDE_VER_ASISTENCIA_DE_MIEMBRO = "hasAnyAuthority('" + ASISTENCIA_VER + "', '"
+			+ MIEMBROS_VER + "')";
+
+	/** Seguimiento de asistencia de toda la iglesia o, el líder, de su red (el servicio aplica el ámbito). */
+	public static final String PUEDE_VER_SEGUIMIENTO_ASISTENCIA = PUEDE_VER_HISTORIAL_ASISTENCIA;
+
+	/** La evolución de los servicios de la iglesia solo la ve quien ve toda la asistencia. */
+	public static final String PUEDE_VER_TODA_LA_ASISTENCIA = "hasAuthority('" + ASISTENCIA_VER + "')";
+
+	/** Las reglas de seguimiento las lee quien ve toda la asistencia o quien la configura. */
+	public static final String PUEDE_VER_REGLAS_SEGUIMIENTO = "hasAnyAuthority('" + ASISTENCIA_VER + "', '"
+			+ ASISTENCIA_CONFIGURAR + "')";
 
 	private Permisos() {
 	}

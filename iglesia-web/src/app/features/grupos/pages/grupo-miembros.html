@@ -52,4 +52,8 @@
     }
 </div>
 
+@if (grupoAsistencia(); as grupoAsistencia) {
+<app-asistencia-grupo [grupo]="grupoAsistencia" />
+}
+
 <p-confirmdialog styleClass="w-full max-w-md mx-4" />

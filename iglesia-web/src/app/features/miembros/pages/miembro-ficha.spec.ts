@@ -16,6 +16,8 @@ import { UsuariosService } from '@/app/features/usuarios/services/usuarios.servi
 import { OpcionesMiembroService } from '@/app/shared/components/selector-miembro/opciones-miembro.service';
 import { UbigeoService } from '@/app/shared/components/selector-ubigeo/ubigeo.service';
 import { GuardarMiembro } from '../models/miembro';
+import { IdentidadIglesiaService } from '@/app/core/iglesias/services/identidad-iglesia.service';
+import { AsistenciasService } from '@/app/features/asistencia/services/asistencias.service';
 import { MiembrosService } from '../services/miembros.service';
 import { JUAN, RESUMEN_JUAN, RESUMEN_PASTOR } from '../testing/miembros-prueba';
 import { MiembroFichaComponent } from './miembro-ficha';
@@ -43,6 +45,11 @@ describe('MiembroFichaComponent', () => {
                 { provide: RolesService, useValue: { listar: () => of(ROLES_BASE) } },
                 { provide: ConfiguracionIglesiaService, useValue: { nombresGrupos: signal({ nombreGrupoSingular: 'Célula', nombreGrupoPlural: 'Células' }) } },
                 { provide: SesionService, useValue: { tienePermiso: (permiso: Permiso) => permisos.has(permiso) } },
+                { provide: IdentidadIglesiaService, useValue: { nombreComercial: signal('Iglesia Vida Nueva'), urlLogo: signal(null) } },
+                {
+                    provide: AsistenciasService,
+                    useValue: { resumenMiembro: () => of({ reunionesQueCuentan: 0, asistidas: 0, porcentaje: null, porcentajeAnterior: null, faltasSeguidas: 0, ultimaAsistencia: null, alertas: [], semanas: [], ultimas: [] }) }
+                },
                 { provide: OpcionesMiembroService, useValue: { buscar: () => of([]) } },
                 { provide: UbigeoService, useValue: { departamentos: () => of([]), provincias: () => of([]), distritos: () => of([]) } }
             ]
@@ -63,7 +70,8 @@ describe('MiembroFichaComponent', () => {
 
     beforeEach(() => {
         permisos = new Set<Permiso>(['miembros.ver', 'miembros.crear', 'miembros.editar', 'miembros.desactivar', 'usuarios.ver', 'usuarios.administrar']);
-        servicio = jasmine.createSpyObj<MiembrosService>('MiembrosService', ['obtener', 'cadena', 'posiblesDuplicados', 'crear', 'actualizar', 'cambiarEstado', 'designarPastorPrincipal', 'pastorPrincipal', 'liderados']);
+        servicio = jasmine.createSpyObj<MiembrosService>('MiembrosService', ['obtener', 'cadena', 'posiblesDuplicados', 'crear', 'actualizar', 'cambiarEstado', 'designarPastorPrincipal', 'pastorPrincipal', 'liderados', 'codigoAsistencia']);
+        servicio.codigoAsistencia.and.returnValue(of({ codigo: '7K2QM9XDR4TB', contenidoQr: 'ASIS:7K2QM9XDR4TB' }));
         servicio.obtener.and.returnValue(of(JUAN));
         servicio.cadena.and.returnValue(of([{ id: 10, nombreCompleto: 'Ana Ríos', nivel: null, esPastorPrincipal: false, activo: true }]));
         servicio.liderados.and.returnValue(of([{ id: 31, nombreCompleto: 'Rosa Quispe', nivel: 'Miembro', cantidadLiderados: 0 }]));

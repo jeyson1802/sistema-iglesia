@@ -31,12 +31,13 @@ public final class PruebasNegocio {
 				Long.class, nombre, nombre);
 	}
 
-	/** {@code ADMIN_IGLESIA} con todos los permisos de miembros, niveles, grupos y aportes. */
+	/** {@code ADMIN_IGLESIA} con todos los permisos de miembros, niveles, grupos, aportes y asistencia. */
 	public static JwtRequestPostProcessor administradorDe(long iglesiaId) {
 		return token(iglesiaId, List.of("ADMIN_IGLESIA"), null, Permisos.MIEMBROS_VER, Permisos.MIEMBROS_CREAR,
 				Permisos.MIEMBROS_EDITAR, Permisos.MIEMBROS_DESACTIVAR, Permisos.NIVELES_ADMINISTRAR,
 				Permisos.GRUPOS_VER, Permisos.GRUPOS_ADMINISTRAR, Permisos.APORTES_VER, Permisos.APORTES_REGISTRAR,
-				Permisos.APORTES_EDITAR, Permisos.APORTES_ANULAR, Permisos.APORTES_CONFIGURAR);
+				Permisos.APORTES_EDITAR, Permisos.APORTES_ANULAR, Permisos.APORTES_CONFIGURAR,
+				Permisos.ASISTENCIA_REGISTRAR, Permisos.ASISTENCIA_VER, Permisos.ASISTENCIA_CONFIGURAR);
 	}
 
 	/** {@code LIDER} vinculado a un miembro, que solo tiene {@code miembros.ver}. */

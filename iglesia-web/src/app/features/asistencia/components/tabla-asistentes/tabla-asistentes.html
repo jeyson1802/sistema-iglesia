@@ -1,0 +1,63 @@
+<div [attr.aria-busy]="cargando()">
+    @if (cargando()) {
+    <div class="flex flex-col gap-4" role="status" aria-label="Cargando asistentes">
+        @for (fila of filasCarga; track fila) {
+        <div class="flex items-center gap-4">
+            <p-skeleton width="40%" height="1.5rem" />
+            <p-skeleton width="15%" height="1.5rem" />
+            <p-skeleton width="4rem" height="1.5rem" styleClass="ml-auto" />
+        </div>
+        }
+    </div>
+    } @else if (asistentes().length === 0) {
+    <p class="text-center text-muted-color py-8 m-0">{{ filtrando() ? 'Nadie con ese nombre asistió a esta reunión.' : 'Aún no hay asistentes en esta reunión.' }}</p>
+    } @else {
+    <div class="hidden md:block">
+        <p-table [value]="filas()" dataKey="miembroId" [scrollable]="true" tableStyleClass="min-w-140">
+            <ng-template #header>
+                <tr>
+                    <th scope="col">Nombre</th>
+                    <th scope="col">Nivel</th>
+                    <th scope="col">Medio</th>
+                    <th scope="col" class="text-right">Hora</th>
+                </tr>
+            </ng-template>
+            <ng-template #body let-asistente>
+                <tr>
+                    <td class="font-medium">{{ asistente.nombreCompleto }}</td>
+                    <td>{{ asistente.nivel ?? '—' }}</td>
+                    <td class="whitespace-nowrap"><i [class]="medio(asistente.medio).icono + ' text-muted-color mr-2'" aria-hidden="true"></i>{{ medio(asistente.medio).etiqueta }}</td>
+                    <td class="text-right tabular-nums">{{ asistente.registradaEn | date: 'HH:mm' }}</td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </div>
+    <ul class="md:hidden flex flex-col gap-2 list-none p-0 m-0">
+        @for (asistente of asistentes(); track asistente.miembroId) {
+        <li class="border border-surface rounded-border p-3 flex items-center justify-between gap-3">
+            <span class="min-w-0">
+                <span class="block font-medium truncate">{{ asistente.nombreCompleto }}</span>
+                <span class="text-muted-color text-sm">{{ asistente.nivel ?? 'Sin nivel' }}</span>
+            </span>
+            <span class="text-right whitespace-nowrap text-sm">
+                <i [class]="medio(asistente.medio).icono + ' text-muted-color'" [attr.aria-label]="medio(asistente.medio).etiqueta" role="img"></i>
+                <span class="tabular-nums ml-2">{{ asistente.registradaEn | date: 'HH:mm' }}</span>
+            </span>
+        </li>
+        }
+    </ul>
+    } @if (!cargando()) {
+    <p-paginator
+        [first]="primerRegistro()"
+        [rows]="tamanoPagina()"
+        [totalRecords]="totalRegistros()"
+        [rowsPerPageOptions]="opcionesPorPagina"
+        [showCurrentPageReport]="true"
+        [currentPageReportTemplate]="plantillaReporte"
+        [alwaysShow]="true"
+        appendTo="body"
+        (onPageChange)="alPaginar($event)"
+        styleClass="mt-4"
+    />
+    }
+</div>

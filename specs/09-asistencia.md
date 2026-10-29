@@ -1,8 +1,8 @@
 # SPEC 09 — Asistencia a cultos, eventos y grupos
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 02 (permisos y perfiles personalizados), SPEC 03 (OpenAPI y trazabilidad), SPEC 06 (miembros, grupos y su jerarquía), SPEC 07 (regla de grillas paginadas), SPEC 08 (identidad de la iglesia para el fotocheck)
-> **Fecha:** 2026-10-29
+> **Fecha:** 2026-10-29 · ampliada el 2026-10-29 con «Seguimiento de asistencia» (aprobada)
 > **Objetivo:** Que cada iglesia tome la asistencia de sus cultos, eventos y reuniones de grupo de la forma más rápida posible: en las reuniones grandes, escaneando con un celular (o con un lector de códigos) el QR personal de cada miembro, que lleva en su celular o en un fotocheck impreso; en los grupos, marcando a mano a sus integrantes. Siempre se puede marcar a mano, y la asistencia queda consultable por reunión, por grupo y por miembro.
 
 ## Por qué existe esta spec
@@ -32,6 +32,7 @@ La asistencia es el módulo prioritario de la hoja de ruta (`CLAUDE.md`, punto 5
   - **Lector:** lectores de códigos USB, Bluetooth o de gatillo, que se comportan como un teclado: escriben el código y un Enter. Deben ser lectores **2D** (ver «Equipos recomendados»).
   - **Manual:** buscar por nombre y marcar, o, en los grupos, la lista de integrantes con un interruptor por persona.
 - **Consulta:** historial de reuniones con su total de asistentes; detalle de una reunión con la lista de asistentes; asistencia de un grupo en sus últimas semanas; y asistencia de un miembro en su ficha.
+- **Seguimiento de asistencia** (ampliación, ver su sección): qué reuniones le corresponden a cada miembro, a cuáles asistió y a cuáles faltó, su evolución semana a semana y alertas (faltas seguidas, asistencia en caída, nuevos que no volvieron), a nivel de miembro, de grupo y de servicio, con la lista de seguimiento de cada líder.
 - **Permisos nuevos** en `iglesia-seguridad` (ver «Permisos y ámbito»), pensados para que la iglesia cree un perfil «Ujier» o «Servidor de asistencia» que solo marque asistencia.
 - **Documentación y cierre:** OpenAPI, Postman, pruebas y diagrama, como en las specs anteriores.
 
@@ -42,7 +43,7 @@ La asistencia es el módulo prioritario de la hoja de ruta (`CLAUDE.md`, punto 5
 - QR dentro del portal del miembro o en billeteras del celular (Apple Wallet, Google Wallet): llega con la spec del portal.
 - QR dinámico (que cambia cada pocos segundos).
 - Autoregistro del miembro (que él mismo escanee un QR de la reunión).
-- Alertas por inasistencia y seguimiento de quien deja de venir (spec de seguimiento y consolidación).
+- Registro de llamadas y contactos a quien deja de venir (spec de seguimiento y consolidación): esta spec solo detecta a quién hay que contactar.
 - Exportar a Excel o PDF y reportes globales entre iglesias.
 - Hora de llegada como dato de puntualidad (se guarda cuándo se marcó, pero no se reporta tardanza).
 
@@ -172,7 +173,7 @@ Nuevo contexto **`asistencia/`** (`com.iglesia.api.asistencia.<tipo>`):
   - `CodigoAsistenciaService` (o dentro de `miembros/service`, que es dueño de la columna): obtener o generar el código de un miembro y regenerarlo. `asistencia` lo usa por su `service`, sin depender de las entidades de miembros.
 - **Consultas:**
   - Totales por reunión con `COUNT` agrupado en JPQL (sin N+1).
-  - Asistencia de un miembro: últimas reuniones y porcentaje de las últimas 8 semanas, calculado en la base sobre las reuniones de los cultos activos y de su grupo.
+  - Asistencia de un miembro: últimas reuniones y porcentaje de las últimas 8 semanas, calculado en la base con la regla de «Seguimiento de asistencia» (días de culto y reuniones de su grupo).
   - Todas las consultas filtran por `iglesia_id` (Hibernate `@TenantId` y RLS).
 
 ### Endpoints de `iglesia-api`
@@ -404,8 +405,118 @@ Esta sección se documenta también como ayuda dentro de la pantalla de escaneo 
 - **Celulares lentos o con poca luz:** se mitiga con la decodificación en un web worker, el `BarcodeDetector` nativo cuando existe, la linterna y el modo Lector como alternativa.
 - **Fotochecks impresos de mala calidad:** QR de al menos 25 mm con margen blanco y el código impreso debajo para escribirlo a mano.
 - **Conexión saturada en un culto grande:** cada marca es una petición pequeña y no se recarga la lista. Si se cae, se avisa y se sigue a mano.
-- **Ruido en las consultas de porcentaje:** el porcentaje de un miembro depende de qué reuniones cuentan (cultos activos y su grupo); se documenta en la ficha con un texto de ayuda.
+- **Ruido en las consultas de porcentaje:** el porcentaje de un miembro depende de qué reuniones le corresponden; la regla de «Seguimiento de asistencia» (días de culto, no servicios) evita que dos servicios el mismo día le bajen el porcentaje, y se explica en la ficha con un texto de ayuda.
+- **Grupo actual y no histórico:** no se guarda desde cuándo alguien está en su grupo; las reuniones de grupo se cuentan con su grupo actual. Si cambió de grupo hace poco, sus semanas anteriores pueden verse como faltas.
+- **Costo de calcular el seguimiento de toda la iglesia:** se calcula en una sola consulta (CTE) sobre las últimas 12 semanas, con índices por `(iglesia_id, fecha)` y `(iglesia_id, miembro_id)`; nunca miembro por miembro.
 - **Peso de las librerías nuevas:** `qr-scanner` y `qrcode` se cargan solo en las pantallas que las usan.
+
+## Ampliación: seguimiento de asistencia
+
+**Objetivo:** que la iglesia vea no solo quién vino, sino **quién está faltando**, cómo evoluciona cada persona, cada grupo y cada servicio, y a quién debe contactar cada líder. Es la base de la futura spec de consolidación (registro de llamadas).
+
+### Qué reuniones le corresponden a un miembro (regla de cálculo)
+
+- **Día de culto:** todas las reuniones de tipo culto de una misma fecha cuentan como **una sola ocasión**. Si una iglesia tiene dos servicios el domingo, ir a cualquiera de los dos es asistir ese domingo; faltar a ambos es una falta. Solo cuentan los días en que se abrió al menos una reunión de culto.
+- **Reunión de su grupo:** cada reunión de su grupo **actual** es una ocasión. Quien no tiene grupo solo tiene días de culto.
+- **Eventos:** no generan faltas. Si asistió, aparece como asistencia «extra» en su historial, sin cambiar el porcentaje.
+- **Desde cuándo:** solo cuentan las ocasiones desde su `fecha_ingreso` (o desde su registro, si no la tiene) y mientras esté activo.
+- **Porcentaje** = ocasiones asistidas ÷ ocasiones que le corresponden, en un período. Sin ocasiones, «sin datos» (no 0 %).
+- **Semana:** de lunes a domingo; la evolución muestra las últimas 12 semanas y el cálculo analiza 16 (las 8 actuales y las 8 anteriores, para la tendencia).
+- **Hoy:** una ocasión de hoy solo cuenta si ya asistió; mientras la reunión está en curso no es falta.
+- Esta regla reemplaza a la del resumen de la ficha («cultos activos y su grupo»), que con dos servicios el mismo día impedía llegar al 100 %.
+
+### Alertas
+
+| Alerta | Cuándo se marca | Valor por defecto |
+|---|---|---|
+| **Faltas seguidas** | Las últimas *N* ocasiones que le correspondían, seguidas, sin asistir. | N = 3 |
+| **Asistencia en caída** | Su porcentaje de las últimas 4 semanas es al menos *P* puntos menor que el de las 8 semanas anteriores, y en esas 8 tenía al menos 50 %. | P = 30 |
+| **Nuevo sin volver** | Condición «Nuevo» o ingresó en los últimos *D* días, ingresó hace al menos 14 días, asistió como mucho 2 días y no vino en los últimos 14 días. | D = 90 |
+
+- Los tres valores los configura cada iglesia (`asistencia.configurar`), con límites (N de 2 a 10, P de 10 a 80, D de 30 a 180).
+- Una persona puede tener varias alertas; se ordenan por gravedad: faltas seguidas, nuevo sin volver, asistencia en caída.
+- **Lista para el líder:** cada líder ve las personas de **su red** (las que lidera directa o indirectamente) con alertas: es su lista de a quién llamar.
+
+### Modelo de datos — migración `V10__seguimiento_de_asistencia.sql`
+
+```sql
+CREATE TABLE configuracion_seguimiento (
+    iglesia_id       BIGINT   PRIMARY KEY REFERENCES iglesia (id),
+    faltas_seguidas  SMALLINT NOT NULL DEFAULT 3  CHECK (faltas_seguidas BETWEEN 2 AND 10),
+    puntos_caida     SMALLINT NOT NULL DEFAULT 30 CHECK (puntos_caida BETWEEN 10 AND 80),
+    dias_nuevo       SMALLINT NOT NULL DEFAULT 90 CHECK (dias_nuevo BETWEEN 30 AND 180)
+);
+CREATE INDEX ix_reunion_tipo_fecha ON reunion (iglesia_id, tipo, fecha);
+SELECT habilitar_aislamiento_por_iglesia('configuracion_seguimiento');
+```
+
+- Sin fila, se usan los valores por defecto (no hace falta crearla al dar de alta una iglesia).
+- No se guardan alertas ni porcentajes: se calculan al consultar, así siempre reflejan la última marca.
+
+### Backend `iglesia-api`
+
+- **`asistencia/service/SeguimientoAsistenciaService`:** ocasiones de un miembro, indicadores, evolución semanal y alertas; seguimiento de un grupo; lista de seguimiento; evolución por servicio.
+- **`asistencia/repository/SeguimientoRepository`:** consultas nativas con CTE que arman las ocasiones (días de culto ∪ reuniones de su grupo) y las cruzan con `asistencia`, para **todos** los miembros de la consulta a la vez, filtrando `iglesia_id` en cada paso. La red del líder usa la CTE recursiva de miembros.
+- **`asistencia/model/TipoAlerta`:** enum con una *Strategy* por constante (cada alerta sabe cuándo se marca) cuyo orden de declaración es la gravedad; `ReglasSeguimiento` lleva los valores de la iglesia o los por defecto (`ConfiguracionSeguimiento`).
+- Los indicadores de todas las personas del ámbito salen de **una** consulta; las alertas, el orden por riesgo y la paginación de la lista se hacen en memoria sobre ese resultado.
+- **Ámbito:** `asistencia.ver` ve a toda la iglesia; `asistencia.grupo` ve a su red; la ficha sigue la regla de «Asistencia de un miembro» (`asistencia.ver` o `miembros.ver` con ámbito). Fuera de ámbito, 404.
+
+| Método y ruta | Permiso | Descripción |
+|---|---|---|
+| `GET /api/miembros/{id}/asistencia` | `asistencia.ver` o `miembros.ver` con ámbito | (se amplía) porcentaje de 8 semanas, porcentaje de las 8 anteriores (tendencia), faltas seguidas actuales, última asistencia, alertas, 12 semanas (`esperadas`, `asistidas`) y últimas reuniones. |
+| `GET /api/miembros/{id}/asistencia/ocasiones?desde=&hasta=&estado=&page=&size=` | ídem | Historial de ocasiones: fecha, día de culto o reunión de grupo (con las reuniones de ese día), `ASISTIO` · `FALTO` · `EXTRA` (evento). Filtro `estado`; paginado, lo más reciente primero. |
+| `GET /api/grupos/{id}/seguimiento` | `asistencia.ver`, o `asistencia.grupo` si lo lidera | Evolución semanal del grupo (12 semanas: integrantes, presentes, %) e integrantes con porcentaje, faltas seguidas, última asistencia y alertas. |
+| `GET /api/seguimiento-asistencia?alerta=&grupoId=&q=&todos=&page=&size=` | `asistencia.ver` (toda la iglesia) o `asistencia.grupo` (su red) | Lista de seguimiento: miembros activos con alertas (`alerta` filtra por una; con `todos=true` incluye también a quienes están al día), ordenados por gravedad, faltas seguidas y porcentaje. Paginado en el servidor. |
+| `GET /api/seguimiento-asistencia/conteos?grupoId=&q=` | ídem | Cantidad de personas con alguna alerta y con cada alerta, para los filtros. |
+| `GET /api/seguimiento-asistencia/servicios` | `asistencia.ver` | Últimas 12 semanas: total por culto programado, personas distintas por día de culto, presentes en grupos y porcentaje de los grupos. |
+| `GET · PUT /api/configuracion-seguimiento` | `asistencia.ver` o `asistencia.configurar` (leer) · `asistencia.configurar` (cambiar) | Valores de las alertas. 400 fuera de los límites. |
+
+### Frontend
+
+- **Ficha del miembro, tarjeta «Asistencia»** (se amplía):
+  - porcentaje de 8 semanas con flecha de tendencia (↑ ↓ =) frente a las 8 anteriores, faltas seguidas y «Última vez: hace 12 días»;
+  - etiquetas de alerta («3 faltas seguidas», «Asistencia en caída», «Nuevo sin volver»);
+  - mini barras de las 12 semanas (asistió / faltó);
+  - enlace «Ver seguimiento».
+- **`/miembros/:id/asistencia` — Seguimiento del miembro** (nueva página):
+  - indicadores arriba (porcentaje, tendencia, faltas seguidas, última asistencia, alertas);
+  - gráfico de barras apiladas por semana (asistió / faltó) con `p-chart` (Chart.js, ya incluido en Sakai);
+  - grilla paginada en el servidor de ocasiones con filtro «Todas · Asistió · Faltó» (en el móvil, tarjetas con el mismo paginador): fecha, ocasión, estado con ícono y color, y a qué reunión fue.
+- **Detalle del grupo, tarjeta «Asistencia»** (se amplía): gráfico de evolución semanal del grupo (% de integrantes presentes) e integrantes con porcentaje, faltas seguidas, última asistencia y alertas, ordenados por riesgo; grilla paginada en el navegador.
+- **`/asistencia/seguimiento` — Seguimiento** (nueva página, menú «Iglesia › Seguimiento», visible con `asistencia.ver` o `asistencia.grupo`):
+  - pestaña **«Personas»**: lista de seguimiento con filtros por alerta (selector con su cantidad), grupo, nombre y «Mostrar también a quienes están al día»; grilla paginada en el servidor con nombre, grupo, líder, porcentaje, tendencia, faltas seguidas, última asistencia y alertas; clic abre el seguimiento del miembro. Un líder ve aquí su red: es su lista de a quién llamar.
+  - pestaña **«Servicios»** (`asistencia.ver`): gráfico de líneas de las últimas 12 semanas por culto programado y por día de culto (personas distintas), y de presentes en grupos; tabla con promedio, máximo, semana pasada y variación por servicio (sobre las semanas cerradas: la actual no entra).
+- **Horarios de culto:** sección «Reglas de seguimiento» con los tres valores (faltas seguidas, puntos de caída, días como nuevo) y su explicación.
+- Colores: asistió con `success`, faltó con `danger`, extra con `info`; siempre con ícono y texto, y los gráficos con tabla o texto alternativo accesible.
+
+### Plan de implementación (ampliación)
+
+13. **`iglesia-api`, base y cálculo:** migración `V10`, `ConfiguracionSeguimiento`, `SeguimientoRepository` (CTE) y `SeguimientoAsistenciaService` con la regla de días de culto; el resumen de la ficha pasa a la nueva regla; pruebas unitarias de la regla y de cada alerta.
+14. **`iglesia-api`, endpoints:** ocasiones del miembro, seguimiento del grupo, lista de seguimiento (con la red del líder), servicios y configuración; OpenAPI; pruebas de integración (ámbito del líder y aislamiento entre iglesias).
+15. **Postman:** carpeta «Seguimiento de asistencia» y newman sin fallos.
+16. **Frontend, miembro:** tarjeta ampliada en la ficha y página `/miembros/:id/asistencia`.
+17. **Frontend, grupo y seguimiento:** tarjeta ampliada del grupo, página `/asistencia/seguimiento` (Personas y Servicios), reglas en Horarios de culto y menú.
+18. **Datos de demostración y verificación:** recalcular con «Iglesia Demo Asistencia»; `ng test`, `ng build`, `./gradlew test`.
+19. Agregar al diagrama `spec-09-asistencia.drawio` una página «Seguimiento de asistencia» (regla de ocasiones, alertas y pantallas).
+
+### Criterios de aceptación (ampliación)
+
+- [ ] Quien va a uno de los dos servicios de un domingo cuenta como asistido ese domingo; con asistencia perfecta llega a 100 %.
+- [ ] Los eventos no cuentan como faltas y aparecen como «extra»; las ocasiones anteriores a la fecha de ingreso no cuentan.
+- [ ] La ficha muestra porcentaje, tendencia, faltas seguidas, última asistencia, alertas y las 12 semanas; «Ver seguimiento» lista cada ocasión con «Asistió» o «Faltó».
+- [ ] Las tres alertas se calculan con los valores de la iglesia y cambian al cambiar la configuración; fuera de los límites responde 400.
+- [ ] El detalle del grupo muestra su evolución semanal y a sus integrantes ordenados por riesgo.
+- [ ] «Seguimiento › Personas» filtra por alerta, grupo y nombre, paginado en el servidor; un líder solo ve a su red y otra persona responde 404 en su ficha de seguimiento.
+- [ ] «Seguimiento › Servicios» muestra la evolución de cada culto, de los días de culto y de los grupos.
+- [ ] El seguimiento de toda la iglesia se calcula en una sola consulta por pantalla (sin consultas por miembro).
+- [ ] OpenAPI, Postman, pruebas (`.spec.ts` y paginador en cada grilla nueva) y diagrama actualizados.
+
+### Decisiones (ampliación)
+
+- **Día de culto y no servicio:** refleja lo que la iglesia quiere saber («¿vino el domingo?») sin castigar a quien va a un solo servicio.
+- **Alertas calculadas, no guardadas:** siempre al día y sin tareas programadas; si un día pesa, se puede materializar sin cambiar la API.
+- **Grupo actual:** simple y suficiente mientras no se guarde el historial de grupos.
+- **Configuración por iglesia con valores por defecto:** funciona sin configurar nada y cada iglesia ajusta su exigencia.
 
 ## Qué **no** entra en esta spec
 
@@ -413,5 +524,5 @@ Esta sección se documenta también como ayuda dentro de la pantalla de escaneo 
 - Funcionamiento sin conexión.
 - QR en el portal del miembro, billeteras del celular o QR dinámico.
 - Autoregistro del miembro escaneando un QR de la reunión.
-- Alertas por inasistencia, seguimiento y reportes de tardanza.
+- Registro de llamadas y resultado del contacto (spec de seguimiento y consolidación), notificaciones (correo, WhatsApp, push) y reportes de tardanza.
 - Exportación a Excel o PDF y reportes entre iglesias.

@@ -1,0 +1,11 @@
+<ol class="list-none p-0 m-0 grid grid-cols-12 gap-1" aria-label="Asistencia por semana, de la más antigua a la actual">
+    @for (semana of semanas(); track semana.inicio) {
+    <li class="h-6 rounded" [class]="clase(semana)" [pTooltip]="texto(semana)" tooltipPosition="top" tabindex="0" [attr.aria-label]="texto(semana)"></li>
+    }
+</ol>
+<div class="flex justify-between text-xs text-muted-color mt-1" aria-hidden="true">
+    @if (semanas().length > 0) {
+    <span>{{ etiqueta(semanas()[0].inicio) }}</span>
+    <span>Esta semana</span>
+    }
+</div>

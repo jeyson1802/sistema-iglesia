@@ -3,7 +3,7 @@ import { of } from 'rxjs';
 import { OpcionesMiembroService } from '@/app/shared/components/selector-miembro/opciones-miembro.service';
 import { FiltroAportes } from '../../models/aporte';
 import { filtroInicial } from '../../models/filtro-url';
-import { rangoDe } from '../../models/periodo';
+import { rangoDe } from '@/app/shared/utils/periodo';
 import { DIEZMO, OFRENDA } from '../../testing/aportes-prueba';
 import { FiltrosAportesComponent } from './filtros-aportes';
 

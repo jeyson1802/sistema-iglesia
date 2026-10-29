@@ -23,6 +23,8 @@ import { UsuariosService } from '@/app/features/usuarios/services/usuarios.servi
 import { Rol } from '@/app/core/auth/models/rol';
 import { AportesMiembroComponent } from '../components/aportes-miembro/aportes-miembro';
 import { ArbolLiderazgoComponent } from '../components/arbol-liderazgo/arbol-liderazgo';
+import { AsistenciaMiembroComponent } from '../components/asistencia-miembro/asistencia-miembro';
+import { CodigoAsistenciaMiembroComponent } from '../components/codigo-asistencia-miembro/codigo-asistencia-miembro';
 import { DarAccesoComponent, RolAccesoMiembro } from '../components/dar-acceso/dar-acceso';
 import { FormularioMiembroComponent } from '../components/formulario-miembro/formulario-miembro';
 import { ProgresoFichaComponent } from '../components/progreso-ficha/progreso-ficha';
@@ -57,7 +59,22 @@ const BOTONES_CONFIRMACION = {
  */
 @Component({
     selector: 'app-miembro-ficha',
-    imports: [RouterLink, ButtonModule, ConfirmDialogModule, MessageModule, SkeletonModule, TagModule, ToastModule, AportesMiembroComponent, ArbolLiderazgoComponent, DarAccesoComponent, FormularioMiembroComponent, ProgresoFichaComponent],
+    imports: [
+        RouterLink,
+        ButtonModule,
+        ConfirmDialogModule,
+        MessageModule,
+        SkeletonModule,
+        TagModule,
+        ToastModule,
+        AportesMiembroComponent,
+        ArbolLiderazgoComponent,
+        AsistenciaMiembroComponent,
+        CodigoAsistenciaMiembroComponent,
+        DarAccesoComponent,
+        FormularioMiembroComponent,
+        ProgresoFichaComponent
+    ],
     providers: [ConfirmationService, MessageService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './miembro-ficha.html'
@@ -101,6 +118,8 @@ export class MiembroFichaComponent {
         const miembro = this.miembro();
         return miembro ? nombreCompleto(miembro) : 'Nuevo miembro';
     });
+    /** El código de asistencia lo consulta quien ve miembros (el backend lo exige). */
+    protected readonly puedeVerCodigo = computed(() => this.sesion.tienePermiso('miembros.ver'));
     protected readonly puedeCambiarEstado = computed(() => this.sesion.tienePermiso('miembros.desactivar'));
     protected readonly puedeDesignarPastor = computed(() => {
         const miembro = this.miembro();

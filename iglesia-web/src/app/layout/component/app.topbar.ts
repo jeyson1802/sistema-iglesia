@@ -5,6 +5,7 @@ import { MenuItem } from 'primeng/api';
 import { AvatarModule } from 'primeng/avatar';
 import { ButtonModule } from 'primeng/button';
 import { MenuModule } from 'primeng/menu';
+import { OverlayBadgeModule } from 'primeng/overlaybadge';
 import { TagModule } from 'primeng/tag';
 import { RUTAS_AUTH } from '@/app/core/auth/models/rutas-auth';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
@@ -18,7 +19,7 @@ const RUTA_CAMBIAR_CONTRASENA = '/cuenta/contrasena';
 
 @Component({
     selector: 'app-topbar',
-    imports: [RouterModule, AvatarModule, ButtonModule, MenuModule, TagModule, LogoIglesiaComponent],
+    imports: [RouterModule, AvatarModule, ButtonModule, MenuModule, OverlayBadgeModule, TagModule, LogoIglesiaComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './app.topbar.html'
 })
@@ -44,6 +45,8 @@ export class AppTopbar {
 
     protected readonly actuandoEnIglesia = computed(() => this.iglesiaActuandoId() !== null);
     protected readonly saliendo = signal(false);
+
+    protected readonly etiquetaMenuUsuario = computed(() => `Menú de usuario: ${this.correo()}${this.actuandoEnIglesia() ? `, operando en ${this.nombreIglesia() ?? 'una iglesia'}` : ''}`);
 
     /** Opciones del menú de usuario; «Cambiar perfil» solo tiene sentido con más de un perfil. */
     protected readonly opcionesUsuario = computed<MenuItem[]>(() => [

@@ -82,4 +82,22 @@ describe('MiembrosService', () => {
         expect(http.expectOne({ method: 'PATCH', url: `${url}/22/estado` }).request.body).toEqual({ activo: false });
         http.expectOne({ method: 'PUT', url: `${url}/22/pastor-principal` });
     });
+
+    it('obtiene y regenera el código del QR', () => {
+        servicio.codigoAsistencia(22).subscribe();
+        servicio.regenerarCodigoAsistencia(22).subscribe();
+
+        expect(http.expectOne({ method: 'GET', url: `${url}/22/codigo-asistencia` })).toBeTruthy();
+        expect(http.expectOne({ method: 'POST', url: `${url}/22/codigo-asistencia` })).toBeTruthy();
+    });
+
+    it('pide los fotochecks con los filtros del listado, sin página ni orden', () => {
+        servicio.fotochecks({ ...FILTRO_MIEMBROS_INICIAL, nivelId: 3 }).subscribe();
+
+        const parametros = http.expectOne((r) => r.url === `${url}/fotochecks`).request.params;
+        expect(parametros.get('nivelId')).toBe('3');
+        expect(parametros.get('activo')).toBe('true');
+        expect(parametros.has('page')).toBeFalse();
+        expect(parametros.has('sort')).toBeFalse();
+    });
 });

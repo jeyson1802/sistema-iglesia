@@ -39,6 +39,14 @@ public class UsuarioActual {
 			.orElse(Set.of());
 	}
 
+	/** Si el token trae el permiso (las autoridades sin prefijo son los permisos del claim {@code permisos}). */
+	public boolean tienePermiso(String permiso) {
+		Authentication autenticacion = SecurityContextHolder.getContext().getAuthentication();
+		return autenticacion != null && autenticacion.getAuthorities()
+			.stream()
+			.anyMatch(autoridad -> permiso.equals(autoridad.getAuthority()));
+	}
+
 	private static Optional<Jwt> token() {
 		Authentication autenticacion = SecurityContextHolder.getContext().getAuthentication();
 		if (autenticacion instanceof JwtAuthenticationToken token) {

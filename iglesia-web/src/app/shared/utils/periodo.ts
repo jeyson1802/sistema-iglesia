@@ -1,6 +1,6 @@
 import { hoyIso } from '@/app/shared/utils/fecha';
 
-/** Atajos de período del filtro de aportes. */
+/** Atajos de período de los filtros por rango de fechas (aportes, asistencia). */
 export const PERIODOS = ['HOY', 'SEMANA', 'MES', 'MES_ANTERIOR', 'ANIO', 'PERSONALIZADO'] as const;
 export type Periodo = (typeof PERIODOS)[number];
 

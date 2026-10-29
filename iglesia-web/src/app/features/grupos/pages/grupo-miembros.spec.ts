@@ -7,12 +7,16 @@ import { Confirmation, ConfirmationService } from 'primeng/api';
 import { Permiso } from '@/app/core/auth/models/permiso';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
 import { ConfiguracionIglesiaService } from '@/app/core/configuracion/configuracion-iglesia.service';
+import { ReunionesService } from '@/app/features/asistencia/services/reuniones.service';
+import { SeguimientoService } from '@/app/features/asistencia/services/seguimiento.service';
 import { GruposService } from '../services/grupos.service';
 import { BETANIA, LUIS_EN_OTRO_GRUPO, OLIVOS, ROSA, TITO_SIN_GRUPO } from '../testing/grupos-prueba';
 import { GrupoMiembrosComponent } from './grupo-miembros';
 
 describe('GrupoMiembrosComponent', () => {
     let servicio: jasmine.SpyObj<GruposService>;
+    let reuniones: jasmine.SpyObj<ReunionesService>;
+    let seguimiento: jasmine.SpyObj<SeguimientoService>;
     let permisos: Set<Permiso>;
     let fixture: ComponentFixture<GrupoMiembrosComponent>;
     let confirmaciones: Confirmation[];
@@ -27,6 +31,8 @@ describe('GrupoMiembrosComponent', () => {
                 provideRouter([]),
                 { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ id: '4' })) } },
                 { provide: GruposService, useValue: servicio },
+                { provide: ReunionesService, useValue: reuniones },
+                { provide: SeguimientoService, useValue: seguimiento },
                 { provide: ConfiguracionIglesiaService, useValue: { nombresGrupos: signal({ nombreGrupoSingular: 'Célula', nombreGrupoPlural: 'Células' }) } },
                 { provide: SesionService, useValue: { tienePermiso: (permiso: Permiso) => permisos.has(permiso) } }
             ]
@@ -49,6 +55,24 @@ describe('GrupoMiembrosComponent', () => {
         servicio.candidatos.and.returnValue(of([LUIS_EN_OTRO_GRUPO, TITO_SIN_GRUPO]));
         servicio.agregarIntegrante.and.callFake((_, id) => of(id === TITO_SIN_GRUPO.id ? TITO_SIN_GRUPO : LUIS_EN_OTRO_GRUPO));
         servicio.quitarIntegrante.and.returnValue(of(undefined));
+        reuniones = jasmine.createSpyObj<ReunionesService>('ReunionesService', ['abrir']);
+        seguimiento = jasmine.createSpyObj<SeguimientoService>('SeguimientoService', ['delGrupo']);
+        seguimiento.delGrupo.and.returnValue(of({ semanas: [], integrantes: [] }));
+    });
+
+    it('con permisos de asistencia muestra la asistencia del grupo', async () => {
+        permisos.add('asistencia.grupo');
+        await crear();
+        fixture.detectChanges();
+
+        expect(seguimiento.delGrupo).toHaveBeenCalledWith(4);
+        expect(html().querySelector('app-asistencia-grupo')?.textContent).toContain('Tomar asistencia de otra fecha');
+    });
+
+    it('sin permisos de asistencia no la muestra', async () => {
+        await crear();
+
+        expect(seguimiento.delGrupo).not.toHaveBeenCalled();
     });
 
     it('titula el grupo por su líder y carga integrantes y candidatos', async () => {

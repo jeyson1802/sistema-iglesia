@@ -1,6 +1,6 @@
 import { convertToParamMap, ParamMap, Params } from '@angular/router';
 import { esMedioAporte, FiltroAportes } from './aporte';
-import { rangoDe } from './periodo';
+import { rangoDe } from '@/app/shared/utils/periodo';
 
 const FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 

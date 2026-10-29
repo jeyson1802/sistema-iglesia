@@ -1,0 +1,64 @@
+<div class="card">
+    <p-button label="Asistencia" icon="pi pi-arrow-left" [text]="true" severity="secondary" [routerLink]="rutaInicio" styleClass="mb-4 -ml-3" />
+
+    @if (cargando()) {
+    <div class="flex flex-col gap-3" role="status" aria-label="Cargando reunión">
+        <p-skeleton width="40%" height="2rem" />
+        <p-skeleton width="25%" height="1.25rem" />
+    </div>
+    } @else if (error()) {
+    <div class="flex flex-col items-center gap-4 py-8 text-center" role="alert">
+        <i class="pi pi-exclamation-circle text-4xl text-muted-color" aria-hidden="true"></i>
+        <span class="font-medium text-surface-900 dark:text-surface-0">{{ error() }}</span>
+        <p-button label="Volver a Asistencia" severity="secondary" [outlined]="true" [routerLink]="rutaInicio" />
+    </div>
+    } @else if (reunion(); as reunion) {
+    <header class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
+        <div class="flex flex-col gap-2">
+            <div class="flex items-center gap-2">
+                @if (tipo(); as tipo) {
+                <p-tag [value]="tipo.etiqueta" [severity]="tipo.severidad" />
+                }
+                <span class="text-muted-color first-letter:uppercase">{{ cuando() }}</span>
+            </div>
+            <h1 class="font-semibold text-2xl text-surface-900 dark:text-surface-0 m-0">{{ reunion.nombre }}</h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="text-right">
+                <span class="block text-4xl font-bold tabular-nums text-surface-900 dark:text-surface-0">{{ reunion.totalAsistentes }}</span>
+                <span class="text-muted-color">asistentes</span>
+            </div>
+            @if (puedeTomar()) {
+            <p-button label="Tomar asistencia" icon="pi pi-qrcode" [routerLink]="[rutaInicio, 'reuniones', reunion.id]" />
+            }
+        </div>
+    </header>
+
+    <div aria-live="polite">
+        @if (errorAccion()) {
+        <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-4">{{ errorAccion() }}</p-message>
+        }
+    </div>
+
+    <div class="mb-4 md:w-80">
+        <label for="detalle-busqueda" class="sr-only">Buscar asistente por nombre</label>
+        <p-iconfield>
+            <p-inputicon styleClass="pi pi-search" />
+            <input pInputText id="detalle-busqueda" type="search" [formControl]="busqueda" placeholder="Buscar por nombre" autocomplete="off" class="w-full" />
+        </p-iconfield>
+    </div>
+
+    @if (errorAsistentes()) {
+    <div class="flex flex-col items-center gap-4 py-8 text-center" role="alert">
+        <span class="font-medium text-surface-900 dark:text-surface-0">{{ errorAsistentes() }}</span>
+        <p-button label="Reintentar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="recargarAsistentes()" />
+    </div>
+    } @else {
+    <app-tabla-asistentes [asistentes]="asistentes()" [totalRegistros]="total()" [pagina]="pagina()" [tamanoPagina]="tamanoPagina()" [cargando]="cargandoAsistentes()" [filtrando]="filtrando()" (cambiarPagina)="cambiarPagina($event)" />
+    } @if (puedeEliminar()) {
+    <div class="flex justify-end mt-6 pt-4 border-t border-surface">
+        <p-button label="Eliminar evento" icon="pi pi-trash" severity="danger" [text]="true" [loading]="eliminando()" (onClick)="eliminar()" />
+    </div>
+    } }
+</div>
+<p-confirmdialog styleClass="w-full max-w-md mx-4" />

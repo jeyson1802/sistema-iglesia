@@ -1,0 +1,38 @@
+<section aria-labelledby="titulo-integrantes" class="flex flex-col gap-3">
+    <header class="flex items-center justify-between gap-3">
+        <h2 id="titulo-integrantes" class="text-base font-semibold m-0">Integrantes <span class="text-muted-color font-normal tabular-nums">· {{ presentes() }} de {{ integrantes().length }} presentes</span></h2>
+        <p-button label="Marcar a todos" icon="pi pi-check-square" severity="secondary" [outlined]="true" size="small" [disabled]="cargando() || todosPresentes() || procesando().size > 0" (onClick)="marcarTodos.emit()" />
+    </header>
+
+    @if (cargando()) {
+    <div class="flex flex-col gap-3" role="status" aria-label="Cargando integrantes">
+        @for (fila of [1, 2, 3]; track fila) {
+        <p-skeleton height="2.5rem" />
+        }
+    </div>
+    } @else if (integrantes().length === 0) {
+    <p class="text-muted-color m-0">El grupo aún no tiene integrantes. Busca abajo a quien vino.</p>
+    } @else {
+    <p-table [value]="filas()" [paginator]="true" [rows]="filasPorPagina" [rowsPerPageOptions]="opcionesPorPagina" [showCurrentPageReport]="true" [currentPageReportTemplate]="plantillaReporte" [alwaysShowPaginator]="true" dataKey="miembroId">
+        <ng-template #body let-miembro>
+            <tr>
+                <td class="w-full">
+                    <label [for]="'presente-' + miembro.miembroId" class="block cursor-pointer">
+                        <span class="block font-medium">{{ miembro.nombreCompleto }}</span>
+                        <span class="text-muted-color text-sm">{{ miembro.nivel ?? 'Sin nivel' }}</span>
+                    </label>
+                </td>
+                <td class="text-right">
+                    <p-toggleswitch
+                        [inputId]="'presente-' + miembro.miembroId"
+                        [ngModel]="miembro.presente"
+                        (ngModelChange)="cambiar.emit({ miembro, presente: $event })"
+                        [disabled]="procesando().has(miembro.miembroId)"
+                        [ariaLabel]="'Presente: ' + miembro.nombreCompleto"
+                    />
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+    }
+</section>

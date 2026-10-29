@@ -1,0 +1,47 @@
+@if (visible()) {
+<section aria-labelledby="titulo-asistencia-grupo">
+    <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <h2 id="titulo-asistencia-grupo" class="font-semibold text-lg m-0">Asistencia</h2>
+        @if (puedeMarcar()) {
+        <div class="flex flex-wrap gap-2">
+            @if (esHoy()) {
+            <p-button label="Tomar asistencia de hoy" icon="pi pi-check-square" [loading]="abriendo()" (onClick)="tomarHoy()" />
+            }
+            <p-button label="Tomar asistencia de otra fecha" icon="pi pi-calendar" severity="secondary" [outlined]="esHoy()" [text]="esHoy()" [disabled]="abriendo()" (onClick)="otraFecha()" />
+        </div>
+        }
+    </header>
+
+    @if (puedeVer()) { @if (cargando()) {
+    <p-skeleton height="12rem" styleClass="mb-4" />
+    @for (fila of [1, 2, 3]; track fila) {
+    <p-skeleton height="1.5rem" styleClass="mb-2" />
+    } } @else if (error()) {
+    <div class="flex flex-col items-start gap-2" role="alert">
+        <span class="text-muted-color">No se pudo cargar la asistencia del grupo.</span>
+        <p-button label="Reintentar" icon="pi pi-refresh" size="small" severity="secondary" [outlined]="true" (onClick)="cargar()" />
+    </div>
+    } @else if (datos(); as datos) { @if (huboReuniones()) {
+    <h3 class="font-medium text-base m-0 mb-2">Integrantes que asistieron, por semana</h3>
+    <app-grafico-evolucion tipo="line" [etiquetas]="etiquetasSemanas()" [series]="seriesSemanas()" [porcentaje]="true" descripcion="Porcentaje de integrantes que asistieron a la reunión del grupo por semana" alto="h-56" />
+    } @else {
+    <p class="text-muted-color m-0">Aún no hay reuniones con asistencia en las últimas 12 semanas.</p>
+    }
+    <h3 class="font-medium text-base mt-6 mb-1">Integrantes</h3>
+    <p class="text-sm text-muted-color m-0 mb-3">Primero quienes más necesitan seguimiento. Cuentan sus días de culto y las reuniones del grupo.</p>
+    <app-tabla-seguimiento
+        [personas]="datos.integrantes"
+        [paginaEnServidor]="false"
+        [mostrarGrupo]="false"
+        [pagina]="pagina()"
+        [tamanoPagina]="tamanoPagina()"
+        mensajeVacio="El grupo aún no tiene integrantes activos."
+        (cambiarPagina)="cambiarPagina($event)"
+        (ver)="verPersona($event)"
+    />
+    } }
+</section>
+
+<app-abrir-otra-fecha [(visible)]="otraFechaVisible" [origenes]="origenes()" [abriendo]="abriendo()" [error]="errorOtraFecha()" (abrir)="abrirOtraFecha($event)" />
+<p-toast position="top-right" />
+}

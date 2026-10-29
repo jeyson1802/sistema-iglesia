@@ -1,0 +1,55 @@
+<div class="flex flex-col gap-6">
+    <div class="card mb-0">
+        <p-button [label]="volver().etiqueta" icon="pi pi-arrow-left" [text]="true" severity="secondary" [routerLink]="volver().ruta" styleClass="mb-4 -ml-3" />
+        <header class="mb-6">
+            <h1 class="font-semibold text-2xl text-surface-900 dark:text-surface-0 m-0">Seguimiento de asistencia</h1>
+            @if (nombre(); as nombre) {
+            <p class="text-muted-color text-lg m-0 mt-1">{{ nombre }}</p>
+            }
+        </header>
+
+        @if (cargando()) {
+        <div class="flex flex-col gap-3" role="status" aria-label="Cargando seguimiento">
+            <p-skeleton width="60%" height="3rem" />
+            <p-skeleton width="30%" height="1.5rem" />
+        </div>
+        } @else if (error(); as error) {
+        <div class="flex flex-col items-center gap-4 py-8 text-center" role="alert">
+            <i class="pi pi-exclamation-circle text-4xl text-muted-color" aria-hidden="true"></i>
+            <span class="font-medium text-surface-900 dark:text-surface-0">{{ error }}</span>
+            <p-button label="Reintentar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="cargar()" />
+        </div>
+        } @else if (resumen(); as resumen) {
+        <app-indicadores-asistencia [indicadores]="resumen" />
+        <div class="mt-4">
+            <app-etiquetas-alerta [alertas]="resumen.alertas" [faltasSeguidas]="resumen.faltasSeguidas" [mostrarAlDia]="true" />
+        </div>
+        <p class="text-sm text-muted-color mt-4 mb-0">
+            <i class="pi pi-info-circle mr-1" aria-hidden="true"></i>Le corresponden los días de culto (ir a cualquier culto del día basta) y las reuniones de su grupo, desde su fecha de ingreso. Los eventos no cuentan como falta y lo de hoy solo
+            cuenta si ya asistió.
+        </p>
+        }
+    </div>
+
+    @if (resumen(); as resumen) {
+    <section class="card mb-0" aria-labelledby="titulo-evolucion">
+        <h2 id="titulo-evolucion" class="font-semibold text-lg m-0 mb-4">Evolución de las últimas 12 semanas</h2>
+        <app-grafico-evolucion [etiquetas]="etiquetasSemanas()" [series]="seriesSemanas()" [apilado]="true" descripcion="Ocasiones a las que asistió y faltó por semana" />
+    </section>
+    }
+
+    <section class="card mb-0" aria-labelledby="titulo-historial">
+        <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+            <h2 id="titulo-historial" class="font-semibold text-lg m-0">Historial de ocasiones</h2>
+            <p-selectbutton [options]="opcionesEstado" optionLabel="etiqueta" optionValue="valor" [allowEmpty]="false" [formControl]="estado" aria-label="Filtrar el historial" />
+        </header>
+        @if (errorOcasiones()) {
+        <div class="flex flex-col items-start gap-2" role="alert">
+            <span class="text-muted-color">No se pudo cargar el historial.</span>
+            <p-button label="Reintentar" icon="pi pi-refresh" size="small" severity="secondary" [outlined]="true" (onClick)="cargarOcasiones()" />
+        </div>
+        } @else {
+        <app-tabla-ocasiones [ocasiones]="ocasiones()" [totalRegistros]="totalOcasiones()" [pagina]="pagina()" [tamanoPagina]="tamanoPagina()" [cargando]="cargandoOcasiones()" (cambiarPagina)="cambiarPagina($event)" />
+        }
+    </section>
+</div>

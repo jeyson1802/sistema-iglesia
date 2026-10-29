@@ -1,0 +1,43 @@
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+    <section aria-labelledby="titulo-cultos">
+        <h3 id="titulo-cultos" class="font-medium text-base m-0 mb-3">Cultos por semana</h3>
+        <app-grafico-evolucion tipo="line" [etiquetas]="etiquetas()" [series]="seriesCultos()" descripcion="Asistentes de cada culto y personas distintas en los cultos por semana" alto="h-72" />
+    </section>
+    <section aria-labelledby="titulo-grupos">
+        <h3 id="titulo-grupos" class="font-medium text-base m-0 mb-3">{{ nombreGrupos() }}: porcentaje de asistencia</h3>
+        <app-grafico-evolucion tipo="line" [etiquetas]="etiquetas()" [series]="seriesGrupos()" [porcentaje]="true" [descripcion]="'Porcentaje de asistencia en ' + nombreGrupos().toLowerCase() + ' por semana'" alto="h-72" />
+    </section>
+</div>
+
+<h3 class="font-medium text-base mt-6 mb-1">Resumen de las semanas cerradas</h3>
+<p class="text-sm text-muted-color m-0 mb-3">La semana actual aún no termina y no entra en el resumen. La variación compara la semana pasada con el promedio de las anteriores.</p>
+<p-table
+    [value]="filas()"
+    [scrollable]="true"
+    tableStyleClass="min-w-160"
+    [paginator]="true"
+    [rows]="filasPorPagina"
+    [rowsPerPageOptions]="opcionesPorPagina"
+    [alwaysShowPaginator]="true"
+    [showCurrentPageReport]="true"
+    [currentPageReportTemplate]="plantillaReporte"
+>
+    <ng-template #header>
+        <tr>
+            <th scope="col">Servicio</th>
+            <th scope="col" class="text-right">Promedio</th>
+            <th scope="col" class="text-right">Máximo</th>
+            <th scope="col" class="text-right">Semana pasada</th>
+            <th scope="col" class="text-right">Variación</th>
+        </tr>
+    </ng-template>
+    <ng-template #body let-fila>
+        <tr>
+            <td class="font-medium">{{ fila.servicio }}</td>
+            <td class="text-right tabular-nums">{{ valor(fila.promedio, fila.esPorcentaje) }}</td>
+            <td class="text-right tabular-nums">{{ valor(fila.maximo, fila.esPorcentaje) }}</td>
+            <td class="text-right tabular-nums">{{ valor(fila.semanaPasada, fila.esPorcentaje) }}</td>
+            <td class="text-right"><p-tag [value]="variacion(fila)" [severity]="severidadVariacion(fila)" /></td>
+        </tr>
+    </ng-template>
+</p-table>

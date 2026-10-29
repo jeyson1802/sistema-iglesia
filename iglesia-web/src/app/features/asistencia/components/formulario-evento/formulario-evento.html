@@ -1,0 +1,59 @@
+<p-dialog [(visible)]="visible" header="Crear evento" [modal]="true" [draggable]="false" [dismissableMask]="!guardando()" [closable]="!guardando()" styleClass="w-full max-w-md mx-4">
+    <p class="text-muted-color m-0 mb-4">Convenciones, vigilias, bautismos… Se crea una reunión por día para tomar asistencia en cada uno.</p>
+    <div aria-live="polite">
+        @if (error()) {
+        <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-4">{{ error() }}</p-message>
+        }
+    </div>
+
+    <form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-4" novalidate>
+        <div class="flex flex-col gap-2">
+            <label for="evento-nombre" class="font-medium">Nombre</label>
+            <input pInputText id="evento-nombre" formControlName="nombre" autocomplete="off" [maxlength]="nombreMax" placeholder="Ej.: Convención anual" [fluid]="true" />
+            <app-mensaje-error-campo [control]="formulario.controls.nombre" [mensajes]="mensajesNombre" />
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <label for="evento-inicio" class="font-medium">{{ unaSolaFecha() ? 'Fecha' : 'Fecha de inicio' }}</label>
+            <p-datepicker inputId="evento-inicio" formControlName="fechaInicio" dateFormat="dd/mm/yy" [showIcon]="true" [readonlyInput]="true" [fluid]="true" />
+            <app-mensaje-error-campo [control]="formulario.controls.fechaInicio" [mensajes]="mensajesInicio" />
+        </div>
+
+        <div class="flex items-center gap-3">
+            <p-toggleswitch inputId="evento-una-fecha" formControlName="unaSolaFecha" />
+            <label for="evento-una-fecha" class="font-medium">Una sola fecha</label>
+        </div>
+
+        @if (!unaSolaFecha()) {
+        <div class="flex flex-col gap-2">
+            <label for="evento-fin" class="font-medium">Fecha de fin</label>
+            <p-datepicker
+                inputId="evento-fin"
+                formControlName="fechaFin"
+                dateFormat="dd/mm/yy"
+                [minDate]="inicio()"
+                [maxDate]="finMaximo(inicio())"
+                [showIcon]="true"
+                [readonlyInput]="true"
+                [fluid]="true"
+                [attr.aria-describedby]="'evento-fin-ayuda'"
+            />
+            @if (finFueraDeRango()) {
+            <small class="text-red-500" role="alert">La fecha de fin debe estar entre la de inicio y {{ diasMax - 1 }} días después.</small>
+            } @else {
+            <small id="evento-fin-ayuda" class="text-muted-color">Hasta {{ diasMax }} días en total.</small>
+            }
+        </div>
+        }
+
+        <div class="flex flex-col gap-2">
+            <label for="evento-hora" class="font-medium">Hora <span class="text-muted-color font-normal">(opcional)</span></label>
+            <p-datepicker inputId="evento-hora" formControlName="hora" [timeOnly]="true" hourFormat="24" [showIcon]="true" iconDisplay="input" placeholder="HH:mm" [fluid]="true" />
+        </div>
+
+        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-2">
+            <p-button label="Cancelar" severity="secondary" [outlined]="true" [disabled]="guardando()" (onClick)="cerrar()" />
+            <p-button type="submit" label="Crear evento" icon="pi pi-check" [loading]="guardando()" [disabled]="!valido() || guardando()" />
+        </div>
+    </form>
+</p-dialog>

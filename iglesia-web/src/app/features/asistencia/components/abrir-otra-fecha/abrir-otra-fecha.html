@@ -1,0 +1,38 @@
+<p-dialog [(visible)]="visible" header="Tomar asistencia de otra fecha" [modal]="true" [draggable]="false" [dismissableMask]="!abriendo()" [closable]="!abriendo()" styleClass="w-full max-w-md mx-4">
+    <p class="text-muted-color m-0 mb-4">Para registrar o corregir la asistencia de una reunión pasada.</p>
+    <div aria-live="polite">
+        @if (error()) {
+        <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-4">{{ error() }}</p-message>
+        }
+    </div>
+    <form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-4" novalidate>
+        <div class="flex flex-col gap-2">
+            <label for="otra-fecha-origen" class="font-medium">Culto o grupo</label>
+            <p-select
+                inputId="otra-fecha-origen"
+                formControlName="origen"
+                [options]="opciones()"
+                optionLabel="etiqueta"
+                [filter]="origenes().length > 8"
+                filterBy="etiqueta"
+                placeholder="Elige uno"
+                [fluid]="true"
+                emptyMessage="No hay cultos ni grupos disponibles"
+            >
+                <ng-template #item let-origen>
+                    <span class="flex items-center gap-2"><i [class]="origen.cultoProgramadoId ? 'pi pi-building' : 'pi pi-users'" class="text-muted-color" aria-hidden="true"></i>{{ origen.etiqueta }}</span>
+                </ng-template>
+            </p-select>
+            <app-mensaje-error-campo [control]="formulario.controls.origen" [mensajes]="mensajesOrigen" />
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="otra-fecha-fecha" class="font-medium">Fecha</label>
+            <p-datepicker inputId="otra-fecha-fecha" formControlName="fecha" [maxDate]="hoy" dateFormat="dd/mm/yy" [showIcon]="true" [readonlyInput]="true" [fluid]="true" />
+            <app-mensaje-error-campo [control]="formulario.controls.fecha" [mensajes]="mensajesFecha" />
+        </div>
+        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-2">
+            <p-button label="Cancelar" severity="secondary" [outlined]="true" [disabled]="abriendo()" (onClick)="cerrar()" />
+            <p-button type="submit" label="Tomar asistencia" icon="pi pi-arrow-right" iconPos="right" [loading]="abriendo()" [disabled]="!valido() || abriendo()" />
+        </div>
+    </form>
+</p-dialog>

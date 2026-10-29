@@ -28,6 +28,7 @@ import com.iglesia.api.common.texto.util.Textos;
 import com.iglesia.api.miembros.constant.LimitesMiembro;
 import com.iglesia.api.miembros.dto.EslabonCadenaResponse;
 import com.iglesia.api.miembros.dto.FiltroMiembros;
+import com.iglesia.api.miembros.dto.FotocheckResponse;
 import com.iglesia.api.miembros.dto.GuardarMiembroRequest;
 import com.iglesia.api.miembros.dto.LideradoResponse;
 import com.iglesia.api.miembros.dto.MiembroResponse;
@@ -54,6 +55,9 @@ public class MiembroService {
 	private static final Logger LOG = LoggerFactory.getLogger(MiembroService.class);
 
 	static final String NO_ENCONTRADO = "Miembro no encontrado";
+
+	static final String DEMASIADOS_FOTOCHECKS = "Hay más de " + LimitesMiembro.FOTOCHECKS_MAX
+			+ " miembros con estos filtros: filtre más para imprimir sus fotochecks";
 
 	static final String PROPIO_INVITADOR = "Un miembro no puede haberse invitado a sí mismo";
 
@@ -86,9 +90,12 @@ public class MiembroService {
 
 	private final UsuarioActual usuarioActual;
 
+	private final MiembrosParaAsistencia paraAsistencia;
+
 	MiembroService(MiembroRepository miembros, MiembroMapper mapper, AmbitoMiembros ambito,
 			PoliticaJerarquia jerarquia, ReferenciasMiembro referencias, ConsultaGrupos grupos, NivelService niveles,
-			UbigeoService ubigeo, IglesiaActual iglesiaActual, UsuarioActual usuarioActual) {
+			UbigeoService ubigeo, IglesiaActual iglesiaActual, UsuarioActual usuarioActual,
+			MiembrosParaAsistencia paraAsistencia) {
 		this.miembros = miembros;
 		this.mapper = mapper;
 		this.ambito = ambito;
@@ -99,18 +106,37 @@ public class MiembroService {
 		this.ubigeo = ubigeo;
 		this.iglesiaActual = iglesiaActual;
 		this.usuarioActual = usuarioActual;
+		this.paraAsistencia = paraAsistencia;
 	}
 
 	@Transactional(readOnly = true)
 	public Page<MiembroResumenResponse> listar(FiltroMiembros filtro, Pageable paginacion) {
-		Specification<Miembro> criterio = Specification.allOf(EspecificacionesMiembro.dentroDe(ambito.actual()),
-				EspecificacionesMiembro.nombreContiene(filtro.q()),
-				EspecificacionesMiembro.conCondicion(filtro.condicion()),
-				EspecificacionesMiembro.deNivel(filtro.nivelId()), EspecificacionesMiembro.deLider(filtro.liderId()),
-				EspecificacionesMiembro.enUbigeo(filtro.ubigeo()), EspecificacionesMiembro.conEstado(filtro.activo()));
-		Page<Miembro> pagina = miembros.findAll(criterio, paginacion);
+		Page<Miembro> pagina = miembros.findAll(criterio(filtro), paginacion);
 		Map<String, UbicacionResponse> ubicaciones = ubicaciones(pagina.getContent());
 		return pagina.map(miembro -> mapper.aResumen(miembro, ubicaciones));
+	}
+
+	/**
+	 * Datos para imprimir en lote los fotochecks de los miembros que cumplen los filtros del listado, por apellidos.
+	 * Genera el código de quien aún no tiene. Con más de {@value LimitesMiembro#FOTOCHECKS_MAX} pide filtrar más.
+	 */
+	@Transactional
+	public List<FotocheckResponse> fotochecks(FiltroMiembros filtro) {
+		Page<Miembro> pagina = miembros.findAll(criterio(filtro),
+				PageRequest.of(0, LimitesMiembro.FOTOCHECKS_MAX, ORDEN_POR_NOMBRE));
+		if (pagina.getTotalElements() > LimitesMiembro.FOTOCHECKS_MAX) {
+			throw new ReglaNegocioException(DEMASIADOS_FOTOCHECKS);
+		}
+		int generados = 0;
+		for (Miembro miembro : pagina.getContent()) {
+			if (miembro.getCodigoAsistencia() == null) {
+				miembro.asignarCodigoAsistencia(paraAsistencia.codigoLibre());
+				generados++;
+			}
+		}
+		LOG.info("Fotochecks preparados para {} miembros ({} códigos generados) por usuarioId={}",
+				pagina.getNumberOfElements(), generados, usuarioActual.id().orElse(null));
+		return pagina.getContent().stream().map(mapper::aFotocheck).toList();
 	}
 
 	@Transactional(readOnly = true)
@@ -181,7 +207,9 @@ public class MiembroService {
 
 	@Transactional
 	public MiembroResponse crear(GuardarMiembroRequest solicitud) {
-		Miembro miembro = miembros.save(Miembro.nuevo(datosFicha(null, solicitud)));
+		Miembro nuevo = Miembro.nuevo(datosFicha(null, solicitud));
+		nuevo.asignarCodigoAsistencia(paraAsistencia.codigoLibre());
+		Miembro miembro = miembros.save(nuevo);
 		LOG.info("Miembro creado id={} por usuarioId={}", miembro.getId(), usuarioActual.id().orElse(null));
 		return aRespuesta(miembro);
 	}
@@ -302,6 +330,14 @@ public class MiembroService {
 
 	private Miembro buscar(Long id) {
 		return miembros.findById(id).orElseThrow(() -> new RecursoNoEncontradoException(NO_ENCONTRADO));
+	}
+
+	private Specification<Miembro> criterio(FiltroMiembros filtro) {
+		return Specification.allOf(EspecificacionesMiembro.dentroDe(ambito.actual()),
+				EspecificacionesMiembro.nombreContiene(filtro.q()),
+				EspecificacionesMiembro.conCondicion(filtro.condicion()),
+				EspecificacionesMiembro.deNivel(filtro.nivelId()), EspecificacionesMiembro.deLider(filtro.liderId()),
+				EspecificacionesMiembro.enUbigeo(filtro.ubigeo()), EspecificacionesMiembro.conEstado(filtro.activo()));
 	}
 
 }

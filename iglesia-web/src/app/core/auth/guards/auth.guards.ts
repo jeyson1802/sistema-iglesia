@@ -29,11 +29,13 @@ export const rolBaseGuard =
         return (perfil !== null && roles.includes(perfil.rolBase)) || inject(Router).parseUrl(RUTAS_AUTH.accesoDenegado);
     };
 
-/** Solo deja pasar si el perfil activo tiene el permiso; si no (o sin perfil), redirige a acceso denegado. */
+/** Solo deja pasar si el perfil activo tiene alguno de los permisos; si no (o sin perfil), redirige a acceso denegado. */
 export const permisoGuard =
-    (permiso: Permiso): CanActivateFn =>
-    () =>
-        inject(SesionService).tienePermiso(permiso) || inject(Router).parseUrl(RUTAS_AUTH.accesoDenegado);
+    (...permisos: [Permiso, ...Permiso[]]): CanActivateFn =>
+    () => {
+        const sesion = inject(SesionService);
+        return permisos.some((permiso) => sesion.tienePermiso(permiso)) || inject(Router).parseUrl(RUTAS_AUTH.accesoDenegado);
+    };
 
 /**
  * Las páginas de datos de una iglesia (usuarios, roles, miembros) exigen operar en una. El administrador del sistema en

@@ -12,6 +12,7 @@ import { SesionService } from '@/app/core/auth/services/sesion.service';
 import { ConfiguracionIglesiaService } from '@/app/core/configuracion/configuracion-iglesia.service';
 import { detalleDeError } from '@/app/core/errores/detalle-de-error';
 import { describirUbicacion } from '@/app/core/models/ubicacion';
+import { AsistenciaGrupoComponent, GrupoAsistencia } from '@/app/features/asistencia/components/asistencia-grupo/asistencia-grupo';
 import { IntegrantesGrupoComponent } from '../components/integrantes-grupo/integrantes-grupo';
 import { CandidatoGrupo, ETIQUETA_DIA, Grupo, IntegranteGrupo, nombreDeGrupo } from '../models/grupo';
 import { GruposService } from '../services/grupos.service';
@@ -32,7 +33,7 @@ const sinId = (ids: ReadonlySet<number>, id: number): ReadonlySet<number> => new
  */
 @Component({
     selector: 'app-grupo-miembros',
-    imports: [RouterLink, ButtonModule, ConfirmDialogModule, MessageModule, SkeletonModule, TagModule, IntegrantesGrupoComponent],
+    imports: [RouterLink, ButtonModule, ConfirmDialogModule, MessageModule, SkeletonModule, TagModule, AsistenciaGrupoComponent, IntegrantesGrupoComponent],
     providers: [ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './grupo-miembros.html'
@@ -62,6 +63,10 @@ export class GrupoMiembrosComponent {
     protected readonly titulo = computed(() => {
         const grupo = this.grupo();
         return grupo ? nombreDeGrupo(this.nombres().nombreGrupoSingular, grupo.lider.nombre) : this.nombres().nombreGrupoSingular;
+    });
+    protected readonly grupoAsistencia = computed<GrupoAsistencia | null>(() => {
+        const grupo = this.grupo();
+        return grupo ? { id: grupo.id, nombre: this.titulo(), diaReunion: grupo.diaReunion, activo: grupo.activo } : null;
     });
     /** «Jueves 19:30 · Av. Perú 123 · San Martín de Porres, Lima, Lima», con lo que haya. */
     protected readonly reunion = computed(() => {
