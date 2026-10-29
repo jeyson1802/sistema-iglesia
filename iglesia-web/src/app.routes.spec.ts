@@ -20,6 +20,7 @@ describe('Rutas de la aplicación', () => {
     const autenticado = signal(false);
     const perfilActivo = signal<Perfil | null>(null);
     const debeCambiarContrasena = signal(false);
+    const operaEnIglesia = signal(true);
     const permisosActivos = computed(() => new Set(perfilActivo()?.permisos ?? []));
     let harness: RouterTestingHarness | undefined;
 
@@ -30,6 +31,8 @@ describe('Rutas de la aplicación', () => {
             usuarioActual: signal({ id: 1, correo: 'u@i.test', iglesiaId: 1, miembroId: 2, perfiles: [perfilBase('LIDER'), perfilBase('MIEMBRO')] }),
             tieneVariosPerfiles: signal(true),
             debeCambiarContrasena,
+            operaEnIglesia,
+            actuandoEnIglesia: signal(false),
             tienePermiso: (permiso: Permiso) => permisosActivos().has(permiso),
             rutaInicio: () => {
                 const perfil = perfilActivo();
@@ -50,6 +53,7 @@ describe('Rutas de la aplicación', () => {
         autenticado.set(false);
         perfilActivo.set(null);
         debeCambiarContrasena.set(false);
+        operaEnIglesia.set(true);
     });
 
     afterEach(() => (harness = undefined));
@@ -70,7 +74,7 @@ describe('Rutas de la aplicación', () => {
     describe('sin sesión', () => {
         beforeEach(() => configurar(true));
 
-        for (const url of ['/', '/mi-perfil', '/administracion', '/miembros', '/usuarios', '/roles', '/cuenta/contrasena']) {
+        for (const url of ['/', '/mi-perfil', '/administracion', '/miembros', '/usuarios', '/roles', '/iglesias', '/cuenta/contrasena']) {
             it(`${url} redirige al login`, async () => {
                 expect(await navegarA(url)).toBe('/auth/login');
             });
@@ -131,6 +135,34 @@ describe('Rutas de la aplicación', () => {
 
         it('con usuarios.ver, /usuarios abre la administración de usuarios', async () => {
             iniciarSesionCon(perfilPersonalizado(12, 'Soporte', 'ADMIN_IGLESIA', ['usuarios.ver']));
+
+            expect(await navegarA('/usuarios')).toBe('/usuarios');
+        });
+
+        it('sin iglesias.ver, /iglesias redirige a acceso denegado', async () => {
+            iniciarSesionCon('ADMIN_IGLESIA');
+
+            expect(await navegarA('/iglesias')).toBe('/auth/acceso-denegado');
+        });
+
+        it('el administrador del sistema abre /iglesias', async () => {
+            operaEnIglesia.set(false);
+            iniciarSesionCon('ADMIN_SISTEMA');
+
+            expect(await navegarA('/iglesias')).toBe('/iglesias');
+        });
+
+        it('el administrador del sistema sin iglesia fijada va de /usuarios, /roles y /miembros al catálogo de iglesias', async () => {
+            operaEnIglesia.set(false);
+            iniciarSesionCon('ADMIN_SISTEMA');
+
+            expect(await navegarA('/usuarios')).toBe('/iglesias');
+            expect(await navegarA('/roles')).toBe('/iglesias');
+            expect(await navegarA('/miembros')).toBe('/iglesias');
+        });
+
+        it('dentro de una iglesia, el administrador del sistema abre /usuarios', async () => {
+            iniciarSesionCon('ADMIN_SISTEMA');
 
             expect(await navegarA('/usuarios')).toBe('/usuarios');
         });

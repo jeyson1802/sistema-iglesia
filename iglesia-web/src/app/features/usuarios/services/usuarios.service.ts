@@ -25,8 +25,12 @@ export class UsuariosService {
     }
 
     /** Crea el usuario en la iglesia del usuario autenticado, con una contraseña temporal. */
-    crear({ correo, contrasenaTemporal, rolIds }: CrearUsuario): Observable<UsuarioAdmin> {
-        const iglesiaId = this.sesion.usuarioActual()?.iglesiaId ?? null;
+    crear(datos: CrearUsuario): Observable<UsuarioAdmin> {
+        return this.crearEnIglesia(this.sesion.usuarioActual()?.iglesiaId ?? null, datos);
+    }
+
+    /** Crea el usuario en la iglesia indicada; solo el administrador del sistema en su vista global elige otra. */
+    crearEnIglesia(iglesiaId: number | null, { correo, contrasenaTemporal, rolIds }: CrearUsuario): Observable<UsuarioAdmin> {
         return this.http.post<UsuarioAdminResponse>(this.usuariosUrl, { correo, contrasena: contrasenaTemporal, iglesiaId, miembroId: null, rolIds }).pipe(map(aUsuarioAdmin));
     }
 

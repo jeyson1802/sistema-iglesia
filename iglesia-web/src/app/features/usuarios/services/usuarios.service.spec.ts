@@ -93,6 +93,14 @@ describe('UsuariosService', () => {
         expect(creado?.debeCambiarContrasena).toBeTrue();
     });
 
+    it('crea el usuario en la iglesia indicada', () => {
+        servicio.crearEnIglesia(3, { correo: 'pastor@norte.test', contrasenaTemporal: 'Temporal123', rolIds: [2] }).subscribe();
+
+        const peticion = http.expectOne(usuariosUrl);
+        expect(peticion.request.body).toEqual({ correo: 'pastor@norte.test', contrasena: 'Temporal123', iglesiaId: 3, miembroId: null, rolIds: [2] });
+        peticion.flush(respuesta);
+    });
+
     it('al actualizar reenvía el miembro que ya tenía', () => {
         servicio.actualizar(12, { correo: 'nuevo@iglesia.test', rolIds: [2, 3], activo: false }, 25).subscribe();
 
