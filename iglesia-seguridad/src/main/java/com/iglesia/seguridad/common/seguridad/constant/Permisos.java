@@ -6,6 +6,14 @@ package com.iglesia.seguridad.common.seguridad.constant;
  */
 public final class Permisos {
 
+	public static final String MIEMBROS_VER = "miembros.ver";
+
+	public static final String NIVELES_ADMINISTRAR = "niveles.administrar";
+
+	public static final String GRUPOS_VER = "grupos.ver";
+
+	public static final String GRUPOS_ADMINISTRAR = "grupos.administrar";
+
 	public static final String USUARIOS_VER = "usuarios.ver";
 
 	public static final String USUARIOS_ADMINISTRAR = "usuarios.administrar";
@@ -20,7 +28,7 @@ public final class Permisos {
 	/** Solo del rol base {@code ADMIN_SISTEMA}: dar de alta iglesias y entrar a operarlas. */
 	public static final String IGLESIAS_ADMINISTRAR = "iglesias.administrar";
 
-	public static final String PUEDE_VER_USUARIOS ="hasAuthority('" + USUARIOS_VER + "')";
+	public static final String PUEDE_VER_USUARIOS = "hasAuthority('" + USUARIOS_VER + "')";
 
 	public static final String PUEDE_ADMINISTRAR_USUARIOS = "hasAuthority('" + USUARIOS_ADMINISTRAR + "')";
 

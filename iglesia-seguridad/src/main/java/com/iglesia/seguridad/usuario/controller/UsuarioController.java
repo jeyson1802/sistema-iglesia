@@ -108,8 +108,9 @@ class UsuarioController {
 			El resto, incluido `ADMIN_SISTEMA` dentro de una iglesia, siempre ve solo la iglesia en la que opera, \
 			aunque envíe otro `iglesiaId`.
 
-			Los filtros `correo` (contiene, sin distinguir mayúsculas), `activo` y `rolId` son opcionales y se \
-			combinan entre sí y con la paginación.""")
+			Los filtros `correo` (contiene, sin distinguir mayúsculas), `activo`, `rolId` y `miembroId` son \
+			opcionales y se combinan entre sí y con la paginación. `miembroId` sirve para saber si un miembro de \
+			iglesia-api ya tiene acceso al sistema.""")
 	@ApiResponse(responseCode = "200", description = "Página de usuarios.")
 	@ApiResponse(responseCode = "400", description = "Parámetro inválido, por ejemplo un campo de ordenación que no "
 			+ "existe o un `correo` de más de 254 caracteres.",

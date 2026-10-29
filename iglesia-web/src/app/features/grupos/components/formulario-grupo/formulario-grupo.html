@@ -1,0 +1,58 @@
+<p-dialog [(visible)]="visible" [header]="titulo()" [modal]="true" [draggable]="false" [dismissableMask]="!guardando()" [closable]="!guardando()" styleClass="w-full max-w-3xl mx-4">
+    <div aria-live="polite">
+        @if (error()) {
+        <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-4">{{ error() }}</p-message>
+        }
+    </div>
+
+    <form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-4" novalidate>
+        <div class="flex flex-col gap-2">
+            <label for="grupo-nombre" class="font-medium">Nombre</label>
+            <input pInputText id="grupo-nombre" formControlName="nombre" autocomplete="off" [maxlength]="limites.nombre" placeholder="Ej.: Los Olivos" [fluid]="true" />
+            <app-mensaje-error-campo [control]="formulario.controls.nombre" [mensajes]="mensajesNombre" [reservarEspacio]="!erroresCampo()['nombre']" />
+            <app-mensaje-error-servidor [mensaje]="erroresCampo()['nombre']" />
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-2">
+                <label for="grupo-lider" class="font-medium">Líder</label>
+                <app-selector-miembro inputId="grupo-lider" formControlName="lider" />
+                <app-mensaje-error-servidor [mensaje]="erroresCampo()['liderId']" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label for="grupo-anfitrion" class="font-medium">Anfitrión</label>
+                <app-selector-miembro inputId="grupo-anfitrion" formControlName="anfitrion" />
+                <small class="text-muted-color">Quien recibe al grupo en su casa.</small>
+                <app-mensaje-error-servidor [mensaje]="erroresCampo()['anfitrionId']" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label for="grupo-dia" class="font-medium">Día de reunión</label>
+                <p-select inputId="grupo-dia" formControlName="diaReunion" [options]="opcionesDia" optionLabel="etiqueta" optionValue="valor" [showClear]="true" placeholder="Elige el día" [fluid]="true" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label for="grupo-hora" class="font-medium">Hora de reunión</label>
+                <input pInputText id="grupo-hora" type="time" formControlName="horaReunion" autocomplete="off" [fluid]="true" />
+            </div>
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <label for="grupo-direccion" class="font-medium">Dirección</label>
+            <input pInputText id="grupo-direccion" formControlName="direccion" autocomplete="street-address" [maxlength]="limites.direccion" placeholder="Ej.: Av. Perú 123" [fluid]="true" />
+            <app-mensaje-error-campo [control]="formulario.controls.direccion" [mensajes]="mensajesDireccion" />
+        </div>
+
+        <app-selector-ubigeo idBase="grupo" formControlName="distritoCodigo" />
+        <app-mensaje-error-servidor [mensaje]="erroresCampo()['distritoCodigo']" />
+
+        <div class="flex flex-col gap-2">
+            <label for="grupo-descripcion" class="font-medium">Descripción</label>
+            <textarea pTextarea id="grupo-descripcion" formControlName="descripcion" rows="3" [maxlength]="limites.descripcion" [autoResize]="true" [fluid]="true"></textarea>
+            <app-mensaje-error-campo [control]="formulario.controls.descripcion" [mensajes]="mensajesDescripcion" />
+        </div>
+
+        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-2">
+            <p-button label="Cancelar" severity="secondary" [outlined]="true" [disabled]="guardando()" (onClick)="cerrar()" />
+            <p-button type="submit" label="Guardar" icon="pi pi-check" [loading]="guardando()" [disabled]="!valido() || guardando()" />
+        </div>
+    </form>
+</p-dialog>

@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "b79cd32e-0856-5b97-890c-865dcb49f693",
     "name": "iglesia-api",
-    "description": "Backend de negocio del Sistema Iglesia (multi-iglesia). Valida el JWT que emite iglesia-seguridad y toma la iglesia del token, nunca de un parámetro.\n\n**Uso:** selecciona el entorno «Sistema Iglesia - local». Los endpoints protegidos usan `{{tokenAcceso}}`, que se obtiene con «1. Autenticación → Iniciar sesión» de la colección iglesia-seguridad. «1. Iglesias» exige el token de un administrador del sistema (permisos `iglesias.ver` e `iglesias.administrar`).\n\n**Trazabilidad:** la colección verifica en cada respuesta la cabecera `X-Trace-Id`. Ante un error, busca ese valor en los logs del backend para ver la petición completa.",
+    "description": "Backend de negocio del Sistema Iglesia (multi-iglesia). Valida el JWT que emite iglesia-seguridad y toma la iglesia del token, nunca de un parámetro.\n\n**Uso:** selecciona el entorno «Sistema Iglesia - local». Los endpoints protegidos usan `{{tokenAcceso}}`. La colección es autosuficiente: «1. Iglesias» inicia sesión con `{{correo}}`/`{{contrasena}}` de un administrador del sistema, crea una iglesia de prueba y entra a operarla; las carpetas 2 a 5 trabajan dentro de ella y «8. Cierre» sale. «1. Iglesias» exige el token de un administrador del sistema (permisos `iglesias.ver` e `iglesias.administrar`).\n\n**Trazabilidad:** la colección verifica en cada respuesta la cabecera `X-Trace-Id`. Ante un error, busca ese valor en los logs del backend para ver la petición completa.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -38,8 +38,59 @@
   "item": [
     {
       "name": "1. Iglesias",
-      "description": "Catálogo de iglesias (tenants). Solo para el administrador del sistema: iniciar sesión con un usuario `ADMIN_SISTEMA` en la colección iglesia-seguridad. Consultar exige `iglesias.ver` y dar de alta o renombrar, `iglesias.administrar`. El catálogo nunca se filtra por la iglesia del token.\n\nCada ejecución da de alta una iglesia «Prueba Postman …» con un nombre único (no se pueden borrar iglesias).",
+      "description": "Catálogo de iglesias (tenants). Solo para el administrador del sistema: iniciar sesión con un usuario `ADMIN_SISTEMA` en la colección iglesia-seguridad. Consultar exige `iglesias.ver` y dar de alta o renombrar, `iglesias.administrar`. El catálogo nunca se filtra por la iglesia del token.\n\nCada ejecución da de alta una iglesia «Prueba Postman …» con un nombre único (no se pueden borrar iglesias).\n\nLa carpeta empieza iniciando sesión como administrador del sistema y termina entrando a la iglesia recién creada: las carpetas siguientes trabajan dentro de ella.",
       "item": [
+        {
+          "name": "Iniciar sesión (administrador del sistema)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/auth/login",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Inicia sesión en iglesia-seguridad con `{{correo}}` / `{{contrasena}}` de un usuario `ADMIN_SISTEMA` (las credenciales van en el entorno, nunca en el repositorio). Guarda `tokenAcceso` y la cookie de refresco en `tokenRefresco`, que «Entrar a la iglesia nueva» necesita.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.environment.set('tokenAcceso', cuerpo.tokenAcceso);",
+                  "const refresco = pm.cookies.get('iglesia_refresco');",
+                  "if (refresco) { pm.environment.set('tokenRefresco', refresco); }"
+                ]
+              }
+            }
+          ]
+        },
         {
           "name": "Listar iglesias",
           "request": {
@@ -259,11 +310,1515 @@
               }
             }
           ]
+        },
+        {
+          "name": "Entrar a la iglesia nueva",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "iglesia_refresco={{tokenRefresco}}",
+                "description": "Cookie de refresco guardada por «Iniciar sesión»."
+              }
+            ],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/auth/iglesia-actuando",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "iglesia-actuando"
+              ]
+            },
+            "description": "El administrador del sistema pasa a operar dentro de la iglesia recién creada (`{{iglesiaNuevaId}}`), con su cookie de refresco. El token resultante trae `iglesia_id` y los permisos de un administrador de iglesia; con él se recorren las carpetas 2 a 5 sobre datos limpios en cada ejecución. «8. Cierre» sale de la iglesia.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"iglesiaId\": {{iglesiaNuevaId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.environment.set('tokenAcceso', cuerpo.tokenAcceso);",
+                  "const refresco = pm.cookies.get('iglesia_refresco');",
+                  "if (refresco) { pm.environment.set('tokenRefresco', refresco); }",
+                  "const parte = cuerpo.tokenAcceso.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');",
+                  "const claims = JSON.parse(atob(parte.padEnd(parte.length + (4 - parte.length % 4) % 4, '=')));",
+                  "pm.test('El token opera en la iglesia nueva', () => pm.expect(claims.iglesia_id).to.eql(Number(pm.environment.get('iglesiaNuevaId'))));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "2. Infraestructura",
+      "name": "2. Ubigeo",
+      "description": "Ubigeo oficial del INEI para los selectores en cascada de la dirección. Basta con estar autenticado.",
+      "item": [
+        {
+          "name": "Listar departamentos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/ubigeo/departamentos",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "ubigeo",
+                "departamentos"
+              ]
+            },
+            "description": "Los 25 departamentos del Perú, ordenados por nombre."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Son 25', () => pm.expect(pm.response.json()).to.have.length(25));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar provincias de un departamento",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/ubigeo/departamentos/15/provincias",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "ubigeo",
+                "departamentos",
+                "15",
+                "provincias"
+              ]
+            },
+            "description": "Provincias del departamento 15 (Lima). Un código inexistente responde 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Incluye la provincia de Lima', () => pm.expect(pm.response.json().map(p => p.codigo)).to.include('1501'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar distritos de una provincia",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/ubigeo/provincias/1501/distritos",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "ubigeo",
+                "provincias",
+                "1501",
+                "distritos"
+              ]
+            },
+            "description": "Distritos de la provincia 1501 (Lima), ordenados por nombre."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Incluye el Cercado de Lima', () => pm.expect(pm.response.json().map(d => d.codigo)).to.include('150101'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Provincia inexistente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/ubigeo/provincias/9999/distritos",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "ubigeo",
+                "provincias",
+                "9999",
+                "distritos"
+              ]
+            },
+            "description": "Un código que no existe responde 404 con `ProblemDetail`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Niveles",
+      "description": "Niveles (rangos) configurables de la iglesia. Consultar exige `miembros.ver` o `niveles.administrar`; modificar, `niveles.administrar`.",
+      "item": [
+        {
+          "name": "Crear nivel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/niveles",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "niveles"
+              ]
+            },
+            "description": "Crea un nivel al final del orden. Nombre obligatorio (máx. 60), único en la iglesia sin distinguir mayúsculas.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Pastor\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Indica la URL del nivel', () => pm.expect(pm.response.headers.get('Location')).to.match(/\\/api\\/niveles\\/\\d+$/));",
+                  "pm.environment.set('nivelId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear segundo nivel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/niveles",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "niveles"
+              ]
+            },
+            "description": "Segundo nivel, para poder reordenar.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Líder\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('segundoNivelId', pm.response.json().id);",
+                  "pm.test('Va al final del orden', () => pm.expect(pm.response.json().orden).to.eql(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear nivel repetido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/niveles",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "niveles"
+              ]
+            },
+            "description": "El mismo nombre con otras mayúsculas (y tilde en mayúscula) responde 409; `errores.nombre` indica el campo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"LÍDER\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Señala el campo nombre', () => pm.expect(pm.response.json().errores).to.have.property('nombre'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Renombrar nivel",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/niveles/{{nivelId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "niveles",
+                "{{nivelId}}"
+              ]
+            },
+            "description": "Cambia el nombre con las mismas reglas que al crear.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"  Pastor   principal \"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Guarda el nombre sin espacios sobrantes', () => pm.expect(pm.response.json().nombre).to.eql('Pastor principal'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reordenar niveles",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/niveles/orden",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "niveles",
+                "orden"
+              ]
+            },
+            "description": "Fija el orden: deben venir todos los niveles de la iglesia, una sola vez cada uno.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [{{segundoNivelId}}, {{nivelId}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Aplica el orden', () => pm.expect(pm.response.json().map(n => n.id)).to.eql([Number(pm.collectionVariables.get('segundoNivelId')), Number(pm.environment.get('nivelId'))]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reordenar con una lista incompleta",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/niveles/orden",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "niveles",
+                "orden"
+              ]
+            },
+            "description": "Si falta algún nivel responde 400.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [{{nivelId}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar niveles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/niveles",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "niveles"
+              ]
+            },
+            "description": "Niveles del más alto al más bajo, incluidos los desactivados."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Trae los dos niveles', () => pm.expect(pm.response.json()).to.have.length(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Desactivar nivel",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/niveles/{{segundoNivelId}}/estado",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "niveles",
+                "{{segundoNivelId}}",
+                "estado"
+              ]
+            },
+            "description": "Un nivel desactivado no se asigna, pero se conserva en quien ya lo tiene.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Queda inactivo', () => pm.expect(pm.response.json().activo).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reactivar nivel",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/niveles/{{segundoNivelId}}/estado",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "niveles",
+                "{{segundoNivelId}}",
+                "estado"
+              ]
+            },
+            "description": "Vuelve a activarlo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Queda activo', () => pm.expect(pm.response.json().activo).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Grupos y configuración",
+      "description": "Grupos de la iglesia y el nombre con el que la iglesia los llama. Ver exige `grupos.ver` o `miembros.ver`; modificar, `grupos.administrar`.",
+      "item": [
+        {
+          "name": "Obtener la configuración de la iglesia",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/configuracion-iglesia",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "configuracion-iglesia"
+              ]
+            },
+            "description": "Sin configurar devuelve «Grupo» / «Grupos»."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Valor por defecto', () => pm.expect(pm.response.json()).to.eql({ nombreGrupoSingular: 'Grupo', nombreGrupoPlural: 'Grupos' }));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Configurar el nombre de los grupos",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/configuracion-iglesia",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "configuracion-iglesia"
+              ]
+            },
+            "description": "Guarda el nombre en singular y plural (máx. 40 cada uno).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombreGrupoSingular\": \"Hogar de paz\",\n  \"nombreGrupoPlural\": \"Hogares de paz\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Guarda el plural', () => pm.expect(pm.response.json().nombreGrupoPlural).to.eql('Hogares de paz'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear grupo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/grupos",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "grupos"
+              ]
+            },
+            "description": "Crea un grupo; solo el nombre es obligatorio. El líder y el anfitrión, si se indican, deben ser miembros activos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Los Olivos\",\n  \"diaReunion\": \"JUEVES\",\n  \"horaReunion\": \"19:30\",\n  \"direccion\": \"Jr. Las Flores 456\",\n  \"distritoCodigo\": \"150135\",\n  \"descripcion\": \"Grupo de matrimonios jóvenes\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "const grupo = pm.response.json();",
+                  "pm.environment.set('grupoId', grupo.id);",
+                  "pm.test('Deduce la ubicación del distrito', () => pm.expect(grupo.ubicacion.distrito.codigo).to.eql('150135'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear grupo repetido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/grupos",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "grupos"
+              ]
+            },
+            "description": "Un nombre repetido sin distinguir mayúsculas responde 409.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"LOS OLIVOS\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar grupo",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/grupos/{{grupoId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "grupos",
+                "{{grupoId}}"
+              ]
+            },
+            "description": "Reemplaza los datos del grupo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Los Olivos\",\n  \"diaReunion\": \"VIERNES\",\n  \"horaReunion\": \"20:00\",\n  \"distritoCodigo\": \"150135\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cambia el día', () => pm.expect(pm.response.json().diaReunion).to.eql('VIERNES'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener grupo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/grupos/{{grupoId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "grupos",
+                "{{grupoId}}"
+              ]
+            },
+            "description": "Datos del grupo con su cantidad de miembros activos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Sin miembros todavía', () => pm.expect(pm.response.json().cantidadMiembros).to.eql(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar grupos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/grupos",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "grupos"
+              ]
+            },
+            "description": "Todos los grupos, ordenados por nombre."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Trae el grupo creado', () => pm.expect(pm.response.json().map(g => g.id)).to.include(Number(pm.environment.get('grupoId'))));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Miembros",
+      "description": "Registro de miembros. Leer exige `miembros.ver` (limitado al ámbito del usuario); registrar, `miembros.crear`; editar y designar pastor, `miembros.editar`; desactivar, `miembros.desactivar`.",
+      "item": [
+        {
+          "name": "Registrar miembro con lo mínimo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros"
+              ]
+            },
+            "description": "Solo `nombres` y `apellidos` son obligatorios.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Ana\",\n  \"apellidos\": \"Torres\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('pastorId', pm.response.json().id);",
+                  "pm.test('Sin edad', () => pm.expect(pm.response.json().edad).to.eql(null));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar sin apellidos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros"
+              ]
+            },
+            "description": "Falta un dato obligatorio: 400 con `errores.apellidos`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Sin\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Señala apellidos', () => pm.expect(pm.response.json().errores).to.have.property('apellidos'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Designar pastor principal",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros/{{pastorId}}/pastor-principal",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros",
+                "{{pastorId}}",
+                "pastor-principal"
+              ]
+            },
+            "description": "Marca al único pastor principal; queda sin líder."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Es el pastor principal', () => pm.expect(pm.response.json().esPastorPrincipal).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar miembro con la ficha completa",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros"
+              ]
+            },
+            "description": "Ficha con todos los datos. La edad aproximada se guarda como año de nacimiento estimado.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Juan Carlos\",\n  \"apellidos\": \"Pérez Torres\",\n  \"genero\": \"MASCULINO\",\n  \"edadAproximada\": 35,\n  \"fechaIngreso\": \"2024-01-07\",\n  \"condicion\": \"NUEVO\",\n  \"estadoCivil\": \"CASADO\",\n  \"telefono\": \"+51 987 654 321\",\n  \"correo\": \"juan.perez@correo.test\",\n  \"direccion\": \"Av. Los Olivos 123\",\n  \"distritoCodigo\": \"150101\",\n  \"ocupacion\": \"Comerciante\",\n  \"profesion\": \"Contador\",\n  \"nivelEstudios\": \"UNIVERSITARIO\",\n  \"centroEstudios\": \"Universidad Nacional\",\n  \"peticion\": \"Oración por su familia\",\n  \"nivelId\": {{nivelId}},\n  \"liderId\": {{pastorId}},\n  \"grupoId\": {{grupoId}},\n  \"invitadoPorId\": {{pastorId}},\n  \"registradoPorId\": {{pastorId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "const m = pm.response.json();",
+                  "pm.environment.set('miembroId', m.id);",
+                  "pm.test('Edad aproximada', () => { pm.expect(m.edad).to.eql(35); pm.expect(m.edadEsAproximada).to.eql(true); });",
+                  "pm.test('Ubicación deducida', () => pm.expect(m.ubicacion.provincia.codigo).to.eql('1501'));",
+                  "pm.test('Referencias resueltas', () => { pm.expect(m.lider.id).to.eql(Number(pm.environment.get('pastorId'))); pm.expect(m.grupo.id).to.eql(Number(pm.environment.get('grupoId'))); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Enviar fecha de nacimiento y edad aproximada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros"
+              ]
+            },
+            "description": "Son excluyentes: 400 sobre `edadAproximada`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Las\",\n  \"apellidos\": \"Dos\",\n  \"fechaNacimiento\": \"1990-05-14\",\n  \"edadAproximada\": 30\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar posibles duplicados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros/posibles-duplicados?nombres=juan%20carlos&apellidos=P%C3%89REZ%20TORRES%20",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros",
+                "posibles-duplicados"
+              ],
+              "query": [
+                {
+                  "key": "nombres",
+                  "value": "juan%20carlos"
+                },
+                {
+                  "key": "apellidos",
+                  "value": "P%C3%89REZ%20TORRES%20"
+                }
+              ]
+            },
+            "description": "Coincidencias exactas sin distinguir mayúsculas ni espacios sobrantes. Requiere `miembros.crear`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Encuentra al miembro', () => pm.expect(pm.response.json().map(m => m.id)).to.include(Number(pm.environment.get('miembroId'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar miembros con filtros",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros?q=perez&condicion=NUEVO&activo=true&page=0&size=20&sort=apellidos,asc",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "perez"
+                },
+                {
+                  "key": "condicion",
+                  "value": "NUEVO"
+                },
+                {
+                  "key": "activo",
+                  "value": "true"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "sort",
+                  "value": "apellidos,asc"
+                }
+              ]
+            },
+            "description": "Búsqueda por nombre y filtros opcionales combinados."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Todos cumplen los filtros', () => pm.response.json().content.forEach(m => pm.expect(m.condicion).to.eql('NUEVO')));",
+                  "pm.test('Trae el total', () => pm.expect(pm.response.json().page.totalElements).to.be.at.least(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener ficha",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros/{{miembroId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros",
+                "{{miembroId}}"
+              ]
+            },
+            "description": "Ficha completa con edad, ubicación y referencias."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener cadena de liderazgo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros/{{miembroId}}/cadena",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros",
+                "{{miembroId}}",
+                "cadena"
+              ]
+            },
+            "description": "Líderes del miembro, del directo al pastor."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Termina en el pastor', () => pm.expect(pm.response.json().pop().esPastorPrincipal).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sugerir miembros",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros/opciones?q=ana",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros",
+                "opciones"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "ana"
+                }
+              ]
+            },
+            "description": "Hasta 20 miembros activos para el selector de miembro."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Sugiere al pastor', () => pm.expect(pm.response.json().map(o => o.id)).to.include(Number(pm.environment.get('pastorId'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar ficha",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros/{{miembroId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros",
+                "{{miembroId}}"
+              ]
+            },
+            "description": "Reemplaza la ficha completa.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Juan Carlos\",\n  \"apellidos\": \"Pérez Torres\",\n  \"condicion\": \"ANTIGUO\",\n  \"liderId\": {{pastorId}},\n  \"grupoId\": {{grupoId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cambia la condición', () => pm.expect(pm.response.json().condicion).to.eql('ANTIGUO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Asignar un líder al pastor principal",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros/{{pastorId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros",
+                "{{pastorId}}"
+              ]
+            },
+            "description": "El pastor principal no tiene líder (y aquí además sería un ciclo): 409 sobre `liderId`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Ana\",\n  \"apellidos\": \"Torres\",\n  \"liderId\": {{miembroId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Señala liderId', () => pm.expect(pm.response.json().errores).to.have.property('liderId'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Desactivar al pastor principal",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros/{{pastorId}}/estado",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros",
+                "{{pastorId}}",
+                "estado"
+              ]
+            },
+            "description": "No se desactiva al pastor ni a quien lidera miembros activos: 409.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Desactivar miembro",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros/{{miembroId}}/estado",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros",
+                "{{miembroId}}",
+                "estado"
+              ]
+            },
+            "description": "Desactiva un miembro sin liderados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Queda inactivo', () => pm.expect(pm.response.json().activo).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reactivar miembro",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros/{{miembroId}}/estado",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros",
+                "{{miembroId}}",
+                "estado"
+              ]
+            },
+            "description": "Vuelve a activarlo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Queda activo', () => pm.expect(pm.response.json().activo).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Infraestructura",
       "description": "Endpoints públicos de soporte.",
       "auth": {
         "type": "noauth"
@@ -301,7 +1856,7 @@
       ]
     },
     {
-      "name": "3. Documentación",
+      "name": "7. Documentación",
       "description": "Especificación OpenAPI 3 del backend. Solo responde con el perfil `local` (en producción está deshabilitada y responde 404). La versión navegable está en `{{apiUrl}}/swagger-ui.html`.",
       "auth": {
         "type": "noauth"
@@ -341,6 +1896,56 @@
           ]
         }
       ]
+    },
+    {
+      "name": "8. Cierre",
+      "description": "Deja la sesión como estaba: el administrador del sistema sale de la iglesia de prueba.",
+      "item": [
+        {
+          "name": "Salir de la iglesia",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "iglesia_refresco={{tokenRefresco}}"
+              }
+            ],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/auth/iglesia-actuando",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "iglesia-actuando"
+              ]
+            },
+            "description": "Vuelve a la vista global del administrador del sistema."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.environment.set('tokenAcceso', pm.response.json().tokenAcceso);",
+                  "const refresco = pm.cookies.get('iglesia_refresco');",
+                  "if (refresco) { pm.environment.set('tokenRefresco', refresco); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "segundoNivelId",
+      "value": ""
     }
   ]
 }

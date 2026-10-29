@@ -12,5 +12,7 @@ public record FiltroUsuarios(
 		@Size(max = LimitesUsuario.CORREO_MAX) String correo,
 		@Parameter(description = "`true`: solo activos; `false`: solo inactivos. Sin valor: todos.",
 				example = "true") Boolean activo,
-		@Parameter(description = "Solo los usuarios que tienen asignado este rol.", example = "7") Long rolId) {
+		@Parameter(description = "Solo los usuarios que tienen asignado este rol.", example = "7") Long rolId,
+		@Parameter(description = "Solo el usuario vinculado a este miembro de iglesia-api (a lo sumo uno por "
+				+ "iglesia).", example = "25") Long miembroId) {
 }

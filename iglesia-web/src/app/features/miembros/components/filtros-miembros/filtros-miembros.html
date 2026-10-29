@@ -1,0 +1,29 @@
+<form [formGroup]="formulario" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4 items-end" role="search" aria-label="Filtrar miembros" (submit)="$event.preventDefault()">
+    <div class="flex flex-col gap-2 sm:col-span-2">
+        <label for="filtro-nombre" class="font-medium">Nombre</label>
+        <p-iconfield>
+            <p-inputicon styleClass="pi pi-search" />
+            <input pInputText id="filtro-nombre" type="search" formControlName="q" autocomplete="off" placeholder="Buscar por nombres o apellidos" [fluid]="true" />
+        </p-iconfield>
+    </div>
+    <div class="flex flex-col gap-2">
+        <label for="filtro-condicion" class="font-medium">Condición</label>
+        <p-select inputId="filtro-condicion" formControlName="condicion" [options]="opcionesCondicion" optionLabel="etiqueta" optionValue="valor" placeholder="Todos" [fluid]="true" />
+    </div>
+    <div class="flex flex-col gap-2">
+        <label for="filtro-nivel" class="font-medium">Nivel</label>
+        <p-select inputId="filtro-nivel" formControlName="nivelId" [options]="opcionesNivel()" optionLabel="etiqueta" optionValue="valor" placeholder="Todos" [fluid]="true" />
+    </div>
+    <div class="flex flex-col gap-2">
+        <label for="filtro-grupo" class="font-medium">{{ nombreGrupo() }}</label>
+        <p-select inputId="filtro-grupo" formControlName="grupoId" [options]="opcionesGrupo()" optionLabel="etiqueta" optionValue="valor" [filter]="true" filterBy="etiqueta" placeholder="Todos" [fluid]="true" />
+    </div>
+    <div class="flex flex-col gap-2">
+        <label for="filtro-estado" class="font-medium">Estado</label>
+        <p-select inputId="filtro-estado" formControlName="activo" [options]="opcionesEstado" optionLabel="etiqueta" optionValue="valor" placeholder="Todos" [fluid]="true" />
+    </div>
+    <div class="flex flex-col gap-2 sm:col-span-2">
+        <label for="filtro-lider" class="font-medium">Liderados por</label>
+        <app-selector-miembro inputId="filtro-lider" formControlName="lider" placeholder="Cualquier líder" />
+    </div>
+</form>

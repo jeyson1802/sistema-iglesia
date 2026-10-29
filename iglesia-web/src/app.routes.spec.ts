@@ -161,6 +161,52 @@ describe('Rutas de la aplicación', () => {
             expect(await navegarA('/miembros')).toBe('/iglesias');
         });
 
+        it('con niveles.administrar, /niveles abre el catálogo de niveles', async () => {
+            iniciarSesionCon('ADMIN_IGLESIA');
+
+            expect(await navegarA('/niveles')).toBe('/niveles');
+        });
+
+        it('con el perfil Líder, /niveles redirige a acceso denegado', async () => {
+            iniciarSesionCon('LIDER');
+
+            expect(await navegarA('/niveles')).toBe('/auth/acceso-denegado');
+        });
+
+        it('con grupos.ver, /grupos abre los grupos', async () => {
+            iniciarSesionCon('ADMIN_IGLESIA');
+
+            expect(await navegarA('/grupos')).toBe('/grupos');
+        });
+
+        it('con el perfil Líder, /grupos redirige a acceso denegado', async () => {
+            iniciarSesionCon('LIDER');
+
+            expect(await navegarA('/grupos')).toBe('/auth/acceso-denegado');
+        });
+
+        it('el Líder abre /miembros y una ficha, pero no el alta', async () => {
+            iniciarSesionCon('LIDER');
+
+            expect(await navegarA('/miembros')).toBe('/miembros');
+            expect(await navegarA('/miembros/5')).toBe('/miembros/5');
+            expect(await navegarA('/miembros/nuevo')).toBe('/auth/acceso-denegado');
+        });
+
+        it('con miembros.crear, /miembros/nuevo abre el alta', async () => {
+            iniciarSesionCon('ADMIN_IGLESIA');
+
+            expect(await navegarA('/miembros/nuevo')).toBe('/miembros/nuevo');
+        });
+
+        it('el administrador del sistema sin iglesia fijada va de /niveles y /grupos al catálogo de iglesias', async () => {
+            operaEnIglesia.set(false);
+            iniciarSesionCon(perfilPersonalizado(1, 'Administrador del sistema', 'ADMIN_SISTEMA', ['iglesias.ver', 'niveles.administrar', 'grupos.ver']));
+
+            expect(await navegarA('/niveles')).toBe('/iglesias');
+            expect(await navegarA('/grupos')).toBe('/iglesias');
+        });
+
         it('dentro de una iglesia, el administrador del sistema abre /usuarios', async () => {
             iniciarSesionCon('ADMIN_SISTEMA');
 

@@ -70,9 +70,9 @@ class RolIntegrationTest {
 	void listaElCatalogoDePermisosOrdenadoPorModulo() throws Exception {
 		mvc.perform(get("/api/permisos").header(HttpHeaders.AUTHORIZATION, bearer(administradorDe(51L))))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.length()").value(10))
-			.andExpect(jsonPath("$[0].codigo").value(Permisos.IGLESIAS_VER))
-			.andExpect(jsonPath("$[0].modulo").value("Iglesias"))
+			.andExpect(jsonPath("$.length()").value(13))
+			.andExpect(jsonPath("$[0].codigo").value(Permisos.GRUPOS_VER))
+			.andExpect(jsonPath("$[0].modulo").value("Grupos"))
 			.andExpect(jsonPath("$[0].descripcion").isNotEmpty());
 	}
 
@@ -86,6 +86,21 @@ class RolIntegrationTest {
 		assertThat(jdbc.queryForObject(permisosDe, String.class, "ADMIN_SISTEMA"))
 			.isEqualTo(Permisos.IGLESIAS_ADMINISTRAR + "," + Permisos.IGLESIAS_VER);
 		assertThat(jdbc.queryForObject(permisosDe, String.class, "ADMIN_IGLESIA")).isNull();
+	}
+
+	@Test
+	void losPermisosDeNivelesYGruposLosTieneElAdministradorDeIglesiaYElLiderVeMiembros() {
+		String permisosDe = """
+				select array_to_string(array_agg(rp.permiso_codigo order by rp.permiso_codigo), ',')
+				from rol_permiso rp join rol r on r.id = rp.rol_id
+				where r.codigo = ? and (rp.permiso_codigo like 'niveles.%' or rp.permiso_codigo like 'grupos.%'
+				                        or rp.permiso_codigo like 'miembros.%')""";
+
+		assertThat(jdbc.queryForObject(permisosDe, String.class, "ADMIN_IGLESIA")).isEqualTo(String.join(",",
+				Permisos.GRUPOS_ADMINISTRAR, Permisos.GRUPOS_VER, "miembros.crear", "miembros.desactivar",
+				"miembros.editar", Permisos.MIEMBROS_VER, Permisos.NIVELES_ADMINISTRAR));
+		assertThat(jdbc.queryForObject(permisosDe, String.class, "LIDER")).isEqualTo(Permisos.MIEMBROS_VER);
+		assertThat(jdbc.queryForObject(permisosDe, String.class, "MIEMBRO")).isNull();
 	}
 
 	@Test

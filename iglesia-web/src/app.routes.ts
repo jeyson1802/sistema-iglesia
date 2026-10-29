@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { environment } from './environments/environment';
-import { autenticadoGuard, contrasenaVigenteGuard, iglesiaFijadaGuard, inicioRedirect, perfilSeleccionadoGuard, permisoGuard } from './app/core/auth/guards/auth.guards';
+import { autenticadoGuard, contrasenaVigenteGuard, iglesiaFijadaGuard, inicioRedirect, perfilSeleccionadoGuard } from './app/core/auth/guards/auth.guards';
 import { AppLayout } from './app/layout/component/app.layout';
 import { Notfound } from './app/pages/notfound/notfound';
 
@@ -29,9 +29,11 @@ export function crearRutasApp(produccion: boolean): Routes {
                 { path: 'cuenta/contrasena', title: 'Cambiar contraseña', loadComponent: () => import('./app/core/auth/pages/cambiar-contrasena').then((m) => m.CambiarContrasenaComponent) },
                 { path: 'iglesias', loadChildren: () => import('./app/features/iglesias/iglesias.routes') },
                 // Datos de una iglesia: sin iglesia fijada (vista global del administrador del sistema) no hay qué mostrar.
-                { path: 'miembros', canActivate: [iglesiaFijadaGuard, permisoGuard('miembros.ver')], loadChildren: () => import('./app/features/miembros/miembros.routes') },
+                { path: 'miembros', canActivate: [iglesiaFijadaGuard], loadChildren: () => import('./app/features/miembros/miembros.routes') },
                 { path: 'usuarios', canActivate: [iglesiaFijadaGuard], loadChildren: () => import('./app/features/usuarios/usuarios.routes') },
                 { path: 'roles', canActivate: [iglesiaFijadaGuard], loadChildren: () => import('./app/features/roles/roles.routes') },
+                { path: 'niveles', canActivate: [iglesiaFijadaGuard], loadChildren: () => import('./app/features/niveles/niveles.routes') },
+                { path: 'grupos', canActivate: [iglesiaFijadaGuard], loadChildren: () => import('./app/features/grupos/grupos.routes') },
                 ...soloEnDesarrollo(RUTAS_DEMO_EN_LAYOUT)
             ]
         },

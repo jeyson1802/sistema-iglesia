@@ -1,0 +1,166 @@
+<form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-8" novalidate [attr.aria-label]="soloLectura() ? 'Ficha del miembro (solo lectura)' : 'Ficha del miembro'">
+    <fieldset class="border-0 p-0 m-0 flex flex-col gap-4">
+        <legend class="font-semibold text-lg mb-4">Datos personales</legend>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-2">
+                <label for="miembro-nombres" class="font-medium">Nombres <span class="text-muted-color font-normal">(obligatorio)</span></label>
+                <input pInputText id="miembro-nombres" formControlName="nombres" autocomplete="given-name" [maxlength]="limites.nombres" [fluid]="true" />
+                <app-mensaje-error-campo [control]="formulario.controls.nombres" [mensajes]="mensajes['nombres']" />
+                <app-mensaje-error-servidor [mensaje]="erroresCampo()['nombres']" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label for="miembro-apellidos" class="font-medium">Apellidos <span class="text-muted-color font-normal">(obligatorio)</span></label>
+                <input pInputText id="miembro-apellidos" formControlName="apellidos" autocomplete="family-name" [maxlength]="limites.apellidos" [fluid]="true" />
+                <app-mensaje-error-campo [control]="formulario.controls.apellidos" [mensajes]="mensajes['apellidos']" />
+                <app-mensaje-error-servidor [mensaje]="erroresCampo()['apellidos']" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label for="miembro-genero" class="font-medium">Género</label>
+                <p-select inputId="miembro-genero" formControlName="genero" [options]="opcionesGenero" optionLabel="etiqueta" optionValue="valor" [showClear]="true" placeholder="Sin indicar" [fluid]="true" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label for="miembro-estado-civil" class="font-medium">Estado civil</label>
+                <p-select inputId="miembro-estado-civil" formControlName="estadoCivil" [options]="opcionesEstadoCivil" optionLabel="etiqueta" optionValue="valor" [showClear]="true" placeholder="Sin indicar" [fluid]="true" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label for="miembro-fecha-nacimiento" class="font-medium">Fecha de nacimiento</label>
+                <input pInputText id="miembro-fecha-nacimiento" type="date" formControlName="fechaNacimiento" autocomplete="bday" [max]="hoy" [fluid]="true" aria-describedby="miembro-edad-ayuda" />
+                <app-mensaje-error-campo [control]="formulario.controls.fechaNacimiento" [mensajes]="mensajes['fechaNacimiento']" />
+                <app-mensaje-error-servidor [mensaje]="erroresCampo()['fechaNacimiento']" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label for="miembro-edad" class="font-medium">Edad aproximada</label>
+                <input pInputText id="miembro-edad" type="number" inputmode="numeric" formControlName="edadAproximada" autocomplete="off" min="0" [max]="limites.edad" [fluid]="true" aria-describedby="miembro-edad-ayuda" />
+                <small id="miembro-edad-ayuda" class="text-muted-color">Indica la fecha de nacimiento o, si no la sabes, una edad aproximada.</small>
+                <app-mensaje-error-campo [control]="formulario.controls.edadAproximada" [mensajes]="mensajes['edadAproximada']" />
+                <app-mensaje-error-servidor [mensaje]="erroresCampo()['edadAproximada']" />
+            </div>
+        </div>
+    </fieldset>
+
+    <fieldset class="border-0 p-0 m-0 flex flex-col gap-4">
+        <legend class="font-semibold text-lg mb-4">Contacto y ubicación</legend>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-2">
+                <label for="miembro-telefono" class="font-medium">Teléfono</label>
+                <input pInputText id="miembro-telefono" type="tel" formControlName="telefono" autocomplete="tel" [maxlength]="limites.telefono" placeholder="Ej.: 999 888 777" [fluid]="true" />
+                <app-mensaje-error-campo [control]="formulario.controls.telefono" [mensajes]="mensajes['telefono']" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label for="miembro-correo" class="font-medium">Correo</label>
+                <input pInputText id="miembro-correo" type="email" formControlName="correo" autocomplete="email" [maxlength]="limites.correo" placeholder="nombre@correo.com" [fluid]="true" />
+                <app-mensaje-error-campo [control]="formulario.controls.correo" [mensajes]="mensajes['correo']" />
+            </div>
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="miembro-direccion" class="font-medium">Dirección</label>
+            <input pInputText id="miembro-direccion" formControlName="direccion" autocomplete="street-address" [maxlength]="limites.direccion" placeholder="Ej.: Av. Perú 123" [fluid]="true" />
+            <app-mensaje-error-campo [control]="formulario.controls.direccion" [mensajes]="mensajes['direccion']" />
+        </div>
+        <app-selector-ubigeo idBase="miembro" formControlName="distritoCodigo" />
+        <app-mensaje-error-servidor [mensaje]="erroresCampo()['distritoCodigo']" />
+    </fieldset>
+
+    <fieldset class="border-0 p-0 m-0 flex flex-col gap-4">
+        <legend class="font-semibold text-lg mb-4">En la iglesia</legend>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-2">
+                <label for="miembro-fecha-ingreso" class="font-medium">Fecha de ingreso</label>
+                <input pInputText id="miembro-fecha-ingreso" type="date" formControlName="fechaIngreso" autocomplete="off" [max]="hoy" [fluid]="true" />
+                <app-mensaje-error-campo [control]="formulario.controls.fechaIngreso" [mensajes]="mensajes['fechaIngreso']" />
+                <app-mensaje-error-servidor [mensaje]="erroresCampo()['fechaIngreso']" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label for="miembro-condicion" class="font-medium">Condición</label>
+                <p-select inputId="miembro-condicion" formControlName="condicion" [options]="opcionesCondicion" optionLabel="etiqueta" optionValue="valor" [showClear]="true" placeholder="Sin indicar" [fluid]="true" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label for="miembro-nivel" class="font-medium">Nivel</label>
+                <p-select
+                    inputId="miembro-nivel"
+                    formControlName="nivelId"
+                    [options]="opcionesNivel()"
+                    optionLabel="etiqueta"
+                    optionValue="valor"
+                    [showClear]="true"
+                    placeholder="Sin nivel"
+                    emptyMessage="La iglesia aún no tiene niveles"
+                    [fluid]="true"
+                />
+                <app-mensaje-error-servidor [mensaje]="erroresCampo()['nivelId']" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label for="miembro-grupo" class="font-medium">{{ nombreGrupo() }}</label>
+                <p-select
+                    inputId="miembro-grupo"
+                    formControlName="grupoId"
+                    [options]="opcionesGrupo()"
+                    optionLabel="etiqueta"
+                    optionValue="valor"
+                    [filter]="true"
+                    filterBy="etiqueta"
+                    [showClear]="true"
+                    placeholder="Sin asignar"
+                    emptyMessage="Sin opciones activas"
+                    [fluid]="true"
+                />
+                <app-mensaje-error-servidor [mensaje]="erroresCampo()['grupoId']" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label for="miembro-lider" class="font-medium">Líder</label>
+                <app-selector-miembro inputId="miembro-lider" formControlName="lider" [excluirId]="miembro()?.id ?? null" [placeholder]="esPastorPrincipal() ? 'El pastor principal no tiene líder' : 'Busca por nombre'" />
+                <small class="text-muted-color">De quién depende; es independiente de su {{ nombreGrupo().toLowerCase() }}.</small>
+                <app-mensaje-error-servidor [mensaje]="erroresCampo()['liderId']" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label for="miembro-invitado-por" class="font-medium">Invitado por</label>
+                <app-selector-miembro inputId="miembro-invitado-por" formControlName="invitadoPor" [excluirId]="miembro()?.id ?? null" />
+                <app-mensaje-error-servidor [mensaje]="erroresCampo()['invitadoPorId']" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label for="miembro-registrado-por" class="font-medium">Registrado por</label>
+                <app-selector-miembro inputId="miembro-registrado-por" formControlName="registradoPor" [excluirId]="miembro()?.id ?? null" />
+                <app-mensaje-error-servidor [mensaje]="erroresCampo()['registradoPorId']" />
+            </div>
+        </div>
+    </fieldset>
+
+    <fieldset class="border-0 p-0 m-0 flex flex-col gap-4">
+        <legend class="font-semibold text-lg mb-4">Estudios y trabajo</legend>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-2">
+                <label for="miembro-nivel-estudios" class="font-medium">Nivel de estudios</label>
+                <p-select inputId="miembro-nivel-estudios" formControlName="nivelEstudios" [options]="opcionesNivelEstudios" optionLabel="etiqueta" optionValue="valor" [showClear]="true" placeholder="Sin indicar" [fluid]="true" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label for="miembro-centro-estudios" class="font-medium">Centro de estudios</label>
+                <input pInputText id="miembro-centro-estudios" formControlName="centroEstudios" autocomplete="organization" [maxlength]="limites.centroEstudios" [fluid]="true" />
+                <app-mensaje-error-campo [control]="formulario.controls.centroEstudios" [mensajes]="mensajes['centroEstudios']" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label for="miembro-ocupacion" class="font-medium">Ocupación</label>
+                <input pInputText id="miembro-ocupacion" formControlName="ocupacion" autocomplete="organization-title" [maxlength]="limites.ocupacion" [fluid]="true" />
+                <app-mensaje-error-campo [control]="formulario.controls.ocupacion" [mensajes]="mensajes['ocupacion']" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label for="miembro-profesion" class="font-medium">Profesión</label>
+                <input pInputText id="miembro-profesion" formControlName="profesion" autocomplete="off" [maxlength]="limites.profesion" [fluid]="true" />
+                <app-mensaje-error-campo [control]="formulario.controls.profesion" [mensajes]="mensajes['profesion']" />
+            </div>
+        </div>
+    </fieldset>
+
+    <fieldset class="border-0 p-0 m-0 flex flex-col gap-2">
+        <legend class="font-semibold text-lg mb-4">Petición</legend>
+        <label for="miembro-peticion" class="font-medium">Petición o necesidad con la que llega</label>
+        <textarea pTextarea id="miembro-peticion" formControlName="peticion" rows="3" [maxlength]="limites.peticion" [autoResize]="true" [fluid]="true"></textarea>
+        <app-mensaje-error-campo [control]="formulario.controls.peticion" [mensajes]="mensajes['peticion']" />
+    </fieldset>
+
+    @if (!soloLectura()) {
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+        <p-button label="Cancelar" severity="secondary" [outlined]="true" [disabled]="guardando()" (onClick)="cancelar.emit()" />
+        <p-button type="submit" label="Guardar" icon="pi pi-check" [loading]="guardando()" [disabled]="!valido() || guardando()" />
+    </div>
+    }
+</form>

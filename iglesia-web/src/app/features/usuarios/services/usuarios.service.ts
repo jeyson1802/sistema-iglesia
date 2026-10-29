@@ -10,8 +10,8 @@ import { aPaginaUsuarios, aUsuarioAdmin } from './usuario-admin.mapper';
 const ORDEN_LISTADO = 'correo,asc';
 
 /**
- * Fachada HTTP de la administración de usuarios de iglesia-seguridad. Esta spec no vincula usuarios con
- * miembros: al crear se envía `miembroId` nulo y al editar se reenvía el que ya tenía.
+ * Fachada HTTP de la administración de usuarios de iglesia-seguridad. Desde `/usuarios` se crean sin miembro
+ * (`miembroId` nulo) y al editar se reenvía el que ya tenía; la ficha del miembro crea el usuario vinculado.
  */
 @Injectable({ providedIn: 'root' })
 export class UsuariosService {
@@ -30,8 +30,19 @@ export class UsuariosService {
     }
 
     /** Crea el usuario en la iglesia indicada; solo el administrador del sistema en su vista global elige otra. */
-    crearEnIglesia(iglesiaId: number | null, { correo, contrasenaTemporal, rolIds }: CrearUsuario): Observable<UsuarioAdmin> {
-        return this.http.post<UsuarioAdminResponse>(this.usuariosUrl, { correo, contrasena: contrasenaTemporal, iglesiaId, miembroId: null, rolIds }).pipe(map(aUsuarioAdmin));
+    crearEnIglesia(iglesiaId: number | null, datos: CrearUsuario): Observable<UsuarioAdmin> {
+        return this.enviarAlta(iglesiaId, null, datos);
+    }
+
+    /** Crea, en la iglesia del usuario autenticado, el usuario vinculado a ese miembro (único por iglesia: 409 si ya tiene). */
+    crearParaMiembro(miembroId: number, datos: CrearUsuario): Observable<UsuarioAdmin> {
+        return this.enviarAlta(this.sesion.usuarioActual()?.iglesiaId ?? null, miembroId, datos);
+    }
+
+    /** El usuario vinculado al miembro, o `null` si aún no tiene acceso al sistema. */
+    usuarioDeMiembro(miembroId: number): Observable<UsuarioAdmin | null> {
+        const parametros = new HttpParams().set('miembroId', miembroId).set('page', 0).set('size', 1);
+        return this.http.get<Page<UsuarioAdminResponse>>(this.usuariosUrl, { params: parametros }).pipe(map(({ content }) => (content.length ? aUsuarioAdmin(content[0]) : null)));
     }
 
     actualizar(id: number, { correo, rolIds, activo }: EditarUsuario, miembroIdActual: number | null): Observable<UsuarioAdmin> {
@@ -40,6 +51,10 @@ export class UsuariosService {
 
     restablecerContrasena(id: number, contrasenaTemporal: string): Observable<void> {
         return this.http.put<void>(`${this.usuariosUrl}/${id}/contrasena`, { contrasenaTemporal });
+    }
+
+    private enviarAlta(iglesiaId: number | null, miembroId: number | null, { correo, contrasenaTemporal, rolIds }: CrearUsuario): Observable<UsuarioAdmin> {
+        return this.http.post<UsuarioAdminResponse>(this.usuariosUrl, { correo, contrasena: contrasenaTemporal, iglesiaId, miembroId, rolIds }).pipe(map(aUsuarioAdmin));
     }
 }
 

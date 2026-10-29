@@ -55,13 +55,16 @@ class ManejadorGlobalErrores extends ResponseEntityExceptionHandler {
 
 	@ExceptionHandler(ConflictoException.class)
 	ProblemDetail conflicto(ConflictoException ex, HttpServletRequest peticion) {
-		return registrar(peticion, fabrica.crear(HttpStatus.CONFLICT, "Conflicto", ex.getMessage()), ex);
+		ProblemDetail problema = fabrica.crear(HttpStatus.CONFLICT, "Conflicto", ex.getMessage());
+		ex.campo().ifPresent(campo -> problema.setProperty(PROPIEDAD_ERRORES, Map.of(campo, ex.getMessage())));
+		return registrar(peticion, problema, ex);
 	}
 
 	@ExceptionHandler(ReglaNegocioException.class)
 	ProblemDetail reglaNegocio(ReglaNegocioException ex, HttpServletRequest peticion) {
-		return registrar(peticion,
-				fabrica.crear(HttpStatus.BAD_REQUEST, "Regla de negocio incumplida", ex.getMessage()), ex);
+		ProblemDetail problema = fabrica.crear(HttpStatus.BAD_REQUEST, "Regla de negocio incumplida", ex.getMessage());
+		ex.campo().ifPresent(campo -> problema.setProperty(PROPIEDAD_ERRORES, Map.of(campo, ex.getMessage())));
+		return registrar(peticion, problema, ex);
 	}
 
 	@ExceptionHandler(PropertyReferenceException.class)

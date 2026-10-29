@@ -20,6 +20,8 @@ public final class EspecificacionesUsuario {
 
 	private static final String ROLES = "roles";
 
+	private static final String MIEMBRO_ID = "miembroId";
+
 	private static final String ID = "id";
 
 	private static final char ESCAPE = '\\';
@@ -58,6 +60,13 @@ public final class EspecificacionesUsuario {
 			return Specification.unrestricted();
 		}
 		return (usuario, consulta, criterios) -> criterios.equal(usuario.join(ROLES).get(ID), rolId);
+	}
+
+	public static Specification<Usuario> deMiembro(Long miembroId) {
+		if (miembroId == null) {
+			return Specification.unrestricted();
+		}
+		return (usuario, consulta, criterios) -> criterios.equal(usuario.get(MIEMBRO_ID), miembroId);
 	}
 
 	private static String escaparComodines(String texto) {

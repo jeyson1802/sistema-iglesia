@@ -101,6 +101,27 @@ describe('UsuariosService', () => {
         peticion.flush(respuesta);
     });
 
+    it('crea para un miembro el usuario vinculado, en la iglesia del usuario autenticado', () => {
+        servicio.crearParaMiembro(25, { correo: 'juan@correo.test', contrasenaTemporal: 'Temporal123', rolIds: [3] }).subscribe();
+
+        const peticion = http.expectOne(usuariosUrl);
+        expect(peticion.request.body).toEqual({ correo: 'juan@correo.test', contrasena: 'Temporal123', iglesiaId: 7, miembroId: 25, rolIds: [3] });
+        peticion.flush({ ...respuesta, miembroId: 25 });
+    });
+
+    it('busca el usuario vinculado a un miembro, o nulo si no tiene', () => {
+        const encontrados: (UsuarioAdmin | null)[] = [];
+
+        servicio.usuarioDeMiembro(25).subscribe((u) => encontrados.push(u));
+        servicio.usuarioDeMiembro(26).subscribe((u) => encontrados.push(u));
+
+        const [con, sin] = http.match((r) => r.url === usuariosUrl);
+        expect(con.request.params.get('miembroId')).toBe('25');
+        con.flush({ content: [{ ...respuesta, miembroId: 25 }], page: { size: 1, number: 0, totalElements: 1, totalPages: 1 } });
+        sin.flush({ content: [], page: { size: 1, number: 0, totalElements: 0, totalPages: 0 } });
+        expect(encontrados.map((u) => u?.miembroId ?? null)).toEqual([25, null]);
+    });
+
     it('al actualizar reenvía el miembro que ya tenía', () => {
         servicio.actualizar(12, { correo: 'nuevo@iglesia.test', rolIds: [2, 3], activo: false }, 25).subscribe();
 

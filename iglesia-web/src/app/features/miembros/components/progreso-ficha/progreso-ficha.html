@@ -1,0 +1,19 @@
+<section class="flex flex-col gap-3" aria-labelledby="progreso-titulo">
+    <div class="flex items-center justify-between">
+        <h2 id="progreso-titulo" class="font-semibold text-lg m-0">Ficha completa</h2>
+        <span class="font-semibold text-surface-900 dark:text-surface-0">{{ progreso().porcentaje }} %</span>
+    </div>
+    <p-progressbar [value]="progreso().porcentaje" [showValue]="false" styleClass="h-2" [attr.aria-label]="'Ficha completa al ' + progreso().porcentaje + ' %'" />
+    @if (progreso().faltan.length) {
+    <div>
+        <span class="text-sm text-muted-color">Faltan:</span>
+        <ul class="list-none p-0 m-0 mt-2 flex flex-wrap gap-2">
+            @for (dato of progreso().faltan; track dato) {
+            <li class="text-sm px-2 py-1 rounded-border bg-surface-100 dark:bg-surface-800">{{ dato }}</li>
+            }
+        </ul>
+    </div>
+    } @else {
+    <span class="text-sm text-muted-color"><i class="pi pi-check-circle mr-1" aria-hidden="true"></i>No falta ningún dato.</span>
+    }
+</section>

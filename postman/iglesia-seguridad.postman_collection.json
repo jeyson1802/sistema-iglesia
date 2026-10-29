@@ -481,6 +481,62 @@
           ]
         },
         {
+          "name": "Listar el usuario de un miembro",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/usuarios?miembroId={{miembroIdUsuario}}&page=0&size=20",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios"
+              ],
+              "query": [
+                {
+                  "key": "miembroId",
+                  "value": "{{miembroIdUsuario}}"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Filtro `miembroId`: devuelve el usuario vinculado a ese miembro de iglesia-api (a lo sumo uno por iglesia) o una página vacía. La ficha del miembro lo usa para saber si ya tiene acceso al sistema. Sin `miembroIdUsuario` consulta un id inexistente, que da una página vacía."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Sin un miembro concreto se consulta un id que no existe, que debe dar una página vacía.",
+                  "pm.collectionVariables.set('miembroIdUsuario', pm.collectionVariables.get('miembroIdUsuario') || 999999999);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const pagina = pm.response.json();",
+                  "pm.test('A lo sumo un usuario', () => pm.expect(pagina.content.length).to.be.at.most(1));",
+                  "pm.test('Todos están vinculados a ese miembro', () => pagina.content.forEach(u => pm.expect(u.miembroId).to.eql(Number(pm.collectionVariables.get('miembroIdUsuario')))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Obtener usuario",
           "request": {
             "method": "GET",
@@ -1128,6 +1184,12 @@
           "}"
         ]
       }
+    }
+  ],
+  "variable": [
+    {
+      "key": "miembroIdUsuario",
+      "value": ""
     }
   ]
 }

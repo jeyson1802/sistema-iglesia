@@ -1,0 +1,35 @@
+<p-dialog [(visible)]="visible" header="Dar acceso al sistema" [modal]="true" [draggable]="false" [dismissableMask]="!guardando()" [closable]="!guardando()" styleClass="w-full max-w-md mx-4">
+    <p class="text-muted-color mt-0 mb-4">
+        Crea el usuario de <span class="font-medium text-surface-900 dark:text-surface-0">{{ nombreMiembro() }}</span> vinculado a su ficha. Un líder verá a las personas de su red; un miembro, su propia información.
+    </p>
+
+    <div aria-live="polite">
+        @if (error()) {
+        <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-4">{{ error() }}</p-message>
+        }
+    </div>
+
+    <form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-2" novalidate>
+        <div class="flex flex-col gap-2">
+            <label for="acceso-correo" class="font-medium">Correo</label>
+            <input pInputText id="acceso-correo" type="email" formControlName="correo" autocomplete="off" [maxlength]="limites.correo" [fluid]="true" />
+            <app-mensaje-error-campo [control]="formulario.controls.correo" [mensajes]="mensajesCorreo" />
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="acceso-contrasena" class="font-medium">Contraseña temporal</label>
+            <p-password inputId="acceso-contrasena" formControlName="contrasenaTemporal" autocomplete="new-password" [maxlength]="limites.contrasena" [toggleMask]="true" [feedback]="false" [fluid]="true" />
+            <small class="text-muted-color">{{ ayudaContrasena }}</small>
+            <app-mensaje-error-campo [control]="formulario.controls.contrasenaTemporal" [mensajes]="mensajesContrasena" />
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="acceso-rol" class="font-medium">Rol</label>
+            <p-select inputId="acceso-rol" formControlName="rolId" [options]="opcionesRol()" optionLabel="nombre" optionValue="id" placeholder="Elige el rol" emptyMessage="No hay roles disponibles" [fluid]="true" />
+            <app-mensaje-error-campo [control]="formulario.controls.rolId" [mensajes]="mensajesRol" />
+        </div>
+
+        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-4">
+            <p-button label="Cancelar" severity="secondary" [outlined]="true" [disabled]="guardando()" (onClick)="cerrar()" />
+            <p-button type="submit" label="Dar acceso" icon="pi pi-key" [loading]="guardando()" [disabled]="!valido() || guardando()" />
+        </div>
+    </form>
+</p-dialog>

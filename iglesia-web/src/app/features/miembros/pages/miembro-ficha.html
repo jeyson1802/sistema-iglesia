@@ -1,0 +1,95 @@
+@if (errorCarga()) {
+<div class="card">
+    <div class="flex flex-col items-center gap-4 py-8 text-center" role="alert">
+        <i class="pi pi-exclamation-circle text-4xl text-muted-color" aria-hidden="true"></i>
+        <span class="font-medium text-surface-900 dark:text-surface-0">{{ errorCarga() }}</span>
+        <p-button label="Volver a miembros" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" routerLink="/miembros" />
+    </div>
+</div>
+} @else if (cargando()) {
+<div class="card flex flex-col gap-4" role="status" aria-label="Cargando ficha">
+    <p-skeleton width="40%" height="2rem" />
+    <p-skeleton width="100%" height="10rem" />
+    <p-skeleton width="100%" height="10rem" />
+</div>
+} @else {
+<div class="card">
+    <a routerLink="/miembros" class="inline-flex items-center gap-2 text-muted-color hover:underline mb-4"><i class="pi pi-arrow-left" aria-hidden="true"></i>Miembros</a>
+    <header class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+        <div class="flex flex-col gap-2">
+            <h1 class="font-semibold text-xl text-surface-900 dark:text-surface-0 m-0">{{ titulo() }}</h1>
+            @if (miembro(); as actual) {
+            <div class="flex flex-wrap items-center gap-2">
+                @if (actual.esPastorPrincipal) {
+                <p-tag value="Pastor principal" severity="info" icon="pi pi-star" />
+                }
+                <p-tag [value]="actual.activo ? 'Activo' : 'Inactivo'" [severity]="actual.activo ? 'success' : 'danger'" />
+                @if (acceso(); as usuario) {
+                <p-tag [value]="'Acceso: ' + usuario.correo" severity="secondary" icon="pi pi-key" />
+                }
+            </div>
+            } @else {
+            <p class="text-muted-color m-0">Solo los nombres y apellidos son obligatorios; el resto se puede completar después.</p>
+            } @if (soloLectura() && miembro()) {
+            <p class="text-muted-color m-0"><i class="pi pi-lock mr-1" aria-hidden="true"></i>Solo lectura.</p>
+            }
+        </div>
+        @if (miembro(); as actual) {
+        <div class="flex flex-col sm:flex-row flex-wrap gap-3">
+            @if (puedeDarAcceso()) {
+            <p-button label="Dar acceso al sistema" icon="pi pi-key" severity="secondary" [outlined]="true" (onClick)="abrirDarAcceso()" />
+            } @if (puedeDesignarPastor()) {
+            <p-button label="Designar pastor principal" icon="pi pi-star" severity="secondary" [outlined]="true" (onClick)="designarPastor()" />
+            } @if (puedeCambiarEstado()) { @if (actual.activo) {
+            <p-button label="Desactivar" icon="pi pi-ban" severity="danger" [outlined]="true" (onClick)="cambiarEstado()" />
+            } @else {
+            <p-button label="Reactivar" icon="pi pi-replay" severity="success" [outlined]="true" (onClick)="cambiarEstado()" />
+            } }
+        </div>
+        }
+    </header>
+    <div aria-live="polite">
+        @if (errorAccion()) {
+        <p-message severity="error" icon="pi pi-times-circle" [closable]="true" styleClass="mt-4" (onClose)="errorAccion.set(null)">{{ errorAccion() }}</p-message>
+        }
+    </div>
+</div>
+
+<div class="grid grid-cols-12 gap-8">
+    <div [class]="miembro() ? 'col-span-12 xl:col-span-8' : 'col-span-12'">
+        <div class="card">
+            <div aria-live="polite">
+                @if (errorGuardar()) {
+                <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-6">{{ errorGuardar() }}</p-message>
+                }
+            </div>
+            <app-formulario-miembro
+                [miembro]="miembro()"
+                [niveles]="niveles()"
+                [grupos]="grupos()"
+                [nombreGrupo]="nombresGrupos().nombreGrupoSingular"
+                [soloLectura]="soloLectura()"
+                [guardando]="guardando()"
+                [erroresCampo]="erroresCampo()"
+                (guardar)="guardar($event)"
+                (cancelar)="cancelar()"
+            />
+        </div>
+    </div>
+    @if (miembro(); as actual) {
+    <div class="col-span-12 xl:col-span-4">
+        <div class="card">
+            <app-progreso-ficha [miembro]="actual" [nombreGrupo]="nombresGrupos().nombreGrupoSingular" />
+        </div>
+        <div class="card">
+            <app-cadena-liderazgo [cadena]="cadena()" [cantidadLiderados]="actual.cantidadLiderados" [esPastorPrincipal]="actual.esPastorPrincipal" [cargando]="cargandoCadena()" />
+        </div>
+    </div>
+    }
+</div>
+}
+
+<app-dar-acceso [(visible)]="accesoVisible" [nombreMiembro]="titulo()" [correoSugerido]="miembro()?.correo ?? null" [roles]="rolesAcceso()" [guardando]="guardandoAcceso()" [error]="errorAcceso()" (darAcceso)="darAcceso($event)" />
+
+<p-confirmdialog styleClass="w-full max-w-md mx-4" />
+<p-toast position="top-right" />

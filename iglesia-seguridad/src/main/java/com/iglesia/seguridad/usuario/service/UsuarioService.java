@@ -101,7 +101,8 @@ public class UsuarioService {
 		Long iglesia = politica.iglesiaParaListado(proveedorUsuario.actual(), iglesiaId);
 		Specification<Usuario> criterio = Specification.allOf(EspecificacionesUsuario.deIglesia(iglesia),
 				EspecificacionesUsuario.correoContiene(filtro.correo()),
-				EspecificacionesUsuario.conEstado(filtro.activo()), EspecificacionesUsuario.conRol(filtro.rolId()));
+				EspecificacionesUsuario.conEstado(filtro.activo()), EspecificacionesUsuario.conRol(filtro.rolId()),
+				EspecificacionesUsuario.deMiembro(filtro.miembroId()));
 		return usuarios.findAll(criterio, paginacion).map(mapper::aRespuesta);
 	}
 

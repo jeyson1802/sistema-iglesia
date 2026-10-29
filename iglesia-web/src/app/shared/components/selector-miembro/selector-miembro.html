@@ -1,0 +1,18 @@
+<p-autocomplete
+    [inputId]="inputId()"
+    [ngModel]="seleccion()"
+    (ngModelChange)="cambiar($event)"
+    [suggestions]="sugerencias()"
+    (completeMethod)="buscar($event)"
+    optionLabel="nombre"
+    [forceSelection]="true"
+    [dropdown]="true"
+    [showClear]="true"
+    [delay]="espera"
+    [disabled]="deshabilitado()"
+    [placeholder]="placeholder()"
+    [showEmptyMessage]="true"
+    emptyMessage="Ningún miembro activo coincide"
+    [fluid]="true"
+    (onBlur)="alTocar()"
+/>

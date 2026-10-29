@@ -22,7 +22,8 @@ public record ProblemDetailEsquema(
 		@Schema(description = "Código de seguimiento de la petición (igual a la cabecera X-Trace-Id). "
 				+ "Comunicarlo a soporte para rastrear el error en los logs.",
 				example = "4bf92f3577b34da6a3ce929d0e0e4736") String traceId,
-		@Schema(description = "Solo en los 400 de validación: mensaje de error por campo.",
+		@Schema(description = "En los 400 de validación, y en los 400 y 409 de reglas de negocio "
+				+ "atribuibles a un campo (p. ej. `liderId` en un ciclo de liderazgo): mensaje de error por campo.",
 				example = "{\"nombre\": \"no debe estar vacío\"}",
 				nullable = true) Map<String, String> errores) {
 }

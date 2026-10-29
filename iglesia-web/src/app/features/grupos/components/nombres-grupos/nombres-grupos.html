@@ -1,0 +1,27 @@
+<p-dialog [(visible)]="visible" header="Cómo se llaman los grupos" [modal]="true" [draggable]="false" [dismissableMask]="!guardando()" [closable]="!guardando()" styleClass="w-full max-w-md mx-4">
+    <p class="text-muted-color mt-0 mb-4">El nombre que usa tu iglesia para sus grupos pequeños. Se muestra en el menú, los títulos y las fichas.</p>
+
+    <div aria-live="polite">
+        @if (error()) {
+        <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-4">{{ error() }}</p-message>
+        }
+    </div>
+
+    <form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-2" novalidate>
+        <div class="flex flex-col gap-2">
+            <label for="grupos-singular" class="font-medium">En singular</label>
+            <input pInputText id="grupos-singular" formControlName="nombreGrupoSingular" autocomplete="off" [maxlength]="nombreMax" placeholder="Ej.: Hogar de paz" [fluid]="true" />
+            <app-mensaje-error-campo [control]="formulario.controls.nombreGrupoSingular" [mensajes]="mensajesSingular" />
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="grupos-plural" class="font-medium">En plural</label>
+            <input pInputText id="grupos-plural" formControlName="nombreGrupoPlural" autocomplete="off" [maxlength]="nombreMax" placeholder="Ej.: Hogares de paz" [fluid]="true" />
+            <app-mensaje-error-campo [control]="formulario.controls.nombreGrupoPlural" [mensajes]="mensajesPlural" />
+        </div>
+
+        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-4">
+            <p-button label="Cancelar" severity="secondary" [outlined]="true" [disabled]="guardando()" (onClick)="cerrar()" />
+            <p-button type="submit" label="Guardar" icon="pi pi-check" [loading]="guardando()" [disabled]="!valido() || guardando()" />
+        </div>
+    </form>
+</p-dialog>

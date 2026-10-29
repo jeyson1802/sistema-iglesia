@@ -6,6 +6,7 @@ import { Perfil } from '@/app/core/auth/models/perfil';
 import { Rol, ROLES } from '@/app/core/auth/models/rol';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
 import { perfilBase, perfilPersonalizado } from '@/app/core/auth/testing/perfiles-prueba';
+import { ConfiguracionIglesiaService } from '@/app/core/configuracion/configuracion-iglesia.service';
 import { AppMenu, construirMenu } from './app.menu';
 
 describe('Menú lateral', () => {
@@ -24,9 +25,31 @@ describe('Menú lateral', () => {
         });
 
         it('quita los grupos que quedan vacíos para el perfil', () => {
-            const grupos = construirMenu(perfilBase('LIDER'), true, true).map((grupo) => grupo.label);
+            const grupos = construirMenu(perfilBase('MIEMBRO'), true, true).map((grupo) => grupo.label);
 
             expect(grupos).toEqual(['Principal']);
+        });
+
+        it('el perfil Líder ve «Miembros» (miembros.ver) pero no los grupos ni los niveles', () => {
+            const etiquetasMenu = etiquetas(construirMenu(perfilBase('LIDER'), true, true));
+
+            expect(etiquetasMenu).toEqual(['Principal', 'Inicio', 'Iglesia', 'Miembros']);
+        });
+
+        it('el Administrador de iglesia ve los grupos con el nombre de su iglesia y «Niveles» en Administración', () => {
+            const menu = construirMenu(perfilBase('ADMIN_IGLESIA'), true, true, 'Hogares de paz');
+            const iglesia = menu.find((grupo) => grupo.label === 'Iglesia');
+            const administracion = menu.find((grupo) => grupo.label === 'Administración');
+
+            expect(iglesia?.items?.map((item) => item.label)).toEqual(['Miembros', 'Hogares de paz']);
+            expect(iglesia?.items?.[1].routerLink).toEqual(['/grupos']);
+            expect(iglesia?.items?.[1].icon).toContain('pi-sitemap');
+            expect(administracion?.items?.at(-1)?.label).toBe('Niveles');
+            expect(administracion?.items?.at(-1)?.icon).toContain('pi-sort-amount-up');
+        });
+
+        it('sin nombre configurado los grupos se llaman «Grupos»', () => {
+            expect(etiquetas(construirMenu(perfilBase('ADMIN_IGLESIA'), true, true))).toContain('Grupos');
         });
 
         it('con el perfil Administrador de iglesia muestra «Miembros» y «Roles»', () => {
@@ -56,7 +79,7 @@ describe('Menú lateral', () => {
         it('con usuarios.ver aparece «Administración › Usuarios», antes de «Roles»', () => {
             const administracion = construirMenu(perfilBase('ADMIN_IGLESIA'), true, true).find((grupo) => grupo.label === 'Administración');
 
-            expect(administracion?.items?.map((item) => item.label)).toEqual(['Usuarios', 'Roles']);
+            expect(administracion?.items?.map((item) => item.label)).toEqual(['Usuarios', 'Roles', 'Niveles']);
             expect(administracion?.items?.[0].routerLink).toEqual(['/usuarios']);
             expect(administracion?.items?.[0].icon).toContain('pi-users');
         });
@@ -95,9 +118,10 @@ describe('Menú lateral', () => {
             expect(construirMenu(perfilBase('ADMIN_IGLESIA'), true, true).map((grupo) => grupo.label)).not.toContain('Sistema');
         });
 
-        it('sin iglesia en la que operar oculta «Miembros», «Usuarios» y «Roles» aunque haya permiso', () => {
-            const etiquetasMenu = etiquetas(construirMenu(perfilBase('ADMIN_SISTEMA'), false, true));
+        it('sin iglesia en la que operar oculta «Miembros», «Grupos», «Niveles», «Usuarios» y «Roles» aunque haya permiso', () => {
+            const etiquetasMenu = etiquetas(construirMenu(perfilPersonalizado(1, 'Administrador del sistema', 'ADMIN_SISTEMA', ['iglesias.ver', 'miembros.ver', 'grupos.ver', 'niveles.administrar', 'usuarios.ver', 'roles.ver']), false, true));
 
+            expect(etiquetasMenu).toEqual(['Principal', 'Inicio', 'Sistema', 'Iglesias']);
             expect(etiquetasMenu).not.toContain('Usuarios');
             expect(etiquetasMenu).not.toContain('Roles');
             expect(etiquetasMenu).not.toContain('Miembros');
@@ -146,12 +170,16 @@ describe('Menú lateral', () => {
     describe('AppMenu', () => {
         const perfilActivo = signal<Perfil | null>(perfilBase('MIEMBRO'));
         const operaEnIglesia = signal(true);
+        const nombresGrupos = signal({ nombreGrupoSingular: 'Grupo', nombreGrupoPlural: 'Grupos' });
         let fixture: ComponentFixture<AppMenu>;
 
         beforeEach(async () => {
             perfilActivo.set(perfilBase('MIEMBRO'));
             operaEnIglesia.set(true);
-            await TestBed.configureTestingModule({ imports: [AppMenu], providers: [provideRouter([]), { provide: SesionService, useValue: { perfilActivo, operaEnIglesia } }] }).compileComponents();
+            await TestBed.configureTestingModule({
+                imports: [AppMenu],
+                providers: [provideRouter([]), { provide: SesionService, useValue: { perfilActivo, operaEnIglesia } }, { provide: ConfiguracionIglesiaService, useValue: { nombresGrupos } }]
+            }).compileComponents();
             fixture = TestBed.createComponent(AppMenu);
             await fixture.whenStable();
         });
@@ -179,6 +207,14 @@ describe('Menú lateral', () => {
             await fixture.whenStable();
 
             expect(texto()).toContain('Usuarios');
+        });
+
+        it('se actualiza cuando la iglesia cambia el nombre de sus grupos', async () => {
+            perfilActivo.set(perfilBase('ADMIN_IGLESIA'));
+            nombresGrupos.set({ nombreGrupoSingular: 'Célula', nombreGrupoPlural: 'Células' });
+            await fixture.whenStable();
+
+            expect(texto()).toContain('Células');
         });
     });
 });

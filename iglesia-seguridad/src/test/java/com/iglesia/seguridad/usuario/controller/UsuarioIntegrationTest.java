@@ -187,6 +187,29 @@ class UsuarioIntegrationTest {
 	}
 
 	@Test
+	void creaUnLiderVinculadoAUnMiembroYLoEncuentraPorEseMiembro() throws Exception {
+		String token = administradorDe(95L);
+		String cuerpo = crearUsuario("lider@iglesia95.test", 95L, 31L, semilla.idRolBase("LIDER"));
+
+		mvc.perform(post("/api/usuarios").header(HttpHeaders.AUTHORIZATION, bearer(token))
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(cuerpo)).andExpect(status().isCreated()).andExpect(jsonPath("$.miembroId").value(31));
+
+		listar(token, "miembroId", "31").andExpect(status().isOk())
+			.andExpect(jsonPath("$.content[*].correo", contains("lider@iglesia95.test")));
+		listar(token, "miembroId", "32").andExpect(jsonPath("$.content.length()").value(0));
+		String acceso = JsonPath.read(login("lider@iglesia95.test", "ClaveSegura123").getResponse()
+			.getContentAsString(), "$.tokenAcceso");
+		assertThat(decodificador.decode(acceso).<Number>getClaim(ClaimsJwt.MIEMBRO_ID).longValue()).isEqualTo(31L);
+		assertThat(decodificador.decode(acceso).getClaimAsStringList(ClaimsJwt.PERMISOS)).containsExactly("miembros.ver");
+
+		mvc.perform(post("/api/usuarios").header(HttpHeaders.AUTHORIZATION, bearer(token))
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(crearUsuario("otro@iglesia95.test", 95L, 31L, semilla.idRolBase("MIEMBRO"))))
+			.andExpect(status().isConflict());
+	}
+
+	@Test
 	void unAdministradorDeIglesiaNoVeOtraIglesiaAunqueEnvieSuIglesiaId() throws Exception {
 		semilla.crearUsuario("vecino@iglesia86.test", 86L, null, semilla.idRolBase("ADMIN_IGLESIA"));
 		String token = administradorDe(87L);

@@ -1,0 +1,62 @@
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="flex flex-col gap-2">
+        <label [for]="idBase() + '-departamento'" class="font-medium">Departamento</label>
+        <p-select
+            [inputId]="idBase() + '-departamento'"
+            [options]="departamentos()"
+            optionLabel="nombre"
+            optionValue="codigo"
+            [ngModel]="departamento()"
+            (ngModelChange)="elegirDepartamento($event)"
+            [disabled]="deshabilitado()"
+            [filter]="true"
+            filterBy="nombre"
+            [showClear]="true"
+            placeholder="Elige el departamento"
+            emptyMessage="Sin departamentos"
+            emptyFilterMessage="Ningún departamento coincide"
+            [fluid]="true"
+            (onBlur)="alTocar()"
+        />
+    </div>
+    <div class="flex flex-col gap-2">
+        <label [for]="idBase() + '-provincia'" class="font-medium">Provincia</label>
+        <p-select
+            [inputId]="idBase() + '-provincia'"
+            [options]="provincias()"
+            optionLabel="nombre"
+            optionValue="codigo"
+            [ngModel]="provincia()"
+            (ngModelChange)="elegirProvincia($event)"
+            [disabled]="deshabilitado() || !departamento()"
+            [filter]="true"
+            filterBy="nombre"
+            [showClear]="true"
+            [placeholder]="departamento() ? 'Elige la provincia' : 'Primero el departamento'"
+            emptyMessage="Sin provincias"
+            emptyFilterMessage="Ninguna provincia coincide"
+            [fluid]="true"
+            (onBlur)="alTocar()"
+        />
+    </div>
+    <div class="flex flex-col gap-2">
+        <label [for]="idBase() + '-distrito'" class="font-medium">Distrito</label>
+        <p-select
+            [inputId]="idBase() + '-distrito'"
+            [options]="distritos()"
+            optionLabel="nombre"
+            optionValue="codigo"
+            [ngModel]="distrito()"
+            (ngModelChange)="elegirDistrito($event)"
+            [disabled]="deshabilitado() || !provincia()"
+            [filter]="true"
+            filterBy="nombre"
+            [showClear]="true"
+            [placeholder]="provincia() ? 'Elige el distrito' : 'Primero la provincia'"
+            emptyMessage="Sin distritos"
+            emptyFilterMessage="Ningún distrito coincide"
+            [fluid]="true"
+            (onBlur)="alTocar()"
+        />
+    </div>
+</div>
