@@ -14,7 +14,13 @@ public final class Permisos {
 
 	public static final String ROLES_ADMINISTRAR = "roles.administrar";
 
-	public static final String PUEDE_VER_USUARIOS = "hasAuthority('" + USUARIOS_VER + "')";
+	/** Solo del rol base {@code ADMIN_SISTEMA}; el catálogo de iglesias lo expone iglesia-api. */
+	public static final String IGLESIAS_VER = "iglesias.ver";
+
+	/** Solo del rol base {@code ADMIN_SISTEMA}: dar de alta iglesias y entrar a operarlas. */
+	public static final String IGLESIAS_ADMINISTRAR = "iglesias.administrar";
+
+	public static final String PUEDE_VER_USUARIOS ="hasAuthority('" + USUARIOS_VER + "')";
 
 	public static final String PUEDE_ADMINISTRAR_USUARIOS = "hasAuthority('" + USUARIOS_ADMINISTRAR + "')";
 
@@ -25,6 +31,8 @@ public final class Permisos {
 			+ USUARIOS_ADMINISTRAR + "')";
 
 	public static final String PUEDE_ADMINISTRAR_ROLES = "hasAuthority('" + ROLES_ADMINISTRAR + "')";
+
+	public static final String PUEDE_ADMINISTRAR_IGLESIAS = "hasAuthority('" + IGLESIAS_ADMINISTRAR + "')";
 
 	private Permisos() {
 	}

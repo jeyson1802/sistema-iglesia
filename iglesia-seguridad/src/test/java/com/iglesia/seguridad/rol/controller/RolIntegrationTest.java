@@ -24,6 +24,7 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import com.iglesia.seguridad.SemillaSeguridad;
 import com.iglesia.seguridad.TestcontainersConfiguration;
+import com.iglesia.seguridad.common.seguridad.constant.Permisos;
 import com.iglesia.seguridad.jwt.constant.ClaimsJwt;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -69,10 +70,30 @@ class RolIntegrationTest {
 	void listaElCatalogoDePermisosOrdenadoPorModulo() throws Exception {
 		mvc.perform(get("/api/permisos").header(HttpHeaders.AUTHORIZATION, bearer(administradorDe(51L))))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.length()").value(8))
-			.andExpect(jsonPath("$[0].codigo").value("miembros.ver"))
-			.andExpect(jsonPath("$[0].modulo").value("Miembros"))
+			.andExpect(jsonPath("$.length()").value(10))
+			.andExpect(jsonPath("$[0].codigo").value(Permisos.IGLESIAS_VER))
+			.andExpect(jsonPath("$[0].modulo").value("Iglesias"))
 			.andExpect(jsonPath("$[0].descripcion").isNotEmpty());
+	}
+
+	@Test
+	void losPermisosDeIglesiasSoloLosTieneElRolBaseDelSistema() {
+		String permisosDe = """
+				select array_to_string(array_agg(rp.permiso_codigo order by rp.permiso_codigo), ',')
+				from rol_permiso rp join rol r on r.id = rp.rol_id
+				where r.codigo = ? and rp.permiso_codigo like 'iglesias.%'""";
+
+		assertThat(jdbc.queryForObject(permisosDe, String.class, "ADMIN_SISTEMA"))
+			.isEqualTo(Permisos.IGLESIAS_ADMINISTRAR + "," + Permisos.IGLESIAS_VER);
+		assertThat(jdbc.queryForObject(permisosDe, String.class, "ADMIN_IGLESIA")).isNull();
+	}
+
+	@Test
+	void unRolDeIglesiaNoPuedeMarcarLosPermisosDeIglesias() throws Exception {
+		String token = administradorDe(64L);
+
+		crear(token, "Gestor de iglesias", "ADMIN_IGLESIA", Permisos.IGLESIAS_VER).andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.detail").value(containsString(Permisos.IGLESIAS_VER)));
 	}
 
 	@Test
