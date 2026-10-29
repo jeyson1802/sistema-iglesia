@@ -1,6 +1,6 @@
 # SPEC 05 — Acceso global del administrador del sistema
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 01 (login, JWT y refresco), SPEC 02 (permisos y roles base), SPEC 03 (OpenAPI y trazabilidad), SPEC 04 (administración de usuarios y contraseña temporal)
 > **Fecha:** 2026-10-28
 > **Objetivo:** Que el administrador del sistema gestione el catálogo de iglesias, dé de alta una iglesia con su primer administrador y entre a cualquier iglesia para operar dentro de ella con Hibernate y la RLS activos, como si fuera su administrador.
