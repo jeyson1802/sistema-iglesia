@@ -11,7 +11,7 @@
     [rowHover]="!cargando()"
     dataKey="id"
     [scrollable]="true"
-    tableStyleClass="min-w-240"
+    tableStyleClass="min-w-280"
     [attr.aria-busy]="cargando()"
 >
     <ng-template #header>
@@ -20,7 +20,8 @@
             <th scope="col">Condición</th>
             <th scope="col">Nivel</th>
             <th scope="col">Líder</th>
-            <th scope="col">{{ nombreGrupo() }}</th>
+            <th scope="col">Dirección</th>
+            <th scope="col">Región</th>
             <th scope="col">Teléfono</th>
             <th scope="col">Estado</th>
         </tr>
@@ -32,7 +33,8 @@
             <td><p-skeleton width="60%" height="1.5rem" /></td>
             <td><p-skeleton width="60%" height="1.5rem" /></td>
             <td><p-skeleton width="70%" height="1.5rem" /></td>
-            <td><p-skeleton width="60%" height="1.5rem" /></td>
+            <td><p-skeleton width="80%" height="1.5rem" /></td>
+            <td><p-skeleton width="80%" height="1.5rem" /></td>
             <td><p-skeleton width="60%" height="1.5rem" /></td>
             <td><p-skeleton width="4rem" height="1.5rem" /></td>
         </tr>
@@ -47,7 +49,7 @@
                 </div>
             </td>
             <td>{{ condicion(miembro) }}</td>
-            @for (referencia of [miembro.nivel, miembro.lider, miembro.grupo]; track $index) {
+            @for (referencia of [miembro.nivel, miembro.lider]; track $index) {
             <td>
                 @if (referencia) {
                 <span [class.text-muted-color]="!referencia.activo" [attr.title]="referencia.activo ? null : 'Inactivo'">{{ referencia.nombre }}</span>
@@ -56,6 +58,8 @@
                 }
             </td>
             }
+            <td class="max-w-64">{{ miembro.direccion ?? '—' }}</td>
+            <td class="max-w-64">{{ region(miembro) }}</td>
             <td>{{ miembro.telefono ?? '—' }}</td>
             <td>
                 <p-tag [value]="miembro.activo ? 'Activo' : 'Inactivo'" [severity]="miembro.activo ? 'success' : 'danger'" />
@@ -65,7 +69,7 @@
     </ng-template>
     <ng-template #emptymessage>
         <tr>
-            <td colspan="7">
+            <td colspan="8">
                 <div class="flex flex-col items-center gap-2 py-8 text-center">
                     <i class="pi pi-users text-4xl text-muted-color" aria-hidden="true"></i>
                     <span class="font-medium text-surface-900 dark:text-surface-0">No hay miembros para mostrar</span>

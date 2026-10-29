@@ -1,11 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { catchError, finalize, forkJoin, of, Subscription } from 'rxjs';
+import { catchError, finalize, of, Subscription } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
-import { ConfiguracionIglesiaService } from '@/app/core/configuracion/configuracion-iglesia.service';
 import { Referencia } from '@/app/core/models/referencia';
-import { GruposService } from '@/app/features/grupos/services/grupos.service';
 import { NivelesService } from '@/app/features/niveles/services/niveles.service';
 import { FiltrosMiembrosComponent } from '../components/filtros-miembros/filtros-miembros';
 import { TablaMiembrosComponent } from '../components/tabla-miembros/tabla-miembros';
@@ -27,18 +25,15 @@ const MENSAJE_ERROR_CARGA = 'No se pudieron cargar los miembros.';
 export class MiembrosListaComponent {
     private readonly servicio = inject(MiembrosService);
     private readonly nivelesServicio = inject(NivelesService);
-    private readonly gruposServicio = inject(GruposService);
     private readonly sesion = inject(SesionService);
 
-    protected readonly nombresGrupos = inject(ConfiguracionIglesiaService).nombresGrupos;
     protected readonly miembros = signal<readonly MiembroResumen[]>([]);
     protected readonly totalRegistros = signal(0);
     protected readonly pagina = signal(0);
     protected readonly cargando = signal(true);
     protected readonly errorCarga = signal<string | null>(null);
-    /** Opciones de los filtros de nivel y grupo (los activos, en el orden del backend). */
+    /** Opciones del filtro de nivel (los activos, en el orden del backend). */
     protected readonly niveles = signal<readonly Referencia[]>([]);
-    protected readonly grupos = signal<readonly Referencia[]>([]);
     private readonly filtro = signal<FiltroMiembros>(FILTRO_MIEMBROS_INICIAL);
     private carga?: Subscription;
 
@@ -81,14 +76,11 @@ export class MiembrosListaComponent {
             });
     }
 
-    /** Los filtros de nivel y grupo son una ayuda: si no cargan, se quedan solo con «Todos» y la tabla sigue funcionando. */
+    /** El filtro de nivel es una ayuda: si no carga, se queda solo con «Todos» y la tabla sigue funcionando. */
     private cargarOpcionesDeFiltro(): void {
-        forkJoin({
-            niveles: this.nivelesServicio.listar().pipe(catchError(() => of([]))),
-            grupos: this.gruposServicio.listar().pipe(catchError(() => of([])))
-        }).subscribe(({ niveles, grupos }) => {
-            this.niveles.set(niveles.filter(({ activo }) => activo));
-            this.grupos.set(grupos.filter(({ activo }) => activo));
-        });
+        this.nivelesServicio
+            .listar()
+            .pipe(catchError(() => of([])))
+            .subscribe((niveles) => this.niveles.set(niveles.filter(({ activo }) => activo)));
     }
 }

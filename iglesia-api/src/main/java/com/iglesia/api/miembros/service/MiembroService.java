@@ -29,16 +29,19 @@ import com.iglesia.api.miembros.constant.LimitesMiembro;
 import com.iglesia.api.miembros.dto.EslabonCadenaResponse;
 import com.iglesia.api.miembros.dto.FiltroMiembros;
 import com.iglesia.api.miembros.dto.GuardarMiembroRequest;
+import com.iglesia.api.miembros.dto.LideradoResponse;
 import com.iglesia.api.miembros.dto.MiembroResponse;
 import com.iglesia.api.miembros.dto.MiembroResumenResponse;
 import com.iglesia.api.miembros.dto.OpcionMiembroResponse;
 import com.iglesia.api.miembros.entity.Miembro;
 import com.iglesia.api.miembros.mapper.MiembroMapper;
 import com.iglesia.api.miembros.model.AmbitoLectura;
+import com.iglesia.api.miembros.model.ConteoPorLider;
 import com.iglesia.api.miembros.model.DatosFicha;
 import com.iglesia.api.miembros.repository.EspecificacionesMiembro;
 import com.iglesia.api.miembros.repository.MiembroRepository;
 import com.iglesia.api.niveles.service.NivelService;
+import com.iglesia.api.ubigeo.dto.UbicacionResponse;
 import com.iglesia.api.ubigeo.service.UbigeoService;
 
 /**
@@ -51,8 +54,6 @@ public class MiembroService {
 	private static final Logger LOG = LoggerFactory.getLogger(MiembroService.class);
 
 	static final String NO_ENCONTRADO = "Miembro no encontrado";
-
-	static final String EDAD_Y_FECHA = "Indique la fecha de nacimiento o la edad aproximada, no las dos";
 
 	static final String PROPIO_INVITADOR = "Un miembro no puede haberse invitado a sí mismo";
 
@@ -105,12 +106,11 @@ public class MiembroService {
 		Specification<Miembro> criterio = Specification.allOf(EspecificacionesMiembro.dentroDe(ambito.actual()),
 				EspecificacionesMiembro.nombreContiene(filtro.q()),
 				EspecificacionesMiembro.conCondicion(filtro.condicion()),
-				EspecificacionesMiembro.deNivel(filtro.nivelId()), EspecificacionesMiembro.deGrupo(filtro.grupoId()),
-				EspecificacionesMiembro.deLider(filtro.liderId()), EspecificacionesMiembro.conEstado(filtro.activo()));
+				EspecificacionesMiembro.deNivel(filtro.nivelId()), EspecificacionesMiembro.deLider(filtro.liderId()),
+				EspecificacionesMiembro.enUbigeo(filtro.ubigeo()), EspecificacionesMiembro.conEstado(filtro.activo()));
 		Page<Miembro> pagina = miembros.findAll(criterio, paginacion);
-		Map<Long, ReferenciaResponse> gruposDeLaPagina = grupos
-			.referencias(pagina.getContent().stream().map(Miembro::getGrupoId).toList());
-		return pagina.map(miembro -> mapper.aResumen(miembro, gruposDeLaPagina));
+		Map<String, UbicacionResponse> ubicaciones = ubicaciones(pagina.getContent());
+		return pagina.map(miembro -> mapper.aResumen(miembro, ubicaciones));
 	}
 
 	@Transactional(readOnly = true)
@@ -130,6 +130,29 @@ public class MiembroService {
 			.stream()
 			.collect(Collectors.toMap(Miembro::getId, Function.identity()));
 		return ids.stream().map(porId::get).filter(Objects::nonNull).map(mapper::aEslabon).toList();
+	}
+
+	/**
+	 * Liderados directos activos del miembro, con su nivel y cuántos lidera cada uno, para expandir un nodo del árbol
+	 * de liderazgo. Solo aparecen los que el usuario puede ver.
+	 */
+	@Transactional(readOnly = true)
+	public List<LideradoResponse> liderados(Long id) {
+		AmbitoLectura visible = ambito.actual();
+		Miembro lider = buscarVisible(id);
+		List<Miembro> directos = miembros.findByLiderIdAndActivoTrueOrderByApellidosAscNombresAscIdAsc(lider.getId())
+			.stream()
+			.filter(miembro -> visible.incluye(miembro.getId()))
+			.toList();
+		if (directos.isEmpty()) {
+			return List.of();
+		}
+		Map<Long, Long> conteos = miembros.contarActivosPorLider(directos.stream().map(Miembro::getId).toList())
+			.stream()
+			.collect(Collectors.toMap(ConteoPorLider::liderId, ConteoPorLider::cantidad));
+		return directos.stream()
+			.map(miembro -> mapper.aLiderado(miembro, conteos.getOrDefault(miembro.getId(), 0L)))
+			.toList();
 	}
 
 	/** Hasta {@value LimitesMiembro#OPCIONES_MAX} miembros activos del ámbito para el selector de miembro. */
@@ -152,9 +175,8 @@ public class MiembroService {
 			.filter(miembro -> Textos.mismoTexto(miembro.getNombres(), buscados)
 					&& Textos.mismoTexto(miembro.getApellidos(), apellidosBuscados))
 			.toList();
-		Map<Long, ReferenciaResponse> gruposDeLosMiembros = grupos
-			.referencias(coincidencias.stream().map(Miembro::getGrupoId).toList());
-		return coincidencias.stream().map(miembro -> mapper.aResumen(miembro, gruposDeLosMiembros)).toList();
+		Map<String, UbicacionResponse> ubicaciones = ubicaciones(coincidencias);
+		return coincidencias.stream().map(miembro -> mapper.aResumen(miembro, ubicaciones)).toList();
 	}
 
 	@Transactional
@@ -213,9 +235,6 @@ public class MiembroService {
 
 	/** Normaliza y valida la ficha y resuelve sus referencias. {@code miembro} es nulo en un alta. */
 	private DatosFicha datosFicha(Miembro miembro, GuardarMiembroRequest solicitud) {
-		if (solicitud.fechaNacimiento() != null && solicitud.edadAproximada() != null) {
-			throw new ReglaNegocioException(EDAD_Y_FECHA, "edadAproximada");
-		}
 		validarNoSeReferenciaASiMismo(miembro, solicitud);
 		String distrito = Textos.normalizarOpcional(solicitud.distritoCodigo());
 		ubigeo.validarDistrito(distrito, "distritoCodigo");
@@ -260,6 +279,11 @@ public class MiembroService {
 
 	private static Miembro actual(Miembro miembro, Function<Miembro, Miembro> referencia) {
 		return miembro == null ? null : referencia.apply(miembro);
+	}
+
+	/** Ubicaciones de los distritos de los miembros, en una sola consulta. */
+	private Map<String, UbicacionResponse> ubicaciones(List<Miembro> lista) {
+		return ubigeo.ubicaciones(lista.stream().map(Miembro::getDistritoCodigo).toList());
 	}
 
 	private MiembroResponse aRespuesta(Miembro miembro) {

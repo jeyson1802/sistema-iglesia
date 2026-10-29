@@ -74,7 +74,7 @@ class MiembroIntegrationTest {
 	}
 
 	@Test
-	void calculaLaEdadExactaOAproximadaYNoAceptaAmbas() throws Exception {
+	void calculaLaEdadExactaOAproximadaYAceptaAmbasIndependientes() throws Exception {
 		JwtRequestPostProcessor admin = adminNuevo();
 		String nacimiento = LocalDate.now().minusYears(40).minusDays(1).toString();
 
@@ -84,8 +84,10 @@ class MiembroIntegrationTest {
 		guardar(admin, null, ficha("Con", "Edad", "\"edadAproximada\":30")).andExpect(jsonPath("$.edad").value(30))
 			.andExpect(jsonPath("$.edadEsAproximada").value(true));
 		guardar(admin, null, ficha("Las", "Dos", "\"edadAproximada\":30,\"fechaNacimiento\":\"" + nacimiento + "\""))
-			.andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.errores.edadAproximada").exists());
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.edad").value(40))
+			.andExpect(jsonPath("$.edadEsAproximada").value(false))
+			.andExpect(jsonPath("$.edadAproximada").value(30));
 	}
 
 	@Test
@@ -120,7 +122,7 @@ class MiembroIntegrationTest {
 		JwtRequestPostProcessor admin = adminNuevo();
 		long lider = alta(admin, "Ana", "Torres", "");
 		alta(admin, "Luis", "Pérez", "\"condicion\":\"NUEVO\",\"liderId\":" + lider);
-		alta(admin, "Rosa", "Pérez", "\"condicion\":\"ANTIGUO\"");
+		alta(admin, "Rosa", "Pérez", "\"condicion\":\"CONSOLIDADO\"");
 
 		mvc.perform(get(RUTA).param("q", "perez").with(admin))
 			.andExpect(jsonPath("$.content[*].nombres", contains("Luis", "Rosa")));
@@ -129,6 +131,28 @@ class MiembroIntegrationTest {
 			.andExpect(jsonPath("$.content[0].lider.nombre").value("Ana Torres"));
 		mvc.perform(get(RUTA).param("liderId", String.valueOf(lider)).with(admin))
 			.andExpect(jsonPath("$.page.totalElements").value(1));
+		mvc.perform(get(RUTA).param("condicion", "ANTIGUO").with(admin)).andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void filtraPorDepartamentoProvinciaODistritoYDevuelveLaDireccion() throws Exception {
+		JwtRequestPostProcessor admin = adminNuevo();
+		alta(admin, "Lima", "Cercado", "\"distritoCodigo\":\"150101\",\"direccion\":\"Jr. Lampa 100\"");
+		alta(admin, "Lima", "Miraflores", "\"distritoCodigo\":\"150122\"");
+		alta(admin, "Callao", "Puerto", "\"distritoCodigo\":\"070101\"");
+		alta(admin, "Sin", "Ubicacion", "");
+
+		mvc.perform(get(RUTA).param("ubigeo", "15").with(admin))
+			.andExpect(jsonPath("$.content[*].apellidos", contains("Cercado", "Miraflores")));
+		mvc.perform(get(RUTA).param("ubigeo", "1501").with(admin)).andExpect(jsonPath("$.page.totalElements").value(2));
+		mvc.perform(get(RUTA).param("ubigeo", "150122").with(admin))
+			.andExpect(jsonPath("$.content[*].apellidos", contains("Miraflores")));
+		mvc.perform(get(RUTA).param("ubigeo", "150101").with(admin))
+			.andExpect(jsonPath("$.content[0].direccion").value("Jr. Lampa 100"))
+			.andExpect(jsonPath("$.content[0].ubicacion.distrito.codigo").value("150101"))
+			.andExpect(jsonPath("$.content[0].grupo").doesNotExist());
+		mvc.perform(get(RUTA).param("ubigeo", "1").with(admin)).andExpect(status().isBadRequest());
+		mvc.perform(get(RUTA).param("ubigeo", "15a1").with(admin)).andExpect(status().isBadRequest());
 	}
 
 	// ---- Jerarquía
@@ -161,6 +185,28 @@ class MiembroIntegrationTest {
 			.andExpect(jsonPath("$[*].id", contains((int) x, (int) pastor)))
 			.andExpect(jsonPath("$[1].esPastorPrincipal").value(true));
 		mvc.perform(get(RUTA + "/{id}", x).with(admin)).andExpect(jsonPath("$.cantidadLiderados").value(1));
+	}
+
+	@Test
+	void devuelveLosLideradosDirectosConSuNivelYCuantosLideran() throws Exception {
+		JwtRequestPostProcessor admin = adminNuevo();
+		long nivel = PruebasNegocio.idDe(mvc.perform(post("/api/niveles").with(admin)
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"nombre\":\"Líder\"}")));
+		long raiz = alta(admin, "Raiz", "Arbol", "");
+		long beto = alta(admin, "Beto", "Bravo", "\"liderId\":" + raiz + ",\"nivelId\":" + nivel);
+		alta(admin, "Ana", "Alva", "\"liderId\":" + raiz);
+		alta(admin, "Nieto", "Arbol", "\"liderId\":" + beto);
+		long inactivo = alta(admin, "Inactivo", "Arbol", "\"liderId\":" + raiz);
+		estado(admin, inactivo, false).andExpect(status().isOk());
+
+		mvc.perform(get(RUTA + "/{id}/liderados", raiz).with(admin))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$[*].nombreCompleto", contains("Ana Alva", "Beto Bravo")))
+			.andExpect(jsonPath("$[0].cantidadLiderados").value(0))
+			.andExpect(jsonPath("$[1].nivel").value("Líder"))
+			.andExpect(jsonPath("$[1].cantidadLiderados").value(1));
+		mvc.perform(get(RUTA + "/{id}/liderados", 999_999).with(admin)).andExpect(status().isNotFound());
 	}
 
 	@Test
@@ -225,6 +271,9 @@ class MiembroIntegrationTest {
 					containsInAnyOrder((int) pastor, (int) lider, (int) directo, (int) indirecto)));
 		mvc.perform(get(RUTA + "/{id}", ajeno).with(token)).andExpect(status().isNotFound());
 		mvc.perform(get(RUTA + "/{id}/cadena", indirecto).with(token)).andExpect(status().isOk());
+		mvc.perform(get(RUTA + "/{id}/liderados", lider).with(token))
+			.andExpect(jsonPath("$[*].id", contains((int) directo)));
+		mvc.perform(get(RUTA + "/{id}/liderados", ajeno).with(token)).andExpect(status().isNotFound());
 		mvc.perform(get(RUTA + "/opciones").with(token))
 			.andExpect(jsonPath("$[*].id",
 					containsInAnyOrder((int) pastor, (int) lider, (int) directo, (int) indirecto)));
@@ -262,7 +311,7 @@ class MiembroIntegrationTest {
 			.content("{\"nombre\":\"Ajeno\"}")));
 		long grupoAjeno = PruebasNegocio.idDe(mvc.perform(post("/api/grupos").with(otra)
 			.contentType(MediaType.APPLICATION_JSON)
-			.content("{\"nombre\":\"Ajeno\"}")));
+			.content("{\"liderId\":" + miembroAjeno + "}")));
 		JwtRequestPostProcessor admin = adminNuevo();
 
 		mvc.perform(get(RUTA + "/{id}", miembroAjeno).with(admin)).andExpect(status().isNotFound());

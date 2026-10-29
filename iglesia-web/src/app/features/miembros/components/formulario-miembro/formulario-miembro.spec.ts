@@ -3,7 +3,7 @@ import { of } from 'rxjs';
 import { OpcionesMiembroService } from '@/app/shared/components/selector-miembro/opciones-miembro.service';
 import { UbigeoService } from '@/app/shared/components/selector-ubigeo/ubigeo.service';
 import { GuardarMiembro, Miembro } from '../../models/miembro';
-import { JUAN, MINIMO } from '../../testing/miembros-prueba';
+import { JUAN } from '../../testing/miembros-prueba';
 import { FormularioMiembroComponent } from './formulario-miembro';
 
 describe('FormularioMiembroComponent', () => {
@@ -12,7 +12,8 @@ describe('FormularioMiembroComponent', () => {
         { id: 3, nombre: 'Líder', activo: true },
         { id: 5, nombre: 'Antiguo', activo: false }
     ];
-    const grupos = [{ id: 7, nombre: 'Sion', activo: true }];
+    /** Un grupo no tiene nombre: la ficha lo recibe con el nombre de su líder. */
+    const grupos = [{ id: 7, nombre: 'Sara Díaz', activo: true }];
     let fixture: ComponentFixture<FormularioMiembroComponent>;
     let guardados: GuardarMiembro[];
 
@@ -71,18 +72,21 @@ describe('FormularioMiembroComponent', () => {
         expect(html().textContent).toContain('Escribe los nombres');
     });
 
-    it('la fecha de nacimiento deshabilita la edad aproximada, y al revés', async () => {
+    it('la fecha de nacimiento y la edad aproximada son independientes y se envían las dos', async () => {
         await crear(null);
+        await escribir('miembro-nombres', 'Rosa');
+        await escribir('miembro-apellidos', 'Flores');
 
         await escribir('miembro-fecha-nacimiento', '1990-05-14');
-        expect(campo('miembro-edad').disabled).toBeTrue();
-
-        await escribir('miembro-fecha-nacimiento', '');
-        expect(campo('miembro-edad').disabled).toBeFalse();
-
         formulario().controls.edadAproximada.setValue(30);
         await fixture.whenStable();
-        expect(campo('miembro-fecha-nacimiento').disabled).toBeTrue();
+        expect(campo('miembro-edad').disabled).toBeFalse();
+        expect(campo('miembro-fecha-nacimiento').disabled).toBeFalse();
+
+        guardar()?.click();
+        await fixture.whenStable();
+
+        expect(guardados[0]).toEqual(jasmine.objectContaining({ fechaNacimiento: '1990-05-14', edadAproximada: 30 }));
     });
 
     it('rechaza una fecha de nacimiento futura', async () => {
@@ -103,18 +107,18 @@ describe('FormularioMiembroComponent', () => {
         expect(guardados[0]).toEqual(jasmine.objectContaining({ fechaNacimiento: '1990-05-14', edadAproximada: null, nivelId: 3, liderId: 10, grupoId: 4, registradoPorId: 10, distritoCodigo: '150135' }));
     });
 
-    it('una ficha sin fecha con edad la precarga como aproximada', async () => {
-        await crear({ ...MINIMO, edad: 40, edadEsAproximada: true });
+    it('precarga la edad aproximada guardada junto con la fecha', async () => {
+        await crear({ ...JUAN, edadAproximada: 36 });
 
-        expect(formulario().controls.edadAproximada.value).toBe(40);
-        expect(campo('miembro-fecha-nacimiento').disabled).toBeTrue();
+        expect(formulario().controls.edadAproximada.value).toBe(36);
+        expect(campo('miembro-fecha-nacimiento').value).toBe('1990-05-14');
     });
 
     it('ofrece los niveles activos y conserva el asignado aunque esté inactivo', async () => {
         await crear({ ...JUAN, nivel: { id: 5, nombre: 'Antiguo', activo: false } });
 
         expect(opcion<{ etiqueta: string }[]>('opcionesNivel').map(({ etiqueta }) => etiqueta)).toEqual(['Pastor', 'Líder', 'Antiguo (inactivo)']);
-        expect(opcion<{ etiqueta: string }[]>('opcionesGrupo').map(({ etiqueta }) => etiqueta)).toEqual(['Sion', 'Los Olivos (inactivo)']);
+        expect(opcion<{ etiqueta: string }[]>('opcionesGrupo').map(({ etiqueta }) => etiqueta)).toEqual(['Célula de Sara Díaz', 'Célula de Ana Ríos (inactivo)']);
     });
 
     it('el pastor principal no puede tener líder', async () => {

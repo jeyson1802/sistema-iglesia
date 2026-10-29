@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { OpcionesMiembroService } from '@/app/shared/components/selector-miembro/opciones-miembro.service';
+import { UbigeoService } from '@/app/shared/components/selector-ubigeo/ubigeo.service';
 import { FiltroMiembros } from '../../models/miembro';
 import { ESPERA_BUSQUEDA_MS, FiltrosMiembrosComponent } from './filtros-miembros';
 
@@ -13,11 +14,15 @@ describe('FiltrosMiembrosComponent', () => {
     beforeEach(async () => {
         // `debounceTime` mide con `Date.now()`: el reloj simulado debe moverlo también.
         jasmine.clock().install().mockDate();
-        await TestBed.configureTestingModule({ imports: [FiltrosMiembrosComponent], providers: [{ provide: OpcionesMiembroService, useValue: { buscar: () => of([]) } }] }).compileComponents();
+        await TestBed.configureTestingModule({
+            imports: [FiltrosMiembrosComponent],
+            providers: [
+                { provide: OpcionesMiembroService, useValue: { buscar: () => of([]) } },
+                { provide: UbigeoService, useValue: { departamentos: () => of([{ codigo: '15', nombre: 'Lima' }]), provincias: () => of([{ codigo: '1501', nombre: 'Lima' }]), distritos: () => of([]) } }
+            ]
+        }).compileComponents();
         fixture = TestBed.createComponent(FiltrosMiembrosComponent);
         fixture.componentRef.setInput('niveles', [{ id: 3, nombre: 'Líder' }]);
-        fixture.componentRef.setInput('grupos', [{ id: 4, nombre: 'Los Olivos' }]);
-        fixture.componentRef.setInput('nombreGrupo', 'Célula');
         emitidos = [];
         fixture.componentInstance.filtrar.subscribe((f) => emitidos.push(f));
         await fixture.whenStable();
@@ -25,8 +30,18 @@ describe('FiltrosMiembrosComponent', () => {
 
     afterEach(() => jasmine.clock().uninstall());
 
-    it('etiqueta el filtro de grupo con el nombre configurado', () => {
-        expect((fixture.nativeElement.querySelector('label[for="filtro-grupo"]') as HTMLElement).textContent).toContain('Célula');
+    it('no ofrece filtro de grupo y sí de departamento, provincia y distrito', () => {
+        const html: HTMLElement = fixture.nativeElement;
+        expect(html.querySelector('#filtro-grupo')).toBeNull();
+        expect(html.textContent).toContain('Departamento');
+        expect(html.textContent).toContain('Provincia');
+        expect(html.textContent).toContain('Distrito');
+    });
+
+    it('filtra por el código de la ubicación más precisa elegida', () => {
+        formulario().controls.ubigeo.setValue('1501');
+
+        expect(emitidos.at(-1)).toEqual(jasmine.objectContaining({ ubigeo: '1501' }));
     });
 
     it('busca por nombre al dejar de escribir', () => {
@@ -45,7 +60,7 @@ describe('FiltrosMiembrosComponent', () => {
         formulario().controls.nivelId.setValue(3);
         formulario().controls.lider.setValue({ id: 10, nombre: 'Ana Ríos' });
 
-        expect(emitidos.at(-1)).toEqual({ q: '', condicion: null, nivelId: 3, grupoId: null, liderId: 10, activo: true });
+        expect(emitidos.at(-1)).toEqual({ q: '', condicion: null, nivelId: 3, liderId: 10, ubigeo: null, activo: true });
     });
 
     it('no emite si el filtro no cambia', () => {

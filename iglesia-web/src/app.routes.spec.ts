@@ -177,12 +177,14 @@ describe('Rutas de la aplicación', () => {
             iniciarSesionCon('ADMIN_IGLESIA');
 
             expect(await navegarA('/grupos')).toBe('/grupos');
+            expect(await navegarA('/grupos/4')).toBe('/grupos/4');
         });
 
-        it('con el perfil Líder, /grupos redirige a acceso denegado', async () => {
+        it('con el perfil Líder, /grupos y los miembros de un grupo redirigen a acceso denegado', async () => {
             iniciarSesionCon('LIDER');
 
             expect(await navegarA('/grupos')).toBe('/auth/acceso-denegado');
+            expect(await navegarA('/grupos/4')).toBe('/auth/acceso-denegado');
         });
 
         it('el Líder abre /miembros y una ficha, pero no el alta', async () => {

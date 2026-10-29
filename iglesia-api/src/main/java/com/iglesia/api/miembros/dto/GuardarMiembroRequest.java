@@ -26,14 +26,15 @@ public record GuardarMiembroRequest(
 		@Schema(description = "Apellidos.", example = "Pérez Torres") @NotBlank @Size(
 				max = LimitesMiembro.APELLIDOS_MAX) String apellidos,
 		@Schema(description = "Género.", example = "MASCULINO", nullable = true) Genero genero,
-		@Schema(description = "Fecha de nacimiento; no puede ser futura. Excluyente con `edadAproximada`.",
+		@Schema(description = "Fecha de nacimiento; no puede ser futura. Independiente de `edadAproximada`.",
 				example = "1990-05-14", nullable = true) @PastOrPresent LocalDate fechaNacimiento,
-		@Schema(description = "Edad aproximada, solo si no se conoce la fecha de nacimiento. Se guarda como año de "
-				+ "nacimiento estimado para que siga siendo correcta con el tiempo.", example = "35",
+		@Schema(description = "Edad aproximada, independiente de `fechaNacimiento` (se pueden enviar las dos aunque "
+				+ "no coincidan). Se guarda como año de nacimiento estimado para que siga siendo correcta con el "
+				+ "tiempo.", example = "35",
 				nullable = true) @Min(0) @Max(LimitesMiembro.EDAD_MAX) Integer edadAproximada,
 		@Schema(description = "Fecha de ingreso a la iglesia; no puede ser futura.", example = "2024-01-07",
 				nullable = true) @PastOrPresent LocalDate fechaIngreso,
-		@Schema(description = "Condición con la que llega: de siempre, nuevo o recuperado.", example = "NUEVO",
+		@Schema(description = "Condición: consolidado, nuevo o recuperado.", example = "NUEVO",
 				nullable = true) CondicionMiembro condicion,
 		@Schema(description = "Estado civil.", example = "CASADO", nullable = true) EstadoCivil estadoCivil,
 		@Schema(description = "Teléfono: dígitos, espacios, `+` y `-`.", example = "+51 987 654 321",

@@ -13,6 +13,14 @@ class AnfitrionComponent {
     readonly control = new FormControl<string | null>(null);
 }
 
+@Component({
+    imports: [ReactiveFormsModule, SelectorUbigeoComponent],
+    template: '<app-selector-ubigeo idBase="filtro" [parcial]="true" [formControl]="control" />'
+})
+class AnfitrionParcialComponent {
+    readonly control = new FormControl<string | null>(null);
+}
+
 describe('SelectorUbigeoComponent', () => {
     let fixture: ComponentFixture<AnfitrionComponent>;
     let ubigeo: jasmine.SpyObj<UbigeoService>;
@@ -83,5 +91,34 @@ describe('SelectorUbigeoComponent', () => {
         fixture.componentInstance.control.setValue(null);
 
         expect(estado()).toEqual(jasmine.objectContaining({ departamento: null, provincia: null, distrito: null, provincias: [] }));
+    });
+
+    describe('parcial (filtros)', () => {
+        let parcial: ComponentFixture<AnfitrionParcialComponent>;
+        const selectorParcial = (): SelectorUbigeoComponent => parcial.debugElement.children[0].componentInstance;
+
+        beforeEach(async () => {
+            parcial = TestBed.createComponent(AnfitrionParcialComponent);
+            await parcial.whenStable();
+        });
+
+        it('el valor es el código del nivel más profundo elegido', () => {
+            selectorParcial()['elegirDepartamento']('15');
+            expect(parcial.componentInstance.control.value).toBe('15');
+
+            selectorParcial()['elegirProvincia']('1501');
+            expect(parcial.componentInstance.control.value).toBe('1501');
+
+            selectorParcial()['elegirProvincia'](null);
+            expect(parcial.componentInstance.control.value).toBe('15');
+        });
+
+        it('acepta un código de provincia y deja el distrito sin elegir', async () => {
+            parcial.componentInstance.control.setValue('1501');
+            await parcial.whenStable();
+
+            const s = selectorParcial() as unknown as Record<string, () => unknown>;
+            expect([s['departamento'](), s['provincia'](), s['distrito']()]).toEqual(['15', '1501', null]);
+        });
     });
 });

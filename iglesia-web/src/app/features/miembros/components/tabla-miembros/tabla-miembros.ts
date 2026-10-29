@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TableLazyLoadEvent, TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
+import { describirUbicacion } from '@/app/core/models/ubicacion';
 import { ETIQUETA_CONDICION, MiembroResumen, PAGINA_MIEMBROS } from '../../models/miembro';
 
 /** Fila de relleno que se pinta como skeleton mientras llega la página. */
@@ -14,7 +15,7 @@ const FILAS_CARGA: readonly FilaCarga[] = Array.from({ length: PAGINA_MIEMBROS }
 
 /**
  * Tabla de miembros paginada en el servidor (presentacional). El nombre lleva a la ficha; pide cada página con
- * `cambiarPagina` (índice desde 0). Las referencias inactivas (nivel, líder o grupo) se muestran atenuadas.
+ * `cambiarPagina` (índice desde 0). Las referencias inactivas (nivel o líder) se muestran atenuadas.
  */
 @Component({
     selector: 'app-tabla-miembros',
@@ -28,8 +29,6 @@ export class TablaMiembrosComponent {
     /** Página mostrada, desde 0. */
     readonly pagina = input(0);
     readonly cargando = input(false);
-    /** Nombre singular de los grupos en la iglesia, para la cabecera. */
-    readonly nombreGrupo = input('Grupo');
 
     readonly cambiarPagina = output<number>();
 
@@ -41,6 +40,11 @@ export class TablaMiembrosComponent {
     /** El cuerpo de `p-table` recibe la fila sin tipo: se tipa aquí. */
     protected condicion({ condicion }: MiembroResumen): string {
         return condicion ? ETIQUETA_CONDICION[condicion] : '—';
+    }
+
+    /** Distrito, provincia y departamento en una sola celda. */
+    protected region({ ubicacion }: MiembroResumen): string {
+        return describirUbicacion(ubicacion) || '—';
     }
 
     protected alCargar(evento: TableLazyLoadEvent): void {

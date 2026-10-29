@@ -14,14 +14,12 @@ import { OpcionMiembro } from '@/app/shared/components/selector-miembro/opciones
 import { SelectorMiembroComponent } from '@/app/shared/components/selector-miembro/selector-miembro';
 import { SelectorUbigeoComponent } from '@/app/shared/components/selector-ubigeo/selector-ubigeo';
 import { textoOpcional } from '@/app/shared/utils/texto';
-import { DESCRIPCION_GRUPO_MAX, DIAS_SEMANA, DiaSemana, DIRECCION_GRUPO_MAX, ETIQUETA_DIA, Grupo, GuardarGrupo, NOMBRE_GRUPO_MAX } from '../../models/grupo';
-
-/** Exige al menos un carácter que no sea espacio. */
-const CON_TEXTO = /\S/;
+import { DESCRIPCION_GRUPO_MAX, DIAS_SEMANA, DiaSemana, DIRECCION_GRUPO_MAX, ETIQUETA_DIA, Grupo, GuardarGrupo, nombreDeGrupo } from '../../models/grupo';
 
 /**
- * Diálogo para crear o editar un grupo (presentacional). Solo el nombre es obligatorio. Los errores del backend por
- * campo (p. ej. un líder inactivo) se muestran junto al campo.
+ * Diálogo para crear o editar un grupo (presentacional). El grupo no tiene nombre: es «el grupo de» su líder, que es
+ * el único dato obligatorio. Los errores del backend por campo (p. ej. un líder que ya tiene grupo) se muestran junto
+ * al campo.
  */
 @Component({
     selector: 'app-formulario-grupo',
@@ -43,13 +41,12 @@ export class FormularioGrupoComponent {
 
     readonly guardar = output<GuardarGrupo>();
 
-    protected readonly limites = { nombre: NOMBRE_GRUPO_MAX, direccion: DIRECCION_GRUPO_MAX, descripcion: DESCRIPCION_GRUPO_MAX };
+    protected readonly limites = { direccion: DIRECCION_GRUPO_MAX, descripcion: DESCRIPCION_GRUPO_MAX };
     protected readonly opcionesDia = DIAS_SEMANA.map((dia) => ({ etiqueta: ETIQUETA_DIA[dia], valor: dia }));
 
     private readonly fb = inject(NonNullableFormBuilder);
     protected readonly formulario = this.fb.group({
-        nombre: ['', [Validators.required, Validators.pattern(CON_TEXTO), Validators.maxLength(NOMBRE_GRUPO_MAX)]],
-        lider: new FormControl<OpcionMiembro | null>(null),
+        lider: new FormControl<OpcionMiembro | null>(null, Validators.required),
         anfitrion: new FormControl<OpcionMiembro | null>(null),
         diaReunion: new FormControl<DiaSemana | null>(null),
         horaReunion: '',
@@ -58,15 +55,14 @@ export class FormularioGrupoComponent {
         descripcion: ['', Validators.maxLength(DESCRIPCION_GRUPO_MAX)]
     });
 
-    protected readonly mensajesNombre: MensajesError = {
-        required: 'Escribe el nombre',
-        pattern: 'Escribe el nombre',
-        maxlength: `El nombre no puede superar ${NOMBRE_GRUPO_MAX} caracteres`
-    };
+    protected readonly mensajesLider: MensajesError = { required: 'Elige al líder: el grupo lleva su nombre' };
     protected readonly mensajesDireccion: MensajesError = { maxlength: `La dirección no puede superar ${DIRECCION_GRUPO_MAX} caracteres` };
     protected readonly mensajesDescripcion: MensajesError = { maxlength: `La descripción no puede superar ${DESCRIPCION_GRUPO_MAX} caracteres` };
 
-    protected readonly titulo = computed(() => (this.grupo() ? `Editar «${this.grupo()?.nombre}»` : `Agregar ${this.nombreSingular().toLowerCase()}`));
+    protected readonly titulo = computed(() => {
+        const grupo = this.grupo();
+        return grupo ? `Editar ${nombreDeGrupo(this.nombreSingular().toLowerCase(), grupo.lider.nombre)}` : `Agregar ${this.nombreSingular().toLowerCase()}`;
+    });
 
     /** Los controles no son signals: se escucha el estado para habilitar «Guardar» en una app zoneless. */
     protected readonly valido = toSignal(this.formulario.statusChanges.pipe(map((estado) => estado === 'VALID')), { initialValue: false });
@@ -85,10 +81,12 @@ export class FormularioGrupoComponent {
             this.formulario.markAllAsTouched();
             return;
         }
-        const { nombre, lider, anfitrion, diaReunion, horaReunion, direccion, distritoCodigo, descripcion } = this.formulario.getRawValue();
+        const { lider, anfitrion, diaReunion, horaReunion, direccion, distritoCodigo, descripcion } = this.formulario.getRawValue();
+        if (!lider) {
+            return;
+        }
         this.guardar.emit({
-            nombre: nombre.trim(),
-            liderId: lider?.id ?? null,
+            liderId: lider.id,
             anfitrionId: anfitrion?.id ?? null,
             diaReunion,
             horaReunion: horaReunion || null,
@@ -104,7 +102,6 @@ export class FormularioGrupoComponent {
 
     private reiniciar(grupo: Grupo | null): void {
         this.formulario.reset({
-            nombre: grupo?.nombre ?? '',
             lider: grupo?.lider ?? null,
             anfitrion: grupo?.anfitrion ?? null,
             diaReunion: grupo?.diaReunion ?? null,

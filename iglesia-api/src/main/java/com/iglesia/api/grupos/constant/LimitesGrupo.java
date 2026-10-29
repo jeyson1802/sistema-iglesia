@@ -3,8 +3,6 @@ package com.iglesia.api.grupos.constant;
 /** Límites de los datos de grupos y de sus nombres configurables; coinciden con las columnas de la base. */
 public final class LimitesGrupo {
 
-	public static final int NOMBRE_MAX = 100;
-
 	public static final int DIRECCION_MAX = 200;
 
 	public static final int DESCRIPCION_MAX = 500;

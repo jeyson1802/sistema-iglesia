@@ -3,7 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
 import { environment } from '@/environments/environment';
 import { Page } from '@/app/core/models/page';
-import { EslabonCadena, FiltroMiembros, GuardarMiembro, Miembro, MiembroResponse, MiembroResumen, PAGINA_MIEMBROS } from '../models/miembro';
+import { EslabonCadena, FiltroMiembros, Liderado, GuardarMiembro, Miembro, MiembroResponse, MiembroResumen, PAGINA_MIEMBROS } from '../models/miembro';
 import { aMiembro } from './miembro.mapper';
 
 const ORDEN_LISTADO = ['apellidos,asc', 'nombres,asc'];
@@ -28,6 +28,11 @@ export class MiembrosService {
     /** Líderes del miembro, del directo al pastor principal. */
     cadena(id: number): Observable<EslabonCadena[]> {
         return this.http.get<EslabonCadena[]>(`${this.miembrosUrl}/${id}/cadena`);
+    }
+
+    /** Liderados directos activos, con su nivel y cuántos lidera cada uno, para expandir el árbol de liderazgo. */
+    liderados(id: number): Observable<Liderado[]> {
+        return this.http.get<Liderado[]>(`${this.miembrosUrl}/${id}/liderados`);
     }
 
     /** Miembros con los mismos nombres y apellidos (sin distinguir mayúsculas ni espacios), para avisar antes de crear. */
@@ -58,12 +63,12 @@ export class MiembrosService {
     }
 }
 
-function parametrosDeListado({ q, condicion, nivelId, grupoId, liderId, activo }: FiltroMiembros, pagina: number): HttpParams {
+function parametrosDeListado({ q, condicion, nivelId, liderId, ubigeo, activo }: FiltroMiembros, pagina: number): HttpParams {
     let parametros = new HttpParams().set('page', pagina).set('size', PAGINA_MIEMBROS);
     for (const orden of ORDEN_LISTADO) {
         parametros = parametros.append('sort', orden);
     }
-    const opcionales: Record<string, string | number | boolean | null> = { q: q.trim() || null, condicion, nivelId, grupoId, liderId, activo };
+    const opcionales: Record<string, string | number | boolean | null> = { q: q.trim() || null, condicion, nivelId, liderId, ubigeo, activo };
     for (const [nombre, valor] of Object.entries(opcionales)) {
         if (valor !== null) {
             parametros = parametros.set(nombre, valor);

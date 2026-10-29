@@ -3,12 +3,12 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { environment } from '@/environments/environment';
 import { Grupo, GuardarGrupo } from '../models/grupo';
-import { RESPUESTA_OLIVOS } from '../testing/grupos-prueba';
+import { OLIVOS, RESPUESTA_OLIVOS } from '../testing/grupos-prueba';
 import { GruposService } from './grupos.service';
 
 describe('GruposService', () => {
     const url = `${environment.apiUrl}/grupos`;
-    const datos: GuardarGrupo = { nombre: 'Los Olivos', liderId: 10, anfitrionId: null, diaReunion: 'JUEVES', horaReunion: '19:30', direccion: null, distritoCodigo: '150135', descripcion: null };
+    const datos: GuardarGrupo = { liderId: 10, anfitrionId: null, diaReunion: 'JUEVES', horaReunion: '19:30', direccion: null, distritoCodigo: '150135', descripcion: null };
     let servicio: GruposService;
     let http: HttpTestingController;
 
@@ -41,5 +41,32 @@ describe('GruposService', () => {
         servicio.cambiarEstado(4, false).subscribe();
 
         expect(http.expectOne({ method: 'PATCH', url: `${url}/4/estado` }).request.body).toEqual({ activo: false });
+    });
+
+    it('obtiene un grupo adaptado', () => {
+        let grupo: unknown;
+        servicio.obtener(4).subscribe((respuesta) => (grupo = respuesta));
+
+        http.expectOne({ method: 'GET', url: `${url}/4` }).flush(RESPUESTA_OLIVOS);
+
+        expect(grupo).toEqual(OLIVOS);
+    });
+
+    it('lista los integrantes y busca candidatos sin enviar una búsqueda vacía', () => {
+        servicio.integrantes(4).subscribe();
+        servicio.candidatos(4, '  ').subscribe();
+        servicio.candidatos(4, ' luis ').subscribe();
+
+        http.expectOne({ method: 'GET', url: `${url}/4/miembros` });
+        http.expectOne((peticion) => peticion.url === `${url}/4/candidatos` && !peticion.params.has('q'));
+        expect(http.expectOne((peticion) => peticion.url === `${url}/4/candidatos` && peticion.params.has('q')).request.params.get('q')).toBe('luis');
+    });
+
+    it('agrega y quita integrantes', () => {
+        servicio.agregarIntegrante(4, 31).subscribe();
+        servicio.quitarIntegrante(4, 31).subscribe();
+
+        http.expectOne({ method: 'PUT', url: `${url}/4/miembros/31` });
+        http.expectOne({ method: 'DELETE', url: `${url}/4/miembros/31` });
     });
 });

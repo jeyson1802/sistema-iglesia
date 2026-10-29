@@ -8,12 +8,13 @@ import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { OpcionMiembro } from '@/app/shared/components/selector-miembro/opciones-miembro.service';
 import { SelectorMiembroComponent } from '@/app/shared/components/selector-miembro/selector-miembro';
+import { SelectorUbigeoComponent } from '@/app/shared/components/selector-ubigeo/selector-ubigeo';
 import { CONDICIONES, Condicion, ETIQUETA_CONDICION, FILTRO_MIEMBROS_INICIAL, FiltroMiembros } from '../../models/miembro';
 
 /** Espera tras la última tecla antes de buscar por nombre. */
 export const ESPERA_BUSQUEDA_MS = 300;
 
-/** Nivel o grupo por el que se puede filtrar. */
+/** Nivel por el que se puede filtrar. */
 export interface OpcionFiltro {
     readonly id: number;
     readonly nombre: string;
@@ -34,7 +35,7 @@ const OPCIONES_ESTADO: readonly Opcion<boolean>[] = [
 
 const conTodos = <T>(opciones: Opcion<T>[]): Opcion<T>[] => [{ etiqueta: TODOS, valor: null }, ...opciones];
 
-const mismoFiltro = (a: FiltroMiembros, b: FiltroMiembros): boolean => a.q === b.q && a.condicion === b.condicion && a.nivelId === b.nivelId && a.grupoId === b.grupoId && a.liderId === b.liderId && a.activo === b.activo;
+const mismoFiltro = (a: FiltroMiembros, b: FiltroMiembros): boolean => a.q === b.q && a.condicion === b.condicion && a.nivelId === b.nivelId && a.liderId === b.liderId && a.ubigeo === b.ubigeo && a.activo === b.activo;
 
 /**
  * Búsqueda y filtros del listado de miembros (presentacional). El nombre se busca al dejar de escribir y los
@@ -42,15 +43,12 @@ const mismoFiltro = (a: FiltroMiembros, b: FiltroMiembros): boolean => a.q === b
  */
 @Component({
     selector: 'app-filtros-miembros',
-    imports: [ReactiveFormsModule, IconFieldModule, InputIconModule, InputTextModule, SelectModule, SelectorMiembroComponent],
+    imports: [ReactiveFormsModule, IconFieldModule, InputIconModule, InputTextModule, SelectModule, SelectorMiembroComponent, SelectorUbigeoComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './filtros-miembros.html'
 })
 export class FiltrosMiembrosComponent {
     readonly niveles = input.required<readonly OpcionFiltro[]>();
-    readonly grupos = input.required<readonly OpcionFiltro[]>();
-    /** Nombre singular de los grupos en la iglesia, para la etiqueta del filtro. */
-    readonly nombreGrupo = input('Grupo');
 
     readonly filtrar = output<FiltroMiembros>();
 
@@ -59,8 +57,8 @@ export class FiltrosMiembrosComponent {
         q: FILTRO_MIEMBROS_INICIAL.q,
         condicion: this.fb.control<Condicion | null>(FILTRO_MIEMBROS_INICIAL.condicion),
         nivelId: this.fb.control<number | null>(FILTRO_MIEMBROS_INICIAL.nivelId),
-        grupoId: this.fb.control<number | null>(FILTRO_MIEMBROS_INICIAL.grupoId),
         lider: this.fb.control<OpcionMiembro | null>(null),
+        ubigeo: this.fb.control<string | null>(FILTRO_MIEMBROS_INICIAL.ubigeo),
         activo: this.fb.control<boolean | null>(FILTRO_MIEMBROS_INICIAL.activo)
     });
 
@@ -68,11 +66,10 @@ export class FiltrosMiembrosComponent {
     protected readonly opcionesEstado = [...OPCIONES_ESTADO];
     protected readonly opcionesCondicion = conTodos(CONDICIONES.map((condicion) => ({ etiqueta: ETIQUETA_CONDICION[condicion], valor: condicion })));
     protected readonly opcionesNivel = computed(() => conTodos(this.niveles().map(({ id, nombre }) => ({ etiqueta: nombre, valor: id }))));
-    protected readonly opcionesGrupo = computed(() => conTodos(this.grupos().map(({ id, nombre }) => ({ etiqueta: nombre, valor: id }))));
 
     constructor() {
-        const { q, condicion, nivelId, grupoId, lider, activo } = this.formulario.controls;
-        merge(q.valueChanges.pipe(debounceTime(ESPERA_BUSQUEDA_MS)), condicion.valueChanges, nivelId.valueChanges, grupoId.valueChanges, lider.valueChanges, activo.valueChanges)
+        const { q, condicion, nivelId, lider, ubigeo, activo } = this.formulario.controls;
+        merge(q.valueChanges.pipe(debounceTime(ESPERA_BUSQUEDA_MS)), condicion.valueChanges, nivelId.valueChanges, lider.valueChanges, ubigeo.valueChanges, activo.valueChanges)
             .pipe(
                 map(() => this.filtroActual()),
                 startWith(this.filtroActual()),
@@ -84,7 +81,7 @@ export class FiltrosMiembrosComponent {
     }
 
     private filtroActual(): FiltroMiembros {
-        const { q, condicion, nivelId, grupoId, lider, activo } = this.formulario.getRawValue();
-        return { q: q.trim(), condicion, nivelId, grupoId, liderId: lider?.id ?? null, activo };
+        const { q, condicion, nivelId, lider, ubigeo, activo } = this.formulario.getRawValue();
+        return { q: q.trim(), condicion, nivelId, liderId: lider?.id ?? null, ubigeo, activo };
     }
 }

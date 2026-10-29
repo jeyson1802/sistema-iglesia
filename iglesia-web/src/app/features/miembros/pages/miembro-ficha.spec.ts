@@ -8,6 +8,7 @@ import { Permiso } from '@/app/core/auth/models/permiso';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
 import { ConfiguracionIglesiaService } from '@/app/core/configuracion/configuracion-iglesia.service';
 import { GruposService } from '@/app/features/grupos/services/grupos.service';
+import { OLIVOS } from '@/app/features/grupos/testing/grupos-prueba';
 import { NivelesService } from '@/app/features/niveles/services/niveles.service';
 import { RolesService } from '@/app/features/roles/services/roles.service';
 import { ROLES_BASE } from '@/app/features/roles/testing/roles-prueba';
@@ -38,7 +39,7 @@ describe('MiembroFichaComponent', () => {
                 { provide: MiembrosService, useValue: servicio },
                 { provide: UsuariosService, useValue: usuarios },
                 { provide: NivelesService, useValue: { listar: () => of([]) } },
-                { provide: GruposService, useValue: { listar: () => of([]) } },
+                { provide: GruposService, useValue: { listar: () => of([OLIVOS]) } },
                 { provide: RolesService, useValue: { listar: () => of(ROLES_BASE) } },
                 { provide: ConfiguracionIglesiaService, useValue: { nombresGrupos: signal({ nombreGrupoSingular: 'Célula', nombreGrupoPlural: 'Células' }) } },
                 { provide: SesionService, useValue: { tienePermiso: (permiso: Permiso) => permisos.has(permiso) } },
@@ -62,9 +63,10 @@ describe('MiembroFichaComponent', () => {
 
     beforeEach(() => {
         permisos = new Set<Permiso>(['miembros.ver', 'miembros.crear', 'miembros.editar', 'miembros.desactivar', 'usuarios.ver', 'usuarios.administrar']);
-        servicio = jasmine.createSpyObj<MiembrosService>('MiembrosService', ['obtener', 'cadena', 'posiblesDuplicados', 'crear', 'actualizar', 'cambiarEstado', 'designarPastorPrincipal', 'pastorPrincipal']);
+        servicio = jasmine.createSpyObj<MiembrosService>('MiembrosService', ['obtener', 'cadena', 'posiblesDuplicados', 'crear', 'actualizar', 'cambiarEstado', 'designarPastorPrincipal', 'pastorPrincipal', 'liderados']);
         servicio.obtener.and.returnValue(of(JUAN));
         servicio.cadena.and.returnValue(of([{ id: 10, nombreCompleto: 'Ana Ríos', nivel: null, esPastorPrincipal: false, activo: true }]));
+        servicio.liderados.and.returnValue(of([{ id: 31, nombreCompleto: 'Rosa Quispe', nivel: 'Miembro', cantidadLiderados: 0 }]));
         usuarios = jasmine.createSpyObj<UsuariosService>('UsuariosService', ['usuarioDeMiembro', 'crearParaMiembro']);
         usuarios.usuarioDeMiembro.and.returnValue(of(null));
     });
@@ -118,14 +120,23 @@ describe('MiembroFichaComponent', () => {
     });
 
     describe('ficha existente', () => {
-        it('muestra la ficha, el progreso, la cadena y el botón de dar acceso', async () => {
+        it('muestra la ficha, el progreso, el árbol de liderazgo y el botón de dar acceso', async () => {
             await crear('22');
 
             expect(servicio.obtener).toHaveBeenCalledWith(22);
             expect(html().querySelector('h1')?.textContent).toContain('Juan Carlos Pérez Torres');
             expect(html().textContent).toContain('Ficha completa');
-            expect(html().textContent).toContain('Ana Ríos');
+            const arbol = html().querySelector('app-arbol-liderazgo') as HTMLElement;
+            expect(arbol.textContent).toContain('Ana Ríos');
+            expect(arbol.textContent).toContain('Rosa Quispe');
+            expect(servicio.liderados).toHaveBeenCalledWith(22);
             expect(boton('Dar acceso al sistema')).toBeDefined();
+        });
+
+        it('el selector de grupo identifica cada grupo por su líder', async () => {
+            await crear('22');
+
+            expect(senal<{ id: number; nombre: string; activo: boolean }[]>('grupos')).toEqual([{ id: 4, nombre: 'Ana Ríos', activo: true }]);
         });
 
         it('si ya tiene acceso muestra el correo y no el botón', async () => {

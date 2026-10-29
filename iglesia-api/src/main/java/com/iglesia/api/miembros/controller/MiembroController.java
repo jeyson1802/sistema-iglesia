@@ -42,6 +42,7 @@ import com.iglesia.api.miembros.constant.LimitesMiembro;
 import com.iglesia.api.miembros.dto.EslabonCadenaResponse;
 import com.iglesia.api.miembros.dto.FiltroMiembros;
 import com.iglesia.api.miembros.dto.GuardarMiembroRequest;
+import com.iglesia.api.miembros.dto.LideradoResponse;
 import com.iglesia.api.miembros.dto.MiembroResponse;
 import com.iglesia.api.miembros.dto.MiembroResumenResponse;
 import com.iglesia.api.miembros.dto.OpcionMiembroResponse;
@@ -71,8 +72,8 @@ class MiembroController {
 			+ "(ciclo) o se le asigna líder al pastor principal. La propiedad `errores` indica el campo.";
 
 	private static final String DATOS_FICHA = "Datos inválidos: un campo no cumple las validaciones, una fecha es "
-			+ "futura, se envían a la vez `fechaNacimiento` y `edadAproximada`, el distrito no existe o el miembro "
-			+ "se referencia a sí mismo. La propiedad `errores` indica el campo.";
+			+ "futura, el distrito no existe o el miembro se referencia a sí mismo. La propiedad `errores` indica el "
+			+ "campo.";
 
 	private final MiembroService servicio;
 
@@ -86,7 +87,7 @@ class MiembroController {
 			Lista paginada de los miembros del ámbito del usuario, ordenada por apellidos y nombres por defecto \
 			(máximo 100 por página). Requiere `miembros.ver`. Los filtros son opcionales y se combinan.""")
 	@ApiResponse(responseCode = "200", description = "Página de miembros.")
-	@ApiResponse(responseCode = "400", description = "Parámetro inválido, por ejemplo una búsqueda de más de 100 caracteres o un campo de ordenación que no existe.",
+	@ApiResponse(responseCode = "400", description = "Parámetro inválido, por ejemplo una búsqueda de más de 100 caracteres, un `ubigeo` que no tiene 2, 4 o 6 dígitos o un campo de ordenación que no existe.",
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
 				schema = @Schema(implementation = ProblemDetailEsquema.class)))
 	@ApiResponse(responseCode = "401", description = RespuestasOpenApi.NO_AUTENTICADO,
@@ -185,11 +186,33 @@ class MiembroController {
 		return servicio.cadena(id);
 	}
 
+	@GetMapping("/{id}/liderados")
+	@PreAuthorize(Permisos.PUEDE_VER_MIEMBROS)
+	@Operation(summary = "Listar los liderados directos", description = """
+			Miembros activos que lidera directamente, ordenados por apellidos, con su nivel y cuántos lidera cada \
+			uno. El árbol de liderazgo de la ficha lo usa para expandir un nodo cada vez. Requiere `miembros.ver` y \
+			que el miembro esté en el ámbito del usuario; solo aparecen los liderados que el usuario puede ver.""")
+	@ApiResponse(responseCode = "200", description = "Liderados directos (vacía si no lidera a nadie).")
+	@ApiResponse(responseCode = "401", description = RespuestasOpenApi.NO_AUTENTICADO,
+			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+				schema = @Schema(implementation = ProblemDetailEsquema.class)))
+	@ApiResponse(responseCode = "403", description = RespuestasOpenApi.SIN_PERMISO,
+			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+				schema = @Schema(implementation = ProblemDetailEsquema.class)))
+	@ApiResponse(responseCode = "404", description = NO_ENCONTRADO,
+			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+				schema = @Schema(implementation = ProblemDetailEsquema.class)))
+	List<LideradoResponse> liderados(
+			@Parameter(description = DESCRIPCION_ID, example = "25") @PathVariable Long id) {
+		return servicio.liderados(id);
+	}
+
 	@PostMapping
 	@PreAuthorize(Permisos.PUEDE_CREAR_MIEMBROS)
 	@Operation(summary = "Registrar un miembro", description = """
 			Registra un miembro con los datos que se tengan: solo `nombres` y `apellidos` son obligatorios. \
-			Requiere `miembros.crear`. Reglas: fechas no futuras; fecha de nacimiento o edad aproximada, no las dos; \
+			Requiere `miembros.crear`. Reglas: fechas no futuras; la fecha de nacimiento y la edad aproximada son \
+			independientes (se pueden enviar las dos); \
 			las referencias deben ser de la iglesia y estar activas. No impide nombres repetidos: consultar antes \
 			`GET /api/miembros/posibles-duplicados`.""")
 	@ApiResponse(responseCode = "201", description = "Miembro registrado.", headers = @Header(name = HttpHeaders.LOCATION, description = "URL del miembro registrado."))

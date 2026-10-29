@@ -14,11 +14,10 @@ export const ETIQUETA_DIA: Record<DiaSemana, string> = {
     DOMINGO: 'Domingo'
 };
 
-/** Contrato de `GrupoResponse` en iglesia-api. */
+/** Contrato de `GrupoResponse` en iglesia-api. Un grupo no tiene nombre: es «el grupo de» su líder. */
 export interface GrupoResponse {
     readonly id: number;
-    readonly nombre: string;
-    readonly lider: Referencia | null;
+    readonly lider: Referencia;
     readonly anfitrion: Referencia | null;
     readonly diaReunion: DiaSemana | null;
     /** `HH:mm:ss` (LocalTime). */
@@ -38,8 +37,7 @@ export interface Grupo extends Omit<GrupoResponse, 'horaReunion'> {
 
 /** Cuerpo de `GuardarGrupoRequest`; los textos vacíos se envían como `null`. */
 export interface GuardarGrupo {
-    readonly nombre: string;
-    readonly liderId: number | null;
+    readonly liderId: number;
     readonly anfitrionId: number | null;
     readonly diaReunion: DiaSemana | null;
     /** `HH:mm`. */
@@ -49,8 +47,23 @@ export interface GuardarGrupo {
     readonly descripcion: string | null;
 }
 
+/** Contrato de `IntegranteGrupoResponse`: un miembro activo del grupo. */
+export interface IntegranteGrupo {
+    readonly id: number;
+    readonly nombreCompleto: string;
+    readonly nivel: string | null;
+}
+
+/** Contrato de `CandidatoGrupoResponse`: un miembro que se puede agregar, con el grupo en el que está ahora. */
+export interface CandidatoGrupo extends IntegranteGrupo {
+    /** Grupo actual; su `nombre` es el de su líder. */
+    readonly grupo: Referencia | null;
+}
+
+/** Cómo se muestra un grupo: «<nombre singular> de <líder>», p. ej. «Célula de Ana Ríos». */
+export const nombreDeGrupo = (nombreSingular: string, nombreLider: string): string => `${nombreSingular} de ${nombreLider}`;
+
 /** Límites de iglesia-api (`LimitesGrupo`). */
-export const NOMBRE_GRUPO_MAX = 100;
 export const DIRECCION_GRUPO_MAX = 200;
 export const DESCRIPCION_GRUPO_MAX = 500;
 export const NOMBRE_TIPO_GRUPO_MAX = 40;

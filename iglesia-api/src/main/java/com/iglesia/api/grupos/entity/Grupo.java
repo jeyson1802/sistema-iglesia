@@ -20,8 +20,9 @@ import com.iglesia.api.grupos.model.DatosGrupo;
 import com.iglesia.api.grupos.model.DiaSemana;
 
 /**
- * Grupo pequeño de la iglesia («célula», «hogar de paz»...): se reúne una vez por semana y lo lidera un miembro. El
- * líder y el anfitrión se guardan por id; los valida el contexto de miembros.
+ * Grupo pequeño de la iglesia («célula», «hogar de paz»...): se reúne una vez por semana y lo lidera un miembro. No
+ * tiene nombre: es «el grupo de» su líder, obligatorio y con un solo grupo. El líder y el anfitrión se guardan por id;
+ * los valida el contexto de miembros.
  */
 @Entity
 @Table(name = "grupo")
@@ -31,10 +32,7 @@ public class Grupo extends EntidadDeIglesia {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	@Column(name = "nombre", nullable = false, length = LimitesGrupo.NOMBRE_MAX)
-	private String nombre;
-
-	@Column(name = "lider_id")
+	@Column(name = "lider_id", nullable = false)
 	private Long liderId;
 
 	@Column(name = "anfitrion_id")
@@ -70,7 +68,6 @@ public class Grupo extends EntidadDeIglesia {
 	}
 
 	public void actualizar(DatosGrupo datos) {
-		nombre = datos.nombre();
 		liderId = datos.liderId();
 		anfitrionId = datos.anfitrionId();
 		diaReunion = datos.diaReunion();
@@ -86,10 +83,6 @@ public class Grupo extends EntidadDeIglesia {
 
 	public Long getId() {
 		return id;
-	}
-
-	public String getNombre() {
-		return nombre;
 	}
 
 	public Long getLiderId() {

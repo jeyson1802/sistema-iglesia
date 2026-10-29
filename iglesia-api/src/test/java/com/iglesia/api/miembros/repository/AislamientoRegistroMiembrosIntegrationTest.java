@@ -76,6 +76,30 @@ class AislamientoRegistroMiembrosIntegrationTest {
 			.hasMessageContaining("violates");
 	}
 
+	@Test
+	void despuesDeV6LaCondicionEsConsolidadoYSeGuardanFechaYEdadJuntas() {
+		long iglesia = PruebasNegocio.nuevaIglesia(jdbc);
+
+		jdbc.update("insert into miembro (iglesia_id, nombres, apellidos, condicion, fecha_nacimiento, "
+				+ "anio_nacimiento_estimado) values (?, 'A', 'B', 'CONSOLIDADO', date '1990-01-01', 1995)", iglesia);
+		assertThatThrownBy(() -> jdbc.update(
+				"insert into miembro (iglesia_id, nombres, apellidos, condicion) values (?, 'A', 'B', 'ANTIGUO')",
+				iglesia))
+			.hasMessageContaining("ck_miembro_condicion");
+	}
+
+	@Test
+	void unLiderTieneUnSoloGrupoYElGrupoExigeLider() {
+		long iglesia = PruebasNegocio.nuevaIglesia(jdbc);
+		long lider = insertar("miembro", iglesia);
+		jdbc.update("insert into grupo (iglesia_id, lider_id) values (?, ?)", iglesia, lider);
+
+		assertThatThrownBy(() -> jdbc.update("insert into grupo (iglesia_id, lider_id) values (?, ?)", iglesia, lider))
+			.hasMessageContaining("ux_grupo_lider");
+		assertThatThrownBy(() -> jdbc.update("insert into grupo (iglesia_id) values (?)", iglesia))
+			.hasMessageContaining("lider_id");
+	}
+
 	private long insertar(String tabla, long iglesia) {
 		return switch (tabla) {
 			case "nivel" -> jdbc.queryForObject(
@@ -84,8 +108,8 @@ class AislamientoRegistroMiembrosIntegrationTest {
 			case "miembro" -> jdbc.queryForObject(
 					"insert into miembro (iglesia_id, nombres, apellidos) values (?, 'A', 'B') returning id",
 					Long.class, iglesia);
-			case "grupo" -> jdbc.queryForObject(
-					"insert into grupo (iglesia_id, nombre) values (?, 'Grupo') returning id", Long.class, iglesia);
+			case "grupo" -> jdbc.queryForObject("insert into grupo (iglesia_id, lider_id) values (?, ?) returning id",
+					Long.class, iglesia, insertar("miembro", iglesia));
 			default -> {
 				jdbc.update("insert into configuracion_iglesia values (?, 'Célula', 'Células')", iglesia);
 				yield iglesia;

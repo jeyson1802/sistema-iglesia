@@ -17,7 +17,10 @@ public interface ConsultaGrupos {
 	 */
 	void validarAsignable(Long nuevoId, Long actualId);
 
-	/** Referencias de los grupos indicados, por id. Los ids nulos o inexistentes no aparecen. */
+	/**
+	 * Referencias de los grupos indicados, por id. Un grupo no tiene nombre: el {@code nombre} de la referencia es el
+	 * de su líder. Los ids nulos o inexistentes no aparecen.
+	 */
 	Map<Long, ReferenciaResponse> referencias(Collection<Long> ids);
 
 	/** Si el miembro lidera algún grupo activo (impide desactivarlo). */

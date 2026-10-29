@@ -14,16 +14,16 @@
         <label for="filtro-nivel" class="font-medium">Nivel</label>
         <p-select inputId="filtro-nivel" formControlName="nivelId" [options]="opcionesNivel()" optionLabel="etiqueta" optionValue="valor" placeholder="Todos" [fluid]="true" />
     </div>
-    <div class="flex flex-col gap-2">
-        <label for="filtro-grupo" class="font-medium">{{ nombreGrupo() }}</label>
-        <p-select inputId="filtro-grupo" formControlName="grupoId" [options]="opcionesGrupo()" optionLabel="etiqueta" optionValue="valor" [filter]="true" filterBy="etiqueta" placeholder="Todos" [fluid]="true" />
-    </div>
-    <div class="flex flex-col gap-2">
-        <label for="filtro-estado" class="font-medium">Estado</label>
-        <p-select inputId="filtro-estado" formControlName="activo" [options]="opcionesEstado" optionLabel="etiqueta" optionValue="valor" placeholder="Todos" [fluid]="true" />
-    </div>
     <div class="flex flex-col gap-2 sm:col-span-2">
         <label for="filtro-lider" class="font-medium">Liderados por</label>
         <app-selector-miembro inputId="filtro-lider" formControlName="lider" placeholder="Cualquier líder" />
+    </div>
+    <fieldset class="sm:col-span-2 xl:col-span-5 m-0 p-0 border-0 min-w-0">
+        <legend class="sr-only">Ubicación</legend>
+        <app-selector-ubigeo idBase="filtro" formControlName="ubigeo" [parcial]="true" />
+    </fieldset>
+    <div class="flex flex-col gap-2">
+        <label for="filtro-estado" class="font-medium">Estado</label>
+        <p-select inputId="filtro-estado" formControlName="activo" [options]="opcionesEstado" optionLabel="etiqueta" optionValue="valor" placeholder="Todos" [fluid]="true" />
     </div>
 </form>

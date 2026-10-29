@@ -10,7 +10,7 @@ import { detalleDeError, erroresPorCampo } from '@/app/core/errores/detalle-de-e
 import { FormularioGrupoComponent } from '../components/formulario-grupo/formulario-grupo';
 import { NombresGruposComponent } from '../components/nombres-grupos/nombres-grupos';
 import { TablaGruposComponent } from '../components/tabla-grupos/tabla-grupos';
-import { Grupo, GuardarGrupo } from '../models/grupo';
+import { Grupo, GuardarGrupo, nombreDeGrupo } from '../models/grupo';
 import { GruposService } from '../services/grupos.service';
 
 const MENSAJE_ERROR_CARGA = 'No se pudieron cargar los grupos.';
@@ -114,7 +114,7 @@ export class GruposListaComponent {
         }
         this.confirmacion.confirm({
             header: `Desactivar ${this.nombres().nombreGrupoSingular.toLowerCase()}`,
-            message: `¿Desactivar «${grupo.nombre}»? No se podrá asignar a nadie hasta reactivarlo. Antes debe quedar sin miembros activos.`,
+            message: `¿Desactivar «${nombreDeGrupo(this.nombres().nombreGrupoSingular, grupo.lider.nombre)}»? No se podrá asignar a nadie hasta reactivarlo. Antes debe quedar sin miembros activos.`,
             icon: 'pi pi-exclamation-triangle',
             acceptLabel: 'Desactivar',
             rejectLabel: 'Cancelar',
@@ -138,8 +138,8 @@ export class GruposListaComponent {
         this.dialogoVisible.set(true);
     }
 
-    /** Actualiza el grupo en la lista, que se mantiene ordenada por nombre como la devuelve el backend. */
+    /** Actualiza el grupo en la lista, que se mantiene ordenada por el nombre del líder como la devuelve el backend. */
     private reemplazar(grupo: Grupo): void {
-        this.grupos.update((grupos) => [...grupos.filter(({ id }) => id !== grupo.id), grupo].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')));
+        this.grupos.update((grupos) => [...grupos.filter(({ id }) => id !== grupo.id), grupo].sort((a, b) => a.lider.nombre.localeCompare(b.lider.nombre, 'es')));
     }
 }

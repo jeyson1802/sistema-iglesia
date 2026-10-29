@@ -12,8 +12,8 @@ import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
 import { ConfiguracionIglesiaService } from '@/app/core/configuracion/configuracion-iglesia.service';
+import { Referencia } from '@/app/core/models/referencia';
 import { detalleDeError, erroresPorCampo } from '@/app/core/errores/detalle-de-error';
-import { Grupo } from '@/app/features/grupos/models/grupo';
 import { GruposService } from '@/app/features/grupos/services/grupos.service';
 import { Nivel } from '@/app/features/niveles/models/nivel';
 import { NivelesService } from '@/app/features/niveles/services/niveles.service';
@@ -21,7 +21,7 @@ import { RolesService } from '@/app/features/roles/services/roles.service';
 import { CrearUsuario, UsuarioAdmin } from '@/app/features/usuarios/models/usuario-admin';
 import { UsuariosService } from '@/app/features/usuarios/services/usuarios.service';
 import { Rol } from '@/app/core/auth/models/rol';
-import { CadenaLiderazgoComponent } from '../components/cadena-liderazgo/cadena-liderazgo';
+import { ArbolLiderazgoComponent } from '../components/arbol-liderazgo/arbol-liderazgo';
 import { DarAccesoComponent, RolAccesoMiembro } from '../components/dar-acceso/dar-acceso';
 import { FormularioMiembroComponent } from '../components/formulario-miembro/formulario-miembro';
 import { ProgresoFichaComponent } from '../components/progreso-ficha/progreso-ficha';
@@ -56,7 +56,7 @@ const BOTONES_CONFIRMACION = {
  */
 @Component({
     selector: 'app-miembro-ficha',
-    imports: [RouterLink, ButtonModule, ConfirmDialogModule, MessageModule, SkeletonModule, TagModule, ToastModule, CadenaLiderazgoComponent, DarAccesoComponent, FormularioMiembroComponent, ProgresoFichaComponent],
+    imports: [RouterLink, ButtonModule, ConfirmDialogModule, MessageModule, SkeletonModule, TagModule, ToastModule, ArbolLiderazgoComponent, DarAccesoComponent, FormularioMiembroComponent, ProgresoFichaComponent],
     providers: [ConfirmationService, MessageService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './miembro-ficha.html'
@@ -78,7 +78,8 @@ export class MiembroFichaComponent {
     protected readonly cargando = signal(false);
     protected readonly errorCarga = signal<string | null>(null);
     protected readonly niveles = signal<readonly Nivel[]>([]);
-    protected readonly grupos = signal<readonly Grupo[]>([]);
+    /** Grupos para el selector de la ficha; un grupo no tiene nombre, así que se identifica por su líder. */
+    protected readonly grupos = signal<readonly Referencia[]>([]);
     protected readonly cadena = signal<readonly EslabonCadena[]>([]);
     protected readonly cargandoCadena = signal(false);
     /** Usuario vinculado; `undefined` mientras no se sabe (o no se puede consultar). */
@@ -261,7 +262,7 @@ export class MiembroFichaComponent {
             grupos: this.gruposServicio.listar().pipe(catchError(() => of([])))
         }).subscribe(({ niveles, grupos }) => {
             this.niveles.set(niveles);
-            this.grupos.set(grupos);
+            this.grupos.set(grupos.map(({ id, lider, activo }) => ({ id, nombre: lider.nombre, activo })));
         });
     }
 

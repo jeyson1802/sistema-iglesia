@@ -1,15 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { Permiso } from '@/app/core/auth/models/permiso';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
-import { ConfiguracionIglesiaService } from '@/app/core/configuracion/configuracion-iglesia.service';
-import { GruposService } from '@/app/features/grupos/services/grupos.service';
-import { BETANIA, OLIVOS } from '@/app/features/grupos/testing/grupos-prueba';
 import { NivelesService } from '@/app/features/niveles/services/niveles.service';
 import { OpcionesMiembroService } from '@/app/shared/components/selector-miembro/opciones-miembro.service';
+import { UbigeoService } from '@/app/shared/components/selector-ubigeo/ubigeo.service';
 import { FILTRO_MIEMBROS_INICIAL } from '../models/miembro';
 import { MiembrosService } from '../services/miembros.service';
 import { RESUMEN_JUAN } from '../testing/miembros-prueba';
@@ -29,8 +26,7 @@ describe('MiembrosListaComponent', () => {
                 provideRouter([]),
                 { provide: MiembrosService, useValue: servicio },
                 { provide: NivelesService, useValue: niveles },
-                { provide: GruposService, useValue: { listar: () => of([OLIVOS, BETANIA]) } },
-                { provide: ConfiguracionIglesiaService, useValue: { nombresGrupos: signal({ nombreGrupoSingular: 'Célula', nombreGrupoPlural: 'Células' }) } },
+                { provide: UbigeoService, useValue: { departamentos: () => of([]), provincias: () => of([]), distritos: () => of([]) } },
                 { provide: SesionService, useValue: { tienePermiso: (permiso: Permiso) => permisos.has(permiso) } },
                 { provide: OpcionesMiembroService, useValue: { buscar: () => of([]) } }
             ]
@@ -61,11 +57,10 @@ describe('MiembrosListaComponent', () => {
         expect(html().textContent).toContain('Pérez Torres, Juan Carlos');
     });
 
-    it('ofrece en los filtros solo los niveles y grupos activos', async () => {
+    it('ofrece en los filtros solo los niveles activos', async () => {
         await crear();
 
         expect(senal<{ id: number }[]>('niveles').map(({ id }) => id)).toEqual([3]);
-        expect(senal<{ id: number }[]>('grupos').map(({ id }) => id)).toEqual([4]);
     });
 
     it('si los niveles no cargan la tabla sigue funcionando', async () => {

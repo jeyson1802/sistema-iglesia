@@ -6,17 +6,12 @@
     </div>
 
     <form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-4" novalidate>
-        <div class="flex flex-col gap-2">
-            <label for="grupo-nombre" class="font-medium">Nombre</label>
-            <input pInputText id="grupo-nombre" formControlName="nombre" autocomplete="off" [maxlength]="limites.nombre" placeholder="Ej.: Los Olivos" [fluid]="true" />
-            <app-mensaje-error-campo [control]="formulario.controls.nombre" [mensajes]="mensajesNombre" [reservarEspacio]="!erroresCampo()['nombre']" />
-            <app-mensaje-error-servidor [mensaje]="erroresCampo()['nombre']" />
-        </div>
-
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="flex flex-col gap-2">
-                <label for="grupo-lider" class="font-medium">Líder</label>
+                <label for="grupo-lider" class="font-medium">Líder <span class="text-muted-color font-normal">(obligatorio)</span></label>
                 <app-selector-miembro inputId="grupo-lider" formControlName="lider" />
+                <small class="text-muted-color">El grupo lleva su nombre; cada líder tiene un solo grupo.</small>
+                <app-mensaje-error-campo [control]="formulario.controls.lider" [mensajes]="mensajesLider" [reservarEspacio]="!erroresCampo()['liderId']" />
                 <app-mensaje-error-servidor [mensaje]="erroresCampo()['liderId']" />
             </div>
             <div class="flex flex-col gap-2">

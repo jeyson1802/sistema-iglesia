@@ -12,7 +12,6 @@ describe('TablaMiembrosComponent', () => {
         fixture.componentRef.setInput('miembros', miembros);
         fixture.componentRef.setInput('totalRegistros', miembros.length);
         fixture.componentRef.setInput('cargando', cargando);
-        fixture.componentRef.setInput('nombreGrupo', 'Célula');
         await fixture.whenStable();
     };
 
@@ -31,11 +30,27 @@ describe('TablaMiembrosComponent', () => {
         expect(fila.querySelector('a')?.getAttribute('href')).toBe('/miembros/22');
     });
 
-    it('usa el nombre configurado del grupo en la cabecera y atenúa las referencias inactivas', async () => {
+    it('separa la dirección de la región (distrito, provincia y departamento), sin columna de grupo', async () => {
         await crear([RESUMEN_JUAN]);
 
-        expect(html().querySelector('thead')?.textContent).toContain('Célula');
-        expect(html().querySelector('span[title="Inactivo"]')?.textContent).toContain('Los Olivos');
+        const cabeceras = Array.from(html().querySelectorAll('thead th')).map((th) => th.textContent?.trim());
+        expect(cabeceras).toEqual(['Nombre', 'Condición', 'Nivel', 'Líder', 'Dirección', 'Región', 'Teléfono', 'Estado']);
+        const celdas = Array.from(html().querySelectorAll('tbody tr td')).map((td) => td.textContent?.trim());
+        expect(celdas[4]).toBe('Av. Perú 123');
+        expect(celdas[5]).toBe('San Martín de Porres, Lima, Lima');
+    });
+
+    it('sin dirección ni región muestra un guion', async () => {
+        await crear([RESUMEN_PASTOR]);
+
+        const celdas = Array.from(html().querySelectorAll('tbody tr td')).map((td) => td.textContent?.trim());
+        expect([celdas[4], celdas[5]]).toEqual(['—', '—']);
+    });
+
+    it('atenúa las referencias inactivas', async () => {
+        await crear([{ ...RESUMEN_JUAN, lider: { id: 10, nombre: 'Ana Ríos', activo: false } }]);
+
+        expect(html().querySelector('span[title="Inactivo"]')?.textContent).toContain('Ana Ríos');
     });
 
     it('marca al pastor principal', async () => {

@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { Grupo } from '../../models/grupo';
 import { BETANIA, OLIVOS } from '../../testing/grupos-prueba';
 import { TablaGruposComponent } from './tabla-grupos';
@@ -11,30 +12,42 @@ describe('TablaGruposComponent', () => {
         fixture.componentRef.setInput('grupos', grupos);
         fixture.componentRef.setInput('cargando', opciones.cargando ?? false);
         fixture.componentRef.setInput('puedeAdministrar', opciones.puedeAdministrar ?? true);
+        fixture.componentRef.setInput('nombreSingular', 'Célula');
         fixture.componentRef.setInput('nombrePlural', 'Células');
         await fixture.whenStable();
     };
 
     beforeEach(async () => {
-        await TestBed.configureTestingModule({ imports: [TablaGruposComponent] }).compileComponents();
+        await TestBed.configureTestingModule({ imports: [TablaGruposComponent], providers: [provideRouter([])] }).compileComponents();
         fixture = TestBed.createComponent(TablaGruposComponent);
     });
 
-    it('muestra líder, reunión, distrito, cantidad y estado', async () => {
+    it('nombra cada grupo por su líder y muestra reunión, distrito, cantidad y estado', async () => {
         await crear([OLIVOS, BETANIA]);
 
         const [olivos, betania] = Array.from(html().querySelectorAll('tbody tr')).map((fila) => fila.textContent ?? '');
-        expect(olivos).toContain('Ana Ríos');
+        expect(html().querySelector('thead')?.textContent).not.toContain('Nombre');
+        expect(olivos).toContain('Célula de Ana Ríos');
         expect(olivos).toContain('Jueves 19:30');
-        expect(olivos).toContain('San Martín de Porres');
-        expect(betania).toContain('Sin líder');
+        expect(html().querySelector('thead')?.textContent).toContain('Dirección');
+        expect(html().querySelector('thead')?.textContent).toContain('Región');
+        expect(olivos).toContain('Av. Perú 123');
+        expect(olivos).toContain('San Martín de Porres, Lima, Lima');
+        expect(betania).toContain('Célula de Beto Soto');
+        expect(betania).toContain('Líder inactivo');
         expect(betania).toContain('Inactivo');
+    });
+
+    it('enlaza cada grupo con la página de sus miembros', async () => {
+        await crear([OLIVOS]);
+
+        expect(html().querySelector('tbody a')?.getAttribute('href')).toBe('/grupos/4');
     });
 
     it('sin permiso de administrar no muestra acciones', async () => {
         await crear([OLIVOS], { puedeAdministrar: false });
 
-        expect(html().querySelector('button[aria-label="Editar Los Olivos"]')).toBeNull();
+        expect(html().querySelector('button[aria-label="Editar Célula de Ana Ríos"]')).toBeNull();
     });
 
     it('emite editar y cambiar estado', async () => {
@@ -43,8 +56,8 @@ describe('TablaGruposComponent', () => {
         fixture.componentInstance.editar.subscribe((g) => emitidos.push(`editar ${g.id}`));
         fixture.componentInstance.cambiarEstado.subscribe((g) => emitidos.push(`estado ${g.id}`));
 
-        (html().querySelector('button[aria-label="Editar Los Olivos"]') as HTMLButtonElement).click();
-        (html().querySelector('button[aria-label="Reactivar Betania"]') as HTMLButtonElement).click();
+        (html().querySelector('button[aria-label="Editar Célula de Ana Ríos"]') as HTMLButtonElement).click();
+        (html().querySelector('button[aria-label="Reactivar Célula de Beto Soto"]') as HTMLButtonElement).click();
 
         expect(emitidos).toEqual(['editar 4', 'estado 5']);
     });

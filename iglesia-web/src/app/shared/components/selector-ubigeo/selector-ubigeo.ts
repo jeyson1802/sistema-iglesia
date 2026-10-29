@@ -11,6 +11,7 @@ const DIGITOS_PROVINCIA = 4;
 /**
  * Departamento, provincia y distrito del Perú en cascada. Es un control de formulario cuyo valor es el código de
  * distrito (o `null`): cambiar el departamento limpia la provincia y el distrito, y cambiar la provincia, el distrito.
+ * Con `parcial` (para filtros) el valor es el código del nivel más profundo elegido: 2, 4 o 6 dígitos.
  */
 @Component({
     selector: 'app-selector-ubigeo',
@@ -24,6 +25,8 @@ export class SelectorUbigeoComponent implements ControlValueAccessor {
 
     /** Prefijo de los `id` de los tres campos, para asociarlos a sus `label`. */
     readonly idBase = input('ubigeo');
+    /** Emite también un departamento o una provincia sin distrito (para filtrar). */
+    readonly parcial = input(false);
 
     protected readonly departamentos = signal<Ubigeo[]>([]);
     protected readonly provincias = signal<Ubigeo[]>([]);
@@ -46,12 +49,17 @@ export class SelectorUbigeoComponent implements ControlValueAccessor {
             return;
         }
         const departamento = codigo.slice(0, DIGITOS_DEPARTAMENTO);
-        const provincia = codigo.slice(0, DIGITOS_PROVINCIA);
+        this.limpiarDesde('provincia');
         this.departamento.set(departamento);
-        this.provincia.set(provincia);
-        this.distrito.set(codigo);
         this.cargarProvincias(departamento);
-        this.cargarDistritos(provincia);
+        if (codigo.length > DIGITOS_DEPARTAMENTO) {
+            const provincia = codigo.slice(0, DIGITOS_PROVINCIA);
+            this.provincia.set(provincia);
+            this.cargarDistritos(provincia);
+        }
+        if (codigo.length > DIGITOS_PROVINCIA) {
+            this.distrito.set(codigo);
+        }
     }
 
     registerOnChange(fn: (codigo: string | null) => void): void {
@@ -72,7 +80,7 @@ export class SelectorUbigeoComponent implements ControlValueAccessor {
         if (codigo) {
             this.cargarProvincias(codigo);
         }
-        this.alCambiar(null);
+        this.alCambiar(this.parcial() ? codigo : null);
     }
 
     protected elegirProvincia(codigo: string | null): void {
@@ -81,12 +89,12 @@ export class SelectorUbigeoComponent implements ControlValueAccessor {
         if (codigo) {
             this.cargarDistritos(codigo);
         }
-        this.alCambiar(null);
+        this.alCambiar(this.parcial() ? (codigo ?? this.departamento()) : null);
     }
 
     protected elegirDistrito(codigo: string | null): void {
         this.distrito.set(codigo);
-        this.alCambiar(codigo);
+        this.alCambiar(this.parcial() ? (codigo ?? this.provincia()) : codigo);
     }
 
     private limpiarDesde(nivel: 'departamento' | 'provincia' | 'distrito'): void {

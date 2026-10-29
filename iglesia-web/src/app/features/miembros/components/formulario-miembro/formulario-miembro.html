@@ -31,7 +31,7 @@
             <div class="flex flex-col gap-2">
                 <label for="miembro-edad" class="font-medium">Edad aproximada</label>
                 <input pInputText id="miembro-edad" type="number" inputmode="numeric" formControlName="edadAproximada" autocomplete="off" min="0" [max]="limites.edad" [fluid]="true" aria-describedby="miembro-edad-ayuda" />
-                <small id="miembro-edad-ayuda" class="text-muted-color">Indica la fecha de nacimiento o, si no la sabes, una edad aproximada.</small>
+                <small id="miembro-edad-ayuda" class="text-muted-color">Puedes llenar la fecha de nacimiento, una edad aproximada o las dos.</small>
                 <app-mensaje-error-campo [control]="formulario.controls.edadAproximada" [mensajes]="mensajes['edadAproximada']" />
                 <app-mensaje-error-servidor [mensaje]="erroresCampo()['edadAproximada']" />
             </div>

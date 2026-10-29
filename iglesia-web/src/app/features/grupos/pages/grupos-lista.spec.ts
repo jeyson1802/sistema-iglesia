@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { ConfirmationService } from 'primeng/api';
 import { Permiso } from '@/app/core/auth/models/permiso';
@@ -8,13 +9,13 @@ import { SesionService } from '@/app/core/auth/services/sesion.service';
 import { ConfiguracionIglesiaService, NombresGrupos } from '@/app/core/configuracion/configuracion-iglesia.service';
 import { OpcionesMiembroService } from '@/app/shared/components/selector-miembro/opciones-miembro.service';
 import { UbigeoService } from '@/app/shared/components/selector-ubigeo/ubigeo.service';
-import { GuardarGrupo } from '../models/grupo';
+import { Grupo, GuardarGrupo } from '../models/grupo';
 import { GruposService } from '../services/grupos.service';
 import { BETANIA, OLIVOS } from '../testing/grupos-prueba';
 import { GruposListaComponent } from './grupos-lista';
 
 describe('GruposListaComponent', () => {
-    const datos: GuardarGrupo = { nombre: 'Sion', liderId: 99, anfitrionId: null, diaReunion: null, horaReunion: null, direccion: null, distritoCodigo: null, descripcion: null };
+    const datos: GuardarGrupo = { liderId: 99, anfitrionId: null, diaReunion: null, horaReunion: null, direccion: null, distritoCodigo: null, descripcion: null };
     let servicio: jasmine.SpyObj<GruposService>;
     let configuracion: { nombresGrupos: ReturnType<typeof signal<NombresGrupos>>; guardar: jasmine.Spy };
     let permisos: Set<Permiso>;
@@ -24,6 +25,7 @@ describe('GruposListaComponent', () => {
         await TestBed.configureTestingModule({
             imports: [GruposListaComponent],
             providers: [
+                provideRouter([]),
                 { provide: GruposService, useValue: servicio },
                 { provide: ConfiguracionIglesiaService, useValue: configuracion },
                 { provide: SesionService, useValue: { tienePermiso: (permiso: Permiso) => permisos.has(permiso) } },
@@ -71,15 +73,15 @@ describe('GruposListaComponent', () => {
         expect(html().textContent).toContain('No se pudieron cargar los grupos.');
     });
 
-    it('crea un grupo y lo agrega en orden alfabético', async () => {
-        servicio.crear.and.returnValue(of({ ...OLIVOS, id: 9, nombre: 'Canaán' }));
+    it('crea un grupo y lo agrega en orden alfabético por líder', async () => {
+        servicio.crear.and.returnValue(of({ ...OLIVOS, id: 9, lider: { id: 99, nombre: 'Bárbara Luna', activo: true } }));
         await crear();
 
         componente()['nuevo']();
         componente()['guardar'](datos);
         await fixture.whenStable();
 
-        expect(senal<{ nombre: string }[]>('grupos').map(({ nombre }) => nombre)).toEqual(['Betania', 'Canaán', 'Los Olivos']);
+        expect(senal<Grupo[]>('grupos').map(({ lider }) => lider.nombre)).toEqual(['Ana Ríos', 'Bárbara Luna', 'Beto Soto']);
     });
 
     it('un error por campo se muestra junto al campo y no arriba', async () => {
@@ -101,7 +103,7 @@ describe('GruposListaComponent', () => {
             return fixture.debugElement.injector.get(ConfirmationService);
         });
 
-        boton('Desactivar Los Olivos')?.click();
+        boton('Desactivar Hogar de paz de Ana Ríos')?.click();
         await fixture.whenStable();
 
         expect(html().textContent).toContain('Tiene miembros activos');

@@ -31,6 +31,8 @@ public final class EspecificacionesMiembro {
 
 	private static final String GRUPO_ID = "grupoId";
 
+	private static final String DISTRITO = "distritoCodigo";
+
 	private static final String ACTIVO = "activo";
 
 	private static final String ESPACIO = " ";
@@ -87,11 +89,21 @@ public final class EspecificacionesMiembro {
 		return (miembro, consulta, criterios) -> criterios.equal(miembro.get(NIVEL).get(ID), nivelId);
 	}
 
-	public static Specification<Miembro> deGrupo(Long grupoId) {
-		if (grupoId == null) {
+	/** Fuera del grupo indicado: sin grupo o en otro. */
+	public static Specification<Miembro> fueraDelGrupo(Long grupoId) {
+		return (miembro, consulta, criterios) -> criterios.or(criterios.isNull(miembro.get(GRUPO_ID)),
+				criterios.notEqual(miembro.get(GRUPO_ID), grupoId));
+	}
+
+	/**
+	 * Que viven en el departamento, la provincia o el distrito del código (2, 4 o 6 dígitos): los códigos INEI son
+	 * jerárquicos, así que basta con el prefijo del distrito. El código ya viene validado como solo dígitos.
+	 */
+	public static Specification<Miembro> enUbigeo(String codigo) {
+		if (!StringUtils.hasText(codigo)) {
 			return Specification.unrestricted();
 		}
-		return (miembro, consulta, criterios) -> criterios.equal(miembro.get(GRUPO_ID), grupoId);
+		return (miembro, consulta, criterios) -> criterios.like(miembro.get(DISTRITO), codigo + "%");
 	}
 
 	/** Liderados directamente por el miembro indicado. */

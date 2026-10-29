@@ -20,7 +20,7 @@ describe('MiembrosService', () => {
     afterEach(() => http.verify());
 
     it('lista la página con orden y solo los filtros con valor', () => {
-        servicio.listar({ ...FILTRO_MIEMBROS_INICIAL, q: ' juan ', nivelId: 3 }, 2).subscribe();
+        servicio.listar({ ...FILTRO_MIEMBROS_INICIAL, q: ' juan ', nivelId: 3, ubigeo: '1501' }, 2).subscribe();
 
         const peticion = http.expectOne((r) => r.url === url);
         const parametros = peticion.request.params;
@@ -28,20 +28,23 @@ describe('MiembrosService', () => {
         expect(parametros.getAll('sort')).toEqual(['apellidos,asc', 'nombres,asc']);
         expect(parametros.get('q')).toBe('juan');
         expect(parametros.get('nivelId')).toBe('3');
+        expect(parametros.get('ubigeo')).toBe('1501');
         expect(parametros.get('activo')).toBe('true');
         expect(parametros.has('condicion')).toBeFalse();
         expect(parametros.has('liderId')).toBeFalse();
         peticion.flush({ content: [], page: { size: 10, number: 2, totalElements: 0, totalPages: 0 } });
     });
 
-    it('obtiene la ficha adaptada y la cadena', () => {
+    it('obtiene la ficha adaptada, la cadena y los liderados', () => {
         let miembro: Miembro | undefined;
 
         servicio.obtener(22).subscribe((m) => (miembro = m));
         servicio.cadena(22).subscribe();
+        servicio.liderados(22).subscribe();
 
         http.expectOne(`${url}/22`).flush(RESPUESTA_JUAN);
         http.expectOne(`${url}/22/cadena`).flush([]);
+        http.expectOne(`${url}/22/liderados`).flush([]);
         expect(miembro?.creadoEn).toEqual(jasmine.any(Date));
     });
 

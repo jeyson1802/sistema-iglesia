@@ -43,6 +43,20 @@ class MiembroMapperTest {
 		assertThat(miembro.getAnioNacimientoEstimado()).isEqualTo((short) 1996);
 		assertThat(respuesta.edad()).isEqualTo(30);
 		assertThat(respuesta.edadEsAproximada()).isTrue();
+		assertThat(respuesta.edadAproximada()).isEqualTo(30);
+	}
+
+	@Test
+	void conFechaYEdadAproximadaLaExactaMandaYLaAproximadaSeDevuelveAparte() {
+		Miembro miembro = MiembrosPrueba.miembro(1L, "Ana", null);
+		ReflectionTestUtils.setField(miembro, "fechaNacimiento", LocalDate.of(1990, 10, 29));
+		ReflectionTestUtils.setField(miembro, "anioNacimientoEstimado", mapper.anioEstimado(30));
+
+		MiembroResponse respuesta = mapper.aRespuesta(miembro, null, null, 0);
+
+		assertThat(respuesta.edad()).isEqualTo(35);
+		assertThat(respuesta.edadEsAproximada()).isFalse();
+		assertThat(respuesta.edadAproximada()).isEqualTo(30);
 	}
 
 	@Test
@@ -51,15 +65,17 @@ class MiembroMapperTest {
 
 		assertThat(respuesta.edad()).isNull();
 		assertThat(respuesta.edadEsAproximada()).isFalse();
+		assertThat(respuesta.edadAproximada()).isNull();
 	}
 
 	@Test
-	void elResumenToleraUnMiembroSinGrupo() {
+	void elResumenToleraUnMiembroSinUbicacion() {
 		Miembro lider = MiembrosPrueba.miembro(1L, "Ana", null);
 
 		var resumen = mapper.aResumen(MiembrosPrueba.miembro(2L, "Luis", lider), Map.of());
 
-		assertThat(resumen.grupo()).isNull();
+		assertThat(resumen.ubicacion()).isNull();
+		assertThat(resumen.direccion()).isNull();
 		assertThat(resumen.lider().nombre()).isEqualTo("Ana Prueba");
 	}
 

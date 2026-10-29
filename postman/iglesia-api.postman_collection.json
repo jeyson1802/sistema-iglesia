@@ -979,6 +979,94 @@
           ]
         },
         {
+          "name": "Registrar al líder del grupo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros"
+              ]
+            },
+            "description": "Miembro que liderará el grupo: un grupo no tiene nombre, es «el grupo de» su líder.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Ana\",\n  \"apellidos\": \"Líder de Grupo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('liderGrupoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear grupo sin líder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/grupos",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "grupos"
+              ]
+            },
+            "description": "El líder es obligatorio: sin él responde 400 sobre `liderId`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"diaReunion\": \"JUEVES\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Indica el campo', () => pm.expect(pm.response.json().errores).to.have.property('liderId'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Crear grupo",
           "request": {
             "method": "POST",
@@ -998,10 +1086,10 @@
                 "grupos"
               ]
             },
-            "description": "Crea un grupo; solo el nombre es obligatorio. El líder y el anfitrión, si se indican, deben ser miembros activos.",
+            "description": "Crea el grupo de un líder: solo el líder es obligatorio y no puede tener otro grupo. El anfitrión, si se indica, debe estar activo.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Los Olivos\",\n  \"diaReunion\": \"JUEVES\",\n  \"horaReunion\": \"19:30\",\n  \"direccion\": \"Jr. Las Flores 456\",\n  \"distritoCodigo\": \"150135\",\n  \"descripcion\": \"Grupo de matrimonios jóvenes\"\n}",
+              "raw": "{\n  \"liderId\": {{liderGrupoId}},\n  \"diaReunion\": \"JUEVES\",\n  \"horaReunion\": \"19:30\",\n  \"direccion\": \"Jr. Las Flores 456\",\n  \"distritoCodigo\": \"150135\",\n  \"descripcion\": \"Grupo de matrimonios jóvenes\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1018,6 +1106,7 @@
                   "pm.test('Responde 201', () => pm.response.to.have.status(201));",
                   "const grupo = pm.response.json();",
                   "pm.environment.set('grupoId', grupo.id);",
+                  "pm.test('Se identifica por su líder, sin nombre', () => { pm.expect(grupo.lider.id).to.eql(Number(pm.environment.get('liderGrupoId'))); pm.expect(grupo).to.not.have.property('nombre'); });",
                   "pm.test('Deduce la ubicación del distrito', () => pm.expect(grupo.ubicacion.distrito.codigo).to.eql('150135'));"
                 ]
               }
@@ -1025,7 +1114,7 @@
           ]
         },
         {
-          "name": "Crear grupo repetido",
+          "name": "Crear otro grupo con el mismo líder",
           "request": {
             "method": "POST",
             "header": [
@@ -1044,10 +1133,10 @@
                 "grupos"
               ]
             },
-            "description": "Un nombre repetido sin distinguir mayúsculas responde 409.",
+            "description": "Cada líder tiene a lo sumo un grupo: repetirlo responde 409 sobre `liderId`.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"LOS OLIVOS\"\n}",
+              "raw": "{\n  \"liderId\": {{liderGrupoId}}\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1061,7 +1150,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Responde 409', () => pm.response.to.have.status(409));"
+                  "pm.test('Responde 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Indica el campo', () => pm.expect(pm.response.json().errores).to.have.property('liderId'));"
                 ]
               }
             }
@@ -1091,7 +1181,7 @@
             "description": "Reemplaza los datos del grupo.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Los Olivos\",\n  \"diaReunion\": \"VIERNES\",\n  \"horaReunion\": \"20:00\",\n  \"distritoCodigo\": \"150135\"\n}",
+              "raw": "{\n  \"liderId\": {{liderGrupoId}},\n  \"diaReunion\": \"VIERNES\",\n  \"horaReunion\": \"20:00\",\n  \"distritoCodigo\": \"150135\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1158,7 +1248,7 @@
                 "grupos"
               ]
             },
-            "description": "Todos los grupos, ordenados por nombre."
+            "description": "Todos los grupos, ordenados por el nombre de su líder."
           },
           "event": [
             {
@@ -1168,6 +1258,218 @@
                 "exec": [
                   "pm.test('Responde 200', () => pm.response.to.have.status(200));",
                   "pm.test('Trae el grupo creado', () => pm.expect(pm.response.json().map(g => g.id)).to.include(Number(pm.environment.get('grupoId'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar un integrante",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros"
+              ]
+            },
+            "description": "Miembro que se agregará al grupo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Rosa\",\n  \"apellidos\": \"Integrante\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('integranteId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar candidatos para el grupo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/grupos/{{grupoId}}/candidatos?q=integrante",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "grupos",
+                "{{grupoId}}",
+                "candidatos"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "integrante"
+                }
+              ]
+            },
+            "description": "Hasta 20 miembros activos que no están en el grupo, con el grupo en el que están ahora."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const c = pm.response.json().find(m => m.id === Number(pm.environment.get('integranteId')));",
+                  "pm.test('Ofrece al integrante, todavía sin grupo', () => { pm.expect(c).to.exist; pm.expect(c.grupo).to.eql(null); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Agregar un miembro al grupo",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/grupos/{{grupoId}}/miembros/{{integranteId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "grupos",
+                "{{grupoId}}",
+                "miembros",
+                "{{integranteId}}"
+              ]
+            },
+            "description": "Lo agrega al grupo o, si estaba en otro, lo mueve."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Devuelve al integrante', () => pm.expect(pm.response.json().id).to.eql(Number(pm.environment.get('integranteId'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar los miembros del grupo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/grupos/{{grupoId}}/miembros",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "grupos",
+                "{{grupoId}}",
+                "miembros"
+              ]
+            },
+            "description": "Integrantes activos del grupo, con su nivel."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Incluye al integrante', () => pm.expect(pm.response.json().map(m => m.id)).to.include(Number(pm.environment.get('integranteId'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Quitar un miembro del grupo",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/grupos/{{grupoId}}/miembros/{{integranteId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "grupos",
+                "{{grupoId}}",
+                "miembros",
+                "{{integranteId}}"
+              ]
+            },
+            "description": "Saca al miembro del grupo; no lo borra."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Quitar a quien no está en el grupo",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/grupos/{{grupoId}}/miembros/{{integranteId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "grupos",
+                "{{grupoId}}",
+                "miembros",
+                "{{integranteId}}"
+              ]
+            },
+            "description": "Si el miembro no está en ese grupo responde 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 404', () => pm.response.to.have.status(404));"
                 ]
               }
             }
@@ -1340,7 +1642,7 @@
                   "pm.test('Responde 201', () => pm.response.to.have.status(201));",
                   "const m = pm.response.json();",
                   "pm.environment.set('miembroId', m.id);",
-                  "pm.test('Edad aproximada', () => { pm.expect(m.edad).to.eql(35); pm.expect(m.edadEsAproximada).to.eql(true); });",
+                  "pm.test('Edad aproximada', () => { pm.expect(m.edad).to.eql(35); pm.expect(m.edadEsAproximada).to.eql(true); pm.expect(m.edadAproximada).to.eql(35); });",
                   "pm.test('Ubicación deducida', () => pm.expect(m.ubicacion.provincia.codigo).to.eql('1501'));",
                   "pm.test('Referencias resueltas', () => { pm.expect(m.lider.id).to.eql(Number(pm.environment.get('pastorId'))); pm.expect(m.grupo.id).to.eql(Number(pm.environment.get('grupoId'))); });"
                 ]
@@ -1368,7 +1670,7 @@
                 "miembros"
               ]
             },
-            "description": "Son excluyentes: 400 sobre `edadAproximada`.",
+            "description": "La fecha de nacimiento y la edad aproximada son independientes: se guardan las dos. La edad exacta sale de la fecha y la aproximada viaja aparte.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombres\": \"Las\",\n  \"apellidos\": \"Dos\",\n  \"fechaNacimiento\": \"1990-05-14\",\n  \"edadAproximada\": 30\n}",
@@ -1385,7 +1687,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Responde 400', () => pm.response.to.have.status(400));"
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "const m = pm.response.json();",
+                  "pm.test('La exacta manda y la aproximada va aparte', () => { pm.expect(m.edadEsAproximada).to.eql(false); pm.expect(m.edadAproximada).to.eql(30); pm.expect(m.fechaNacimiento).to.eql('1990-05-14'); });"
                 ]
               }
             }
@@ -1483,7 +1787,88 @@
                 "exec": [
                   "pm.test('Responde 200', () => pm.response.to.have.status(200));",
                   "pm.test('Todos cumplen los filtros', () => pm.response.json().content.forEach(m => pm.expect(m.condicion).to.eql('NUEVO')));",
-                  "pm.test('Trae el total', () => pm.expect(pm.response.json().page.totalElements).to.be.at.least(1));"
+                  "pm.test('Trae el total', () => pm.expect(pm.response.json().page.totalElements).to.be.at.least(1));",
+                  "pm.test('Trae dirección y ubicación, sin grupo', () => pm.response.json().content.forEach(m => { pm.expect(m).to.have.property('ubicacion'); pm.expect(m).to.not.have.property('grupo'); }));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filtrar miembros por ubicación",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros?ubigeo=1501&page=0&size=20",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros"
+              ],
+              "query": [
+                {
+                  "key": "ubigeo",
+                  "value": "1501"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Código de 2, 4 o 6 dígitos: departamento, provincia o distrito (aquí, la provincia de Lima)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Todos viven en la provincia', () => pm.response.json().content.forEach(m => pm.expect(m.ubicacion.provincia.codigo).to.eql('1501')));",
+                  "pm.test('Incluye al de la ficha completa', () => pm.expect(pm.response.json().content.map(m => m.id)).to.include(Number(pm.environment.get('miembroId'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filtrar con un código de ubicación inválido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros?ubigeo=1",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros"
+              ],
+              "query": [
+                {
+                  "key": "ubigeo",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Un código que no tiene 2, 4 o 6 dígitos responde 400."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));"
                 ]
               }
             }
@@ -1552,6 +1937,39 @@
           ]
         },
         {
+          "name": "Listar los liderados directos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros/{{pastorId}}/liderados",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros",
+                "{{pastorId}}",
+                "liderados"
+              ]
+            },
+            "description": "Liderados directos activos con su nivel y cuántos lidera cada uno: alimenta el árbol de la ficha."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const l = pm.response.json().find(m => m.id === Number(pm.environment.get('miembroId')));",
+                  "pm.test('Incluye a quien lidera el pastor', () => { pm.expect(l).to.exist; pm.expect(l).to.have.property('cantidadLiderados'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Sugerir miembros",
           "request": {
             "method": "GET",
@@ -1612,7 +2030,7 @@
             "description": "Reemplaza la ficha completa.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombres\": \"Juan Carlos\",\n  \"apellidos\": \"Pérez Torres\",\n  \"condicion\": \"ANTIGUO\",\n  \"liderId\": {{pastorId}},\n  \"grupoId\": {{grupoId}}\n}",
+              "raw": "{\n  \"nombres\": \"Juan Carlos\",\n  \"apellidos\": \"Pérez Torres\",\n  \"condicion\": \"CONSOLIDADO\",\n  \"liderId\": {{pastorId}},\n  \"grupoId\": {{grupoId}}\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1627,7 +2045,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Responde 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Cambia la condición', () => pm.expect(pm.response.json().condicion).to.eql('ANTIGUO'));"
+                  "pm.test('Cambia la condición', () => pm.expect(pm.response.json().condicion).to.eql('CONSOLIDADO'));"
                 ]
               }
             }

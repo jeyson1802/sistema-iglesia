@@ -1,0 +1,130 @@
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <section
+        class="flex flex-col gap-4 rounded-border border border-surface p-4 transition-colors"
+        [class.border-primary]="zonaActiva() === 'disponibles'"
+        [class.bg-emphasis]="zonaActiva() === 'disponibles'"
+        aria-labelledby="disponibles-titulo"
+        [pDroppable]="ambitoQuitar"
+        [pDroppableDisabled]="!editable()"
+        (onDragEnter)="zonaActiva.set('disponibles')"
+        (onDragLeave)="zonaActiva.set(null)"
+        (onDrop)="soltarEnDisponibles()"
+    >
+        <header class="flex flex-col gap-1">
+            <h2 id="disponibles-titulo" class="font-semibold text-lg m-0">Disponibles</h2>
+            <p class="m-0 text-sm text-muted-color">Miembros activos que no están en este grupo. Arrástralos al grupo o usa «Agregar».</p>
+        </header>
+        <div class="flex flex-col gap-2">
+            <label for="buscar-candidatos" class="sr-only">Buscar miembros disponibles</label>
+            <p-iconfield>
+                <p-inputicon styleClass="pi pi-search" />
+                <input pInputText id="buscar-candidatos" type="search" [formControl]="busqueda" autocomplete="off" placeholder="Buscar por nombres o apellidos" [fluid]="true" />
+            </p-iconfield>
+        </div>
+        @if (buscando()) {
+        <div class="flex flex-col gap-3" role="status" aria-label="Buscando miembros">
+            @for (fila of filasCarga; track fila) {
+            <p-skeleton height="2.5rem" />
+            }
+        </div>
+        } @else if (candidatos().length === 0) {
+        <p class="m-0 py-6 text-center text-muted-color">No hay miembros disponibles con esa búsqueda.</p>
+        } @else {
+        <ul class="list-none p-0 m-0 flex flex-col gap-2" aria-label="Miembros disponibles">
+            @for (candidato of candidatos(); track candidato.id) {
+            <li
+                class="flex items-center justify-between gap-3 rounded-border border border-surface px-3 py-2"
+                [class.cursor-grab]="editable()"
+                [pDraggable]="ambitoAgregar"
+                [pDraggableDisabled]="!editable() || procesando().has(candidato.id)"
+                dragEffect="move"
+                (onDragStart)="empezarArrastre(candidato)"
+                (onDragEnd)="terminarArrastre()"
+            >
+                <div class="flex flex-col gap-1 min-w-0">
+                    <span class="font-medium truncate">{{ candidato.nombreCompleto }}</span>
+                    <span class="text-sm text-muted-color truncate">{{ candidato.nivel ?? 'Sin nivel' }}</span>
+                    @if (grupoActual(candidato); as grupo) {
+                    <p-tag [value]="'En ' + grupo" icon="pi pi-users" severity="warn" styleClass="self-start max-w-full" />
+                    } @else {
+                    <p-tag value="Sin grupo" severity="secondary" styleClass="self-start" />
+                    }
+                </div>
+                @if (editable()) {
+                <p-button
+                    icon="pi pi-arrow-right"
+                    [rounded]="true"
+                    [outlined]="true"
+                    [ariaLabel]="'Agregar a ' + candidato.nombreCompleto"
+                    [loading]="procesando().has(candidato.id)"
+                    [disabled]="procesando().has(candidato.id)"
+                    (onClick)="agregar.emit(candidato)"
+                />
+                }
+            </li>
+            }
+        </ul>
+        }
+    </section>
+
+    <section
+        class="flex flex-col gap-4 rounded-border border border-dashed p-4 transition-colors"
+        [class.border-primary]="zonaActiva() === 'grupo'"
+        [class.border-surface]="zonaActiva() !== 'grupo'"
+        [class.bg-emphasis]="zonaActiva() === 'grupo'"
+        aria-labelledby="integrantes-titulo"
+        [pDroppable]="ambitoAgregar"
+        [pDroppableDisabled]="!editable()"
+        (onDragEnter)="zonaActiva.set('grupo')"
+        (onDragLeave)="zonaActiva.set(null)"
+        (onDrop)="soltarEnGrupo()"
+    >
+        <header class="flex flex-col gap-1">
+            <h2 id="integrantes-titulo" class="font-semibold text-lg m-0">Miembros del grupo <span class="text-muted-color font-normal">({{ integrantes().length }})</span></h2>
+            <p class="m-0 text-sm text-muted-color">{{ editable() ? 'Suelta aquí a quien quieras agregar. Arrastra fuera o usa «Quitar» para sacarlo.' : 'Quienes se reúnen en este grupo.' }}</p>
+        </header>
+        @if (cargandoIntegrantes()) {
+        <div class="flex flex-col gap-3" role="status" aria-label="Cargando los miembros del grupo">
+            @for (fila of filasCarga; track fila) {
+            <p-skeleton height="2.5rem" />
+            }
+        </div>
+        } @else if (integrantes().length === 0) {
+        <div class="flex flex-col items-center gap-2 py-6 text-center">
+            <i class="pi pi-inbox text-3xl text-muted-color" aria-hidden="true"></i>
+            <span class="text-muted-color">{{ editable() ? 'Aún no tiene miembros. Arrastra aquí a los disponibles.' : 'Aún no tiene miembros.' }}</span>
+        </div>
+        } @else {
+        <ul class="list-none p-0 m-0 flex flex-col gap-2" aria-label="Miembros del grupo">
+            @for (integrante of integrantes(); track integrante.id) {
+            <li
+                class="flex items-center justify-between gap-3 rounded-border border border-surface px-3 py-2"
+                [class.cursor-grab]="editable()"
+                [pDraggable]="ambitoQuitar"
+                [pDraggableDisabled]="!editable() || procesando().has(integrante.id)"
+                dragEffect="move"
+                (onDragStart)="empezarArrastre(integrante)"
+                (onDragEnd)="terminarArrastre()"
+            >
+                <div class="flex flex-col min-w-0">
+                    <span class="font-medium truncate">{{ integrante.nombreCompleto }}</span>
+                    <span class="text-sm text-muted-color truncate">{{ integrante.nivel ?? 'Sin nivel' }}</span>
+                </div>
+                @if (editable()) {
+                <p-button
+                    icon="pi pi-times"
+                    [rounded]="true"
+                    [outlined]="true"
+                    severity="secondary"
+                    [ariaLabel]="'Quitar a ' + integrante.nombreCompleto + ' del grupo'"
+                    [loading]="procesando().has(integrante.id)"
+                    [disabled]="procesando().has(integrante.id)"
+                    (onClick)="quitar.emit(integrante)"
+                />
+                }
+            </li>
+            }
+        </ul>
+        }
+    </section>
+</div>

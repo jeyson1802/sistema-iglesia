@@ -16,8 +16,12 @@ import com.iglesia.api.grupos.entity.Grupo;
 import com.iglesia.api.grupos.mapper.GrupoMapper;
 import com.iglesia.api.grupos.repository.GrupoRepository;
 import com.iglesia.api.miembros.service.ConsultaGrupos;
+import com.iglesia.api.miembros.service.ReferenciasMiembro;
 
-/** Lo que el registro de miembros necesita de los grupos. Solo usa el repositorio, para no crear ciclos de beans. */
+/**
+ * Lo que el registro de miembros necesita de los grupos. Usa el repositorio y {@link ReferenciasMiembro} (que no
+ * depende de los grupos), no {@code MiembroService}, para no crear ciclos de beans.
+ */
 @Service
 class ConsultaGruposService implements ConsultaGrupos {
 
@@ -31,9 +35,12 @@ class ConsultaGruposService implements ConsultaGrupos {
 
 	private final GrupoMapper mapper;
 
-	ConsultaGruposService(GrupoRepository grupos, GrupoMapper mapper) {
+	private final ReferenciasMiembro miembros;
+
+	ConsultaGruposService(GrupoRepository grupos, GrupoMapper mapper, ReferenciasMiembro miembros) {
 		this.grupos = grupos;
 		this.mapper = mapper;
+		this.miembros = miembros;
 	}
 
 	@Override
@@ -55,9 +62,11 @@ class ConsultaGruposService implements ConsultaGrupos {
 		if (validos.isEmpty()) {
 			return Collections.emptyMap();
 		}
-		return grupos.findAllById(validos)
-			.stream()
-			.map(mapper::aReferencia)
+		var encontrados = grupos.findAllById(validos);
+		Map<Long, ReferenciaResponse> lideres = miembros
+			.referencias(encontrados.stream().map(Grupo::getLiderId).toList());
+		return encontrados.stream()
+			.map(grupo -> mapper.aReferencia(grupo, lideres.get(grupo.getLiderId())))
 			.collect(Collectors.toMap(ReferenciaResponse::id, Function.identity()));
 	}
 

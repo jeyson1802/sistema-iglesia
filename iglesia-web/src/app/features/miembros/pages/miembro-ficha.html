@@ -82,7 +82,7 @@
             <app-progreso-ficha [miembro]="actual" [nombreGrupo]="nombresGrupos().nombreGrupoSingular" />
         </div>
         <div class="card">
-            <app-cadena-liderazgo [cadena]="cadena()" [cantidadLiderados]="actual.cantidadLiderados" [esPastorPrincipal]="actual.esPastorPrincipal" [cargando]="cargandoCadena()" />
+            <app-arbol-liderazgo [miembro]="actual" [cadena]="cadena()" [cargando]="cargandoCadena()" />
         </div>
     </div>
     }

@@ -1,0 +1,57 @@
+<section class="flex flex-col gap-4" aria-labelledby="arbol-titulo">
+    <header class="flex flex-col gap-1">
+        <div class="flex items-center justify-between gap-2">
+            <h2 id="arbol-titulo" class="font-semibold text-lg m-0">Liderazgo</h2>
+            <p-tag [value]="textoLiderados()" icon="pi pi-users" severity="secondary" />
+        </div>
+        <p class="m-0 text-sm text-muted-color">De quién depende y a quiénes lidera. Elige a una persona para abrir su ficha.</p>
+    </header>
+
+    @if (miembro().esPastorPrincipal) {
+    <p-message severity="info" icon="pi pi-star" size="small">Es el pastor principal: la cabeza de la iglesia, sin líder.</p-message>
+    } @else if (!cargando() && cadena().length === 0) {
+    <p-message severity="secondary" icon="pi pi-info-circle" size="small">Aún no tiene líder asignado.</p-message>
+    } @if (cargando()) {
+    <div class="flex flex-col gap-3" role="status" aria-label="Cargando el árbol de liderazgo">
+        @for (sangria of filasCarga; track sangria) {
+        <div class="flex items-center gap-3" [class]="sangria">
+            <p-skeleton shape="circle" size="2rem" />
+            <p-skeleton width="60%" height="1.25rem" />
+        </div>
+        }
+    </div>
+    } @else {
+    <p-tree
+        [value]="nodos()"
+        selectionMode="single"
+        loadingMode="icon"
+        styleClass="w-full"
+        ariaLabel="Árbol de liderazgo: superiores, el miembro y las personas que lidera"
+        (onNodeSelect)="abrir($event.node)"
+        (onNodeExpand)="expandir($event.node)"
+        (onNodeCollapse)="colapsar($event.node)"
+    >
+        <ng-template pTemplate="default" let-nodo>
+            @let dato = datos(nodo);
+            <div class="flex items-center gap-3 py-1 min-w-0" [class.opacity-60]="!dato.activo">
+                <p-avatar [label]="iniciales(dato.nombre)" shape="circle" [styleClass]="dato.rol === 'actual' ? 'bg-primary text-primary-contrast' : ''" aria-hidden="true" />
+                <div class="flex flex-col min-w-0">
+                    <span class="truncate" [class.font-semibold]="dato.rol === 'actual'" [class.text-primary]="dato.rol === 'actual'" [attr.aria-current]="dato.rol === 'actual' ? 'page' : null">{{ dato.nombre }}</span>
+                    <span class="text-xs text-muted-color truncate">{{ dato.relacion }} · {{ dato.nivel ?? 'Sin nivel' }}{{ dato.activo ? '' : ' · Inactivo' }}</span>
+                </div>
+                @if (dato.esPastorPrincipal) {
+                <i class="pi pi-star-fill text-primary" pTooltip="Pastor principal" tooltipPosition="top" aria-label="Pastor principal"></i>
+                } @if (dato.cantidadLiderados) {
+                <p-tag [value]="'' + dato.cantidadLiderados" icon="pi pi-users" severity="secondary" [rounded]="true" [pTooltip]="textoLideraA(dato.cantidadLiderados)" tooltipPosition="top" [attr.aria-label]="textoLideraA(dato.cantidadLiderados)" />
+                }
+            </div>
+        </ng-template>
+    </p-tree>
+    }
+
+    <div aria-live="polite">
+        @if (errorLiderados()) {
+        <p-message severity="warn" icon="pi pi-exclamation-triangle" size="small">No se pudieron cargar algunos liderados. Cierra y vuelve a abrir el nodo para reintentar.</p-message>
+        }
+    </div>
+</section>

@@ -15,6 +15,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.iglesia.api.miembros.entity.Miembro;
 import com.iglesia.api.miembros.model.ConteoPorGrupo;
+import com.iglesia.api.miembros.model.ConteoPorLider;
 
 /**
  * Miembros de la iglesia del token. Las consultas JPQL las filtra Hibernate por {@code iglesia_id}; las CTE
@@ -36,6 +37,21 @@ public interface MiembroRepository extends JpaRepository<Miembro, Long>, JpaSpec
 	long countByLiderIdAndActivoTrue(Long liderId);
 
 	boolean existsByGrupoIdAndActivoTrue(Long grupoId);
+
+	/** Liderados directos activos, con su nivel, para expandir un nodo del árbol de liderazgo. */
+	@EntityGraph(attributePaths = { "nivel" })
+	List<Miembro> findByLiderIdAndActivoTrueOrderByApellidosAscNombresAscIdAsc(Long liderId);
+
+	/** Integrantes activos de un grupo, con su nivel. */
+	@EntityGraph(attributePaths = { "nivel" })
+	List<Miembro> findByGrupoIdAndActivoTrueOrderByApellidosAscNombresAscIdAsc(Long grupoId);
+
+	@Query("""
+			select new com.iglesia.api.miembros.model.ConteoPorLider(m.lider.id, count(m))
+			from Miembro m
+			where m.activo = true and m.lider.id in :liderIds
+			group by m.lider.id""")
+	List<ConteoPorLider> contarActivosPorLider(@Param("liderIds") Collection<Long> liderIds);
 
 	/**
 	 * Candidatos a duplicado: nombres y apellidos de la misma longitud (los textos se guardan normalizados). La

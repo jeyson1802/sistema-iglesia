@@ -5,9 +5,9 @@ export const GENEROS = ['MASCULINO', 'FEMENINO'] as const;
 export type Genero = (typeof GENEROS)[number];
 export const ETIQUETA_GENERO: Record<Genero, string> = { MASCULINO: 'Masculino', FEMENINO: 'Femenino' };
 
-export const CONDICIONES = ['ANTIGUO', 'NUEVO', 'RECUPERADO'] as const;
+export const CONDICIONES = ['CONSOLIDADO', 'NUEVO', 'RECUPERADO'] as const;
 export type Condicion = (typeof CONDICIONES)[number];
-export const ETIQUETA_CONDICION: Record<Condicion, string> = { ANTIGUO: 'Antiguo', NUEVO: 'Nuevo', RECUPERADO: 'Recuperado' };
+export const ETIQUETA_CONDICION: Record<Condicion, string> = { CONSOLIDADO: 'Consolidado', NUEVO: 'Nuevo', RECUPERADO: 'Recuperado' };
 
 export const ESTADOS_CIVILES = ['SOLTERO', 'CASADO', 'DIVORCIADO', 'VIUDO'] as const;
 export type EstadoCivil = (typeof ESTADOS_CIVILES)[number];
@@ -32,7 +32,8 @@ export interface MiembroResumen {
     readonly condicion: Condicion | null;
     readonly nivel: Referencia | null;
     readonly lider: Referencia | null;
-    readonly grupo: Referencia | null;
+    readonly direccion: string | null;
+    readonly ubicacion: Ubicacion | null;
     readonly telefono: string | null;
     readonly esPastorPrincipal: boolean;
     readonly activo: boolean;
@@ -42,19 +43,22 @@ export interface MiembroResumen {
 export interface MiembroResponse extends MiembroResumen {
     readonly genero: Genero | null;
     readonly fechaNacimiento: string | null;
+    /** Exacta si hay fecha de nacimiento; si no, la aproximada. */
     readonly edad: number | null;
     readonly edadEsAproximada: boolean;
+    /** Edad aproximada registrada, independiente de la fecha de nacimiento. */
+    readonly edadAproximada: number | null;
     readonly fechaIngreso: string | null;
     readonly estadoCivil: EstadoCivil | null;
     readonly correo: string | null;
-    readonly direccion: string | null;
     readonly distritoCodigo: string | null;
-    readonly ubicacion: Ubicacion | null;
     readonly ocupacion: string | null;
     readonly profesion: string | null;
     readonly nivelEstudios: NivelEstudios | null;
     readonly centroEstudios: string | null;
     readonly peticion: string | null;
+    /** Grupo al que pertenece; su `nombre` es el de su líder. */
+    readonly grupo: Referencia | null;
     readonly invitadoPor: Referencia | null;
     readonly registradoPor: Referencia | null;
     readonly cantidadLiderados: number;
@@ -95,6 +99,14 @@ export interface GuardarMiembro {
     readonly registradoPorId: number | null;
 }
 
+/** Contrato de `LideradoResponse`: alguien a quien el miembro lidera directamente, para el árbol de liderazgo. */
+export interface Liderado {
+    readonly id: number;
+    readonly nombreCompleto: string;
+    readonly nivel: string | null;
+    readonly cantidadLiderados: number;
+}
+
 /** Contrato de `EslabonCadenaResponse`: un líder de la cadena, del directo al pastor principal. */
 export interface EslabonCadena {
     readonly id: number;
@@ -109,15 +121,16 @@ export interface FiltroMiembros {
     readonly q: string;
     readonly condicion: Condicion | null;
     readonly nivelId: number | null;
-    readonly grupoId: number | null;
     /** Solo los liderados directamente por este miembro. */
     readonly liderId: number | null;
+    /** Código INEI de departamento (2 dígitos), provincia (4) o distrito (6). */
+    readonly ubigeo: string | null;
     /** `null` = todos. */
     readonly activo: boolean | null;
 }
 
 /** Por defecto se listan solo los activos. */
-export const FILTRO_MIEMBROS_INICIAL: FiltroMiembros = { q: '', condicion: null, nivelId: null, grupoId: null, liderId: null, activo: true };
+export const FILTRO_MIEMBROS_INICIAL: FiltroMiembros = { q: '', condicion: null, nivelId: null, liderId: null, ubigeo: null, activo: true };
 
 /** Miembros por página en la tabla. */
 export const PAGINA_MIEMBROS = 10;

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, untracked } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { map } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
@@ -58,8 +58,9 @@ const aOpcion = (referencia: Referencia | null): OpcionMiembro | null => (refere
 
 /**
  * Ficha del miembro como formulario reactivo tipado (presentacional). Solo nombres y apellidos son obligatorios; la
- * fecha de nacimiento y la edad aproximada se excluyen entre sí. En solo lectura todos los campos quedan
- * deshabilitados. Los errores del backend por campo se muestran junto a cada uno.
+ * fecha de nacimiento y la edad aproximada son independientes (se pueden llenar las dos). Un grupo no tiene nombre:
+ * se ofrece como «<singular> de <líder>». En solo lectura todos los campos quedan deshabilitados. Los errores del
+ * backend por campo se muestran junto a cada uno.
  */
 @Component({
     selector: 'app-formulario-miembro',
@@ -70,8 +71,9 @@ const aOpcion = (referencia: Referencia | null): OpcionMiembro | null => (refere
 export class FormularioMiembroComponent {
     /** Miembro que se edita o se ve; `null` al registrar uno nuevo. */
     readonly miembro = input<Miembro | null>(null);
-    /** Catálogo completo de niveles (en su orden) y de grupos. */
+    /** Catálogo completo de niveles (en su orden). */
     readonly niveles = input.required<readonly { id: number; nombre: string; activo: boolean }[]>();
+    /** Catálogo completo de grupos; el `nombre` de cada uno es el de su líder. */
     readonly grupos = input.required<readonly { id: number; nombre: string; activo: boolean }[]>();
     /** Nombre singular de los grupos en la iglesia. */
     readonly nombreGrupo = input('Grupo');
@@ -90,7 +92,7 @@ export class FormularioMiembroComponent {
     protected readonly opcionesEstadoCivil = opciones(ESTADOS_CIVILES, ETIQUETA_ESTADO_CIVIL);
     protected readonly opcionesNivelEstudios = opciones(NIVELES_ESTUDIOS, ETIQUETA_NIVEL_ESTUDIOS);
     protected readonly opcionesNivel = computed(() => opcionesDeCatalogo(this.niveles(), this.miembro()?.nivel ?? null));
-    protected readonly opcionesGrupo = computed(() => opcionesDeCatalogo(this.grupos(), this.miembro()?.grupo ?? null));
+    protected readonly opcionesGrupo = computed(() => opcionesDeCatalogo(this.grupos(), this.miembro()?.grupo ?? null).map((opcion) => ({ ...opcion, etiqueta: `${this.nombreGrupo()} de ${opcion.etiqueta}` })));
     protected readonly esPastorPrincipal = computed(() => this.miembro()?.esPastorPrincipal ?? false);
 
     private readonly fb = inject(NonNullableFormBuilder);
@@ -142,9 +144,6 @@ export class FormularioMiembroComponent {
             const [miembro, soloLectura] = [this.miembro(), this.soloLectura()];
             untracked(() => this.reiniciar(miembro, soloLectura));
         });
-        const { fechaNacimiento, edadAproximada } = this.formulario.controls;
-        fechaNacimiento.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.aplicarExclusionDeEdad());
-        edadAproximada.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.aplicarExclusionDeEdad());
     }
 
     protected enviar(): void {
@@ -158,7 +157,7 @@ export class FormularioMiembroComponent {
             apellidos: valores.apellidos.trim(),
             genero: valores.genero,
             fechaNacimiento: valores.fechaNacimiento || null,
-            edadAproximada: valores.fechaNacimiento ? null : valores.edadAproximada,
+            edadAproximada: valores.edadAproximada,
             fechaIngreso: valores.fechaIngreso || null,
             condicion: valores.condicion,
             estadoCivil: valores.estadoCivil,
@@ -186,8 +185,7 @@ export class FormularioMiembroComponent {
                 apellidos: miembro?.apellidos ?? '',
                 genero: miembro?.genero ?? null,
                 fechaNacimiento: miembro?.fechaNacimiento ?? '',
-                // Sin fecha, la edad que trae la ficha es la aproximada que se indicó.
-                edadAproximada: miembro && !miembro.fechaNacimiento ? miembro.edad : null,
+                edadAproximada: miembro?.edadAproximada ?? null,
                 estadoCivil: miembro?.estadoCivil ?? null,
                 telefono: miembro?.telefono ?? '',
                 correo: miembro?.correo ?? '',
@@ -215,28 +213,7 @@ export class FormularioMiembroComponent {
             if (miembro?.esPastorPrincipal) {
                 this.formulario.controls.lider.disable({ emitEvent: false });
             }
-            this.aplicarExclusionDeEdad();
         }
         this.formulario.updateValueAndValidity();
-    }
-
-    /** Con fecha de nacimiento no se indica edad aproximada, y al revés: el campo sin uso se deshabilita. */
-    private aplicarExclusionDeEdad(): void {
-        if (this.soloLectura()) {
-            return;
-        }
-        const { fechaNacimiento, edadAproximada } = this.formulario.controls;
-        const conFecha = !!fechaNacimiento.value;
-        const conEdad = edadAproximada.value !== null && edadAproximada.enabled;
-        if (conFecha) {
-            edadAproximada.disable({ emitEvent: false });
-        } else {
-            edadAproximada.enable({ emitEvent: false });
-        }
-        if (conEdad && !conFecha) {
-            fechaNacimiento.disable({ emitEvent: false });
-        } else {
-            fechaNacimiento.enable({ emitEvent: false });
-        }
     }
 }

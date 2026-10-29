@@ -175,6 +175,11 @@ public class Miembro extends EntidadDeIglesia {
 		pastorPrincipal = false;
 	}
 
+	/** Lo agrega a un grupo, lo mueve desde otro o, con {@code null}, lo saca del suyo. */
+	public void cambiarGrupo(Long nuevoGrupoId) {
+		grupoId = nuevoGrupoId;
+	}
+
 	public void cambiarEstado(boolean nuevoEstado) {
 		activo = nuevoEstado;
 	}

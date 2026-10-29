@@ -1,8 +1,8 @@
 package com.iglesia.api.miembros.model;
 
-/** Momento en que la persona llega a la iglesia: miembro de siempre, recién llegado o alguien que vuelve. */
+/** Situación de la persona en la iglesia: ya consolidada, recién llegada o alguien que vuelve. */
 public enum CondicionMiembro {
 
-	ANTIGUO, NUEVO, RECUPERADO
+	CONSOLIDADO, NUEVO, RECUPERADO
 
 }

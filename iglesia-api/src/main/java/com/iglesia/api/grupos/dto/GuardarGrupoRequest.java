@@ -3,19 +3,18 @@ package com.iglesia.api.grupos.dto;
 import java.time.LocalTime;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import com.iglesia.api.grupos.constant.LimitesGrupo;
 import com.iglesia.api.grupos.model.DiaSemana;
 
-@Schema(description = "Datos para crear o editar un grupo. Solo el nombre es obligatorio.")
+@Schema(description = "Datos para crear o editar un grupo. Solo el líder es obligatorio: el grupo no tiene nombre, "
+		+ "es «el grupo de» su líder.")
 public record GuardarGrupoRequest(
-		@Schema(description = "Nombre del grupo. Único en la iglesia sin distinguir mayúsculas.",
-				example = "Hogar de paz Los Olivos") @NotBlank @Size(max = LimitesGrupo.NOMBRE_MAX) String nombre,
-		@Schema(description = "Miembro que lo lidera; activo al asignarlo.", example = "12",
-				nullable = true) Long liderId,
+		@Schema(description = "Miembro que lo lidera: activo al asignarlo y sin otro grupo.",
+				example = "12") @NotNull Long liderId,
 		@Schema(description = "Miembro en cuya casa se reúne; activo al asignarlo.", example = "15",
 				nullable = true) Long anfitrionId,
 		@Schema(description = "Día de la reunión semanal.", example = "JUEVES", nullable = true) DiaSemana diaReunion,

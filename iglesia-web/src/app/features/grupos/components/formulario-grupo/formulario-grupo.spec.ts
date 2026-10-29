@@ -36,13 +36,14 @@ describe('FormularioGrupoComponent', () => {
 
     afterEach(() => fixture.componentInstance.visible.set(false));
 
-    it('al crear usa el nombre configurado y exige solo el nombre', async () => {
+    it('al crear usa el nombre configurado y exige solo el líder', async () => {
         await abrir(null);
 
         expect(dialogo().textContent).toContain('Agregar célula');
+        expect(dialogo().textContent).not.toContain('Nombre');
         expect(guardar().disabled).toBeTrue();
 
-        formulario().controls.nombre.setValue('Sion');
+        formulario().controls.lider.setValue({ id: 99, nombre: 'Sara Díaz' });
         await fixture.whenStable();
 
         expect(guardar().disabled).toBeFalse();
@@ -56,7 +57,8 @@ describe('FormularioGrupoComponent', () => {
         guardar().click();
         await fixture.whenStable();
 
-        expect(guardados).toEqual([{ nombre: 'Los Olivos', liderId: 10, anfitrionId: null, diaReunion: 'JUEVES', horaReunion: '19:30', direccion: null, distritoCodigo: '150135', descripcion: 'Jóvenes' }]);
+        expect(dialogo().textContent).toContain('Editar célula de Ana Ríos');
+        expect(guardados).toEqual([{ liderId: 10, anfitrionId: null, diaReunion: 'JUEVES', horaReunion: '19:30', direccion: null, distritoCodigo: '150135', descripcion: 'Jóvenes' }]);
     });
 
     it('muestra el error del backend junto al campo', async () => {

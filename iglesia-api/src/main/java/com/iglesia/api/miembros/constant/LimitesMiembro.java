@@ -18,6 +18,9 @@ public final class LimitesMiembro {
 
 	public static final String DISTRITO_PATRON = "^[0-9]{6}$";
 
+	/** Código de departamento (2 dígitos), provincia (4) o distrito (6) para filtrar por ubicación. */
+	public static final String UBIGEO_PATRON = "^[0-9]{2}([0-9]{2}([0-9]{2})?)?$";
+
 	public static final int OCUPACION_MAX = 100;
 
 	public static final int PROFESION_MAX = 100;
@@ -30,7 +33,7 @@ public final class LimitesMiembro {
 
 	public static final int BUSQUEDA_MAX = 100;
 
-	/** Máximo de sugerencias del selector de miembro. */
+	/** Máximo de sugerencias del selector de miembro y de candidatos de un grupo. */
 	public static final int OPCIONES_MAX = 20;
 
 	private LimitesMiembro() {

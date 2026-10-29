@@ -8,11 +8,10 @@ import com.iglesia.api.common.api.dto.ReferenciaResponse;
 import com.iglesia.api.grupos.model.DiaSemana;
 import com.iglesia.api.ubigeo.dto.UbicacionResponse;
 
-@Schema(description = "Grupo de la iglesia.")
+@Schema(description = "Grupo de la iglesia. No tiene nombre: se muestra como «<tipo de grupo> de <líder>».")
 public record GrupoResponse(
 		@Schema(description = "Identificador del grupo.", example = "4") Long id,
-		@Schema(description = "Nombre del grupo.", example = "Hogar de paz Los Olivos") String nombre,
-		@Schema(description = "Miembro que lo lidera.", nullable = true) ReferenciaResponse lider,
+		@Schema(description = "Miembro que lo lidera; identifica al grupo.") ReferenciaResponse lider,
 		@Schema(description = "Miembro anfitrión.", nullable = true) ReferenciaResponse anfitrion,
 		@Schema(description = "Día de la reunión.", example = "JUEVES", nullable = true) DiaSemana diaReunion,
 		@Schema(description = "Hora de la reunión.", example = "19:30", type = "string", format = "time",
