@@ -19,6 +19,7 @@ import com.iglesia.seguridad.auth.dto.TokenAccesoResponse;
 import com.iglesia.seguridad.auth.exception.TokenRefrescoInvalidoException;
 import com.iglesia.seguridad.auth.model.RefrescoConsumido;
 import com.iglesia.seguridad.auth.model.SesionEmitida;
+import com.iglesia.seguridad.common.seguridad.component.ProveedorUsuarioAutenticado;
 import com.iglesia.seguridad.common.seguridad.constant.Permisos;
 import com.iglesia.seguridad.jwt.model.TokenAcceso;
 import com.iglesia.seguridad.jwt.service.GeneradorTokenAcceso;
@@ -26,7 +27,7 @@ import com.iglesia.seguridad.usuario.entity.Usuario;
 import com.iglesia.seguridad.usuario.model.Correo;
 import com.iglesia.seguridad.usuario.repository.UsuarioRepository;
 
-/** Inicio de sesión, refresco y cierre de sesión. */
+/** Inicio de sesión, refresco, cierre de sesión y entrada o salida del administrador del sistema a una iglesia. */
 @Service
 public class AuthService {
 
@@ -43,14 +44,18 @@ public class AuthService {
 
 	private final TokenRefrescoService tokensRefresco;
 
+	private final ProveedorUsuarioAutenticado proveedorUsuario;
+
 	private final Clock reloj;
 
 	AuthService(AuthenticationManager gestorAutenticacion, UsuarioRepository usuarios,
-			GeneradorTokenAcceso generadorTokenAcceso, TokenRefrescoService tokensRefresco, Clock reloj) {
+			GeneradorTokenAcceso generadorTokenAcceso, TokenRefrescoService tokensRefresco,
+			ProveedorUsuarioAutenticado proveedorUsuario, Clock reloj) {
 		this.gestorAutenticacion = gestorAutenticacion;
 		this.usuarios = usuarios;
 		this.generadorTokenAcceso = generadorTokenAcceso;
 		this.tokensRefresco = tokensRefresco;
+		this.proveedorUsuario = proveedorUsuario;
 		this.reloj = reloj;
 	}
 
@@ -83,6 +88,33 @@ public class AuthService {
 		tokensRefresco.revocar(tokenRefresco);
 	}
 
+	/**
+	 * El administrador del sistema pasa a operar dentro de la iglesia: rota el token de refresco (que la recuerda)
+	 * y emite un token de acceso con esa iglesia. La existencia de la iglesia no se valida aquí: el catálogo vive
+	 * en iglesia-api.
+	 * @throws TokenRefrescoInvalidoException si el token de refresco no es utilizable o es de otro usuario
+	 */
+	@Transactional(noRollbackFor = TokenRefrescoInvalidoException.class)
+	public SesionEmitida entrarAIglesia(String tokenRefresco, Long iglesiaId) {
+		Usuario usuario = consumirDelUsuarioActual(tokenRefresco).usuario();
+		SesionEmitida sesion = emitirTokens(usuario, iglesiaId);
+		LOG.info("Administrador del sistema usuarioId={} entra a iglesiaId={}", usuario.getId(), iglesiaId);
+		return sesion;
+	}
+
+	/**
+	 * El administrador del sistema vuelve a la vista global: rota el token de refresco sin iglesia.
+	 * @throws TokenRefrescoInvalidoException si el token de refresco no es utilizable o es de otro usuario
+	 */
+	@Transactional(noRollbackFor = TokenRefrescoInvalidoException.class)
+	public SesionEmitida salirDeIglesia(String tokenRefresco) {
+		RefrescoConsumido consumido = consumirDelUsuarioActual(tokenRefresco);
+		SesionEmitida sesion = emitirTokens(consumido.usuario(), null);
+		LOG.info("Administrador del sistema usuarioId={} sale de iglesiaId={}", consumido.usuario().getId(),
+				consumido.iglesiaActuandoId());
+		return sesion;
+	}
+
 	/** Registra los intentos fallidos con el id del usuario (nunca el correo ni la contraseña) y relanza. */
 	private Authentication autenticar(String correo, String contrasena, String ip) {
 		try {
@@ -101,6 +133,15 @@ public class AuthService {
 
 	private String idParaLog(String correo) {
 		return usuarios.findByCorreo(correo).map(usuario -> usuario.getId().toString()).orElse(USUARIO_INEXISTENTE);
+	}
+
+	/** El token de refresco de la cookie debe ser del mismo usuario que el token de acceso. */
+	private RefrescoConsumido consumirDelUsuarioActual(String tokenRefresco) {
+		RefrescoConsumido consumido = tokensRefresco.consumir(tokenRefresco);
+		if (!consumido.usuario().getId().equals(proveedorUsuario.actual().usuarioId())) {
+			throw new TokenRefrescoInvalidoException();
+		}
+		return consumido;
 	}
 
 	private static boolean puedeEntrarAIglesias(Usuario usuario) {

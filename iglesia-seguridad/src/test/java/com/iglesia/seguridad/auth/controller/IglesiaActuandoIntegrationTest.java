@@ -6,10 +6,14 @@ import jakarta.servlet.http.Cookie;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,22 +21,33 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 
 import com.iglesia.seguridad.SemillaSeguridad;
 import com.iglesia.seguridad.TestcontainersConfiguration;
 import com.iglesia.seguridad.jwt.constant.ClaimsJwt;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** Iglesia en la que opera el administrador del sistema: se guarda con el token de refresco y el refresco la conserva. */
+/**
+ * Entrar y salir de una iglesia como administrador del sistema: la iglesia se guarda con el token de refresco y el
+ * refresco la conserva.
+ */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 @AutoConfigureMockMvc
+@ExtendWith(OutputCaptureExtension.class)
 class IglesiaActuandoIntegrationTest {
 
 	private static final String COOKIE_REFRESCO = "iglesia_refresco";
+
+	private static final String RUTA = "/api/auth/iglesia-actuando";
 
 	private static final String FIJAR_IGLESIA_ACTUANDO = "update token_refresco set iglesia_actuando_id = ? "
 			+ "where usuario_id = ? and revocado_en is null";
@@ -54,6 +69,80 @@ class IglesiaActuandoIntegrationTest {
 	@BeforeEach
 	void configurar() {
 		semilla = new SemillaSeguridad(jdbc, codificador);
+	}
+
+	@Test
+	void entraAUnaIglesiaRefrescaYSaleRotandoLaCookie(CapturedOutput salida) throws Exception {
+		long usuarioId = semilla.crearUsuario("sistema@actuando4.test", null, null, semilla.idRolBase("ADMIN_SISTEMA"));
+		MvcResult login = iniciarSesion("sistema@actuando4.test");
+		String acceso = tokenDe(login);
+		String refrescoInicial = cookieDe(login);
+
+		MvcResult entrada = entrar(acceso, refrescoInicial, "{\"iglesiaId\":74}").andExpect(status().isOk())
+			.andExpect(header().string(HttpHeaders.SET_COOKIE, containsString(COOKIE_REFRESCO + "=")))
+			.andReturn();
+		Jwt dentro = accesoDe(entrada);
+		assertThat(dentro.<Long>getClaim(ClaimsJwt.IGLESIA_ID)).isEqualTo(74L);
+		assertThat(dentro.<Object>getClaim(ClaimsJwt.ACTUANDO_EN_IGLESIA)).isEqualTo(true);
+		assertThat(dentro.getClaimAsStringList(ClaimsJwt.ROLES)).containsExactly("ADMIN_SISTEMA");
+		assertThat(dentro.getClaimAsStringList(ClaimsJwt.PERMISOS)).containsExactlyInAnyOrder("iglesias.administrar",
+				"iglesias.ver", "miembros.crear", "miembros.desactivar", "miembros.editar", "miembros.ver",
+				"roles.administrar", "roles.ver", "usuarios.administrar", "usuarios.ver");
+
+		MvcResult refrescado = refrescar(cookieDe(entrada));
+		assertThat(accesoDe(refrescado).<Long>getClaim(ClaimsJwt.IGLESIA_ID)).isEqualTo(74L);
+
+		MvcResult salida1 = salir(tokenDe(refrescado), cookieDe(refrescado)).andExpect(status().isOk()).andReturn();
+		Jwt fuera = accesoDe(salida1);
+		assertThat(fuera.hasClaim(ClaimsJwt.IGLESIA_ID)).isFalse();
+		assertThat(fuera.hasClaim(ClaimsJwt.ACTUANDO_EN_IGLESIA)).isFalse();
+		assertThat(fuera.getClaimAsStringList(ClaimsJwt.PERMISOS)).doesNotContain("roles.administrar");
+		assertThat(accesoDe(refrescar(cookieDe(salida1))).hasClaim(ClaimsJwt.IGLESIA_ID)).isFalse();
+
+		// La cookie usada al entrar quedó revocada.
+		mvc.perform(post("/api/auth/refresh").cookie(new Cookie(COOKIE_REFRESCO, refrescoInicial)))
+			.andExpect(status().isUnauthorized());
+		assertThat(salida.getOut())
+			.contains("Administrador del sistema usuarioId=" + usuarioId + " entra a iglesiaId=74")
+			.contains("Administrador del sistema usuarioId=" + usuarioId + " sale de iglesiaId=74")
+			.doesNotContain("sistema@actuando4.test");
+	}
+
+	@Test
+	void sinCookieOConLaCookieDeOtroUsuarioRespondeNoAutenticadoYBorraLaCookie() throws Exception {
+		semilla.crearUsuario("sistema@actuando5.test", null, null, semilla.idRolBase("ADMIN_SISTEMA"));
+		semilla.crearUsuario("otro@actuando5.test", null, null, semilla.idRolBase("ADMIN_SISTEMA"));
+		String acceso = tokenDe(iniciarSesion("sistema@actuando5.test"));
+		String cookieAjena = cookieDe(iniciarSesion("otro@actuando5.test"));
+
+		mvc.perform(post(RUTA).header(HttpHeaders.AUTHORIZATION, "Bearer " + acceso)
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"iglesiaId\":75}"))
+			.andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.traceId").isNotEmpty());
+		mvc.perform(delete(RUTA).header(HttpHeaders.AUTHORIZATION, "Bearer " + acceso))
+			.andExpect(status().isUnauthorized());
+		entrar(acceso, cookieAjena, "{\"iglesiaId\":75}").andExpect(status().isUnauthorized())
+			.andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("Max-Age=0")));
+	}
+
+	@Test
+	void sinTokenDeAccesoSinPermisoOConDatosInvalidosSeRechaza() throws Exception {
+		semilla.crearUsuario("sistema@actuando6.test", null, null, semilla.idRolBase("ADMIN_SISTEMA"));
+		semilla.crearUsuario("admin@actuando6.test", 76L, null, semilla.idRolBase("ADMIN_IGLESIA"));
+		MvcResult sistema = iniciarSesion("sistema@actuando6.test");
+		MvcResult admin = iniciarSesion("admin@actuando6.test");
+
+		mvc.perform(post(RUTA).cookie(new Cookie(COOKIE_REFRESCO, cookieDe(sistema)))
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"iglesiaId\":76}"))
+			.andExpect(status().isUnauthorized());
+		entrar(tokenDe(admin), cookieDe(admin), "{\"iglesiaId\":77}").andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.traceId").isNotEmpty());
+		salir(tokenDe(admin), cookieDe(admin)).andExpect(status().isForbidden());
+		entrar(tokenDe(sistema), cookieDe(sistema), "{}").andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.errores.iglesiaId").exists());
+		entrar(tokenDe(sistema), cookieDe(sistema), "{\"iglesiaId\":0}").andExpect(status().isBadRequest());
 	}
 
 	@Test
@@ -108,6 +197,18 @@ class IglesiaActuandoIntegrationTest {
 			.andReturn();
 	}
 
+	private ResultActions entrar(String acceso, String refresco, String cuerpo) throws Exception {
+		return mvc.perform(post(RUTA).header(HttpHeaders.AUTHORIZATION, "Bearer " + acceso)
+			.cookie(new Cookie(COOKIE_REFRESCO, refresco))
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(cuerpo));
+	}
+
+	private ResultActions salir(String acceso, String refresco) throws Exception {
+		return mvc.perform(delete(RUTA).header(HttpHeaders.AUTHORIZATION, "Bearer " + acceso)
+			.cookie(new Cookie(COOKIE_REFRESCO, refresco)));
+	}
+
 	private MvcResult refrescar(String refresco) throws Exception {
 		return mvc.perform(post("/api/auth/refresh").cookie(new Cookie(COOKIE_REFRESCO, refresco)))
 			.andExpect(status().isOk())
@@ -118,8 +219,12 @@ class IglesiaActuandoIntegrationTest {
 		return resultado.getResponse().getCookie(COOKIE_REFRESCO).getValue();
 	}
 
+	private static String tokenDe(MvcResult resultado) throws Exception {
+		return JsonPath.read(resultado.getResponse().getContentAsString(), "$.tokenAcceso");
+	}
+
 	private Jwt accesoDe(MvcResult resultado) throws Exception {
-		return decodificador.decode(JsonPath.read(resultado.getResponse().getContentAsString(), "$.tokenAcceso"));
+		return decodificador.decode(tokenDe(resultado));
 	}
 
 }
