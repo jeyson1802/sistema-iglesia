@@ -1,0 +1,25 @@
+<p-dialog [(visible)]="visible" header="Anular aporte" [modal]="true" [draggable]="false" [closable]="!anulando()" styleClass="w-full max-w-md mx-4">
+    @if (aporte(); as aporte) {
+    <div aria-live="polite">
+        @if (error()) {
+        <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-4">{{ error() }}</p-message>
+        }
+    </div>
+    <div class="rounded-border bg-surface-100 dark:bg-surface-800 p-4 mb-4">
+        <div class="text-2xl font-semibold tabular-nums">{{ aporte.monto | moneda: moneda() }}</div>
+        <div class="text-muted-color">{{ aporte.categoria.nombre }} · {{ aporte.fecha | date: 'dd/MM/yyyy' }} · {{ aporte.miembro?.nombre ?? 'Anónimo' }}</div>
+    </div>
+    <p class="m-0 mb-4">Dejará de contar en los totales y no se puede deshacer; si fue un error, regístralo de nuevo.</p>
+
+    <form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-2" novalidate>
+        <label for="anular-motivo" class="font-medium">Motivo</label>
+        <textarea pTextarea id="anular-motivo" formControlName="motivo" rows="3" [autoResize]="true" [maxlength]="motivoMax" placeholder="Ej.: Registrado dos veces" [fluid]="true"></textarea>
+        <app-mensaje-error-campo [control]="formulario.controls.motivo" [mensajes]="mensajesMotivo" />
+
+        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-2">
+            <p-button label="Cancelar" severity="secondary" [outlined]="true" [disabled]="anulando()" (onClick)="cerrar()" />
+            <p-button type="submit" label="Anular aporte" icon="pi pi-ban" severity="danger" [loading]="anulando()" [disabled]="!valido() || anulando()" />
+        </div>
+    </form>
+    }
+</p-dialog>

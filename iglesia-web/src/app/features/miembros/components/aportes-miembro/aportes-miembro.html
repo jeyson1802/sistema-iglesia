@@ -1,0 +1,38 @@
+@if (visible()) {
+<section aria-labelledby="titulo-aportes-miembro" aria-live="polite" [attr.aria-busy]="cargando()">
+    <div class="flex items-center justify-between gap-2 mb-4">
+        <h2 id="titulo-aportes-miembro" class="font-semibold text-lg m-0">Aportes</h2>
+        <a [routerLink]="['/aportes']" [queryParams]="enlaceTodos()" class="text-primary font-medium hover:underline">Ver todos</a>
+    </div>
+
+    @if (cargando()) {
+    <p-skeleton width="50%" height="2rem" styleClass="mb-4" />
+    @for (fila of [1, 2, 3]; track fila) {
+    <p-skeleton height="1.5rem" styleClass="mb-2" />
+    } } @else if (error()) {
+    <div class="flex flex-col items-start gap-2" role="alert">
+        <span class="text-muted-color">No se pudieron cargar los aportes.</span>
+        <p-button label="Reintentar" icon="pi pi-refresh" size="small" severity="secondary" [outlined]="true" (onClick)="cargar()" />
+    </div>
+    } @else {
+    <div class="mb-4">
+        <span class="block text-muted-color text-sm">Total {{ anio }}</span>
+        <span class="text-2xl font-semibold tabular-nums text-surface-900 dark:text-surface-0">{{ totalAnio() | moneda: moneda() }}</span>
+    </div>
+    @if (ultimos().length === 0) {
+    <p class="text-muted-color m-0">Aún no tiene aportes en el último año.</p>
+    } @else {
+    <ul class="list-none p-0 m-0 flex flex-col divide-y divide-surface">
+        @for (aporte of ultimos(); track aporte.id) {
+        <li class="flex items-center justify-between gap-3 py-2">
+            <div class="min-w-0">
+                <span class="block font-medium truncate">{{ aporte.categoria.nombre }}</span>
+                <span class="text-muted-color text-sm">{{ aporte.fecha | date: 'dd/MM/yyyy' }} · {{ medio(aporte.medio) }}</span>
+            </div>
+            <span class="font-semibold tabular-nums whitespace-nowrap">{{ aporte.monto | moneda: moneda() }}</span>
+        </li>
+        }
+    </ul>
+    } }
+</section>
+}

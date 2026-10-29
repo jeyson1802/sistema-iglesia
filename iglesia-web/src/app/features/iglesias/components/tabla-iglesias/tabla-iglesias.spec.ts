@@ -87,4 +87,11 @@ describe('TablaIglesiasComponent', () => {
 
         expect(html().textContent).toContain('Aún no hay iglesias');
     });
+
+    it('muestra siempre el paginador con cuántos hay', async () => {
+        await crear([CENTRAL, NORTE]);
+
+        expect(html().querySelector<HTMLElement>('p-paginator')?.style.display).not.toBe('none');
+        expect(html().querySelector('p-paginator')?.textContent).toContain('1–2 de 2');
+    });
 });

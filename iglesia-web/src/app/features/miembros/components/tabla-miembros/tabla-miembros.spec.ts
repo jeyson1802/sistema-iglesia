@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { PaginaPedida } from '@/app/shared/utils/paginacion';
 import { provideRouter } from '@angular/router';
 import { MiembroResumen } from '../../models/miembro';
 import { RESUMEN_JUAN, RESUMEN_PASTOR } from '../../testing/miembros-prueba';
@@ -67,13 +68,25 @@ describe('TablaMiembrosComponent', () => {
         expect(html().textContent).toContain('No hay miembros para mostrar');
     });
 
-    it('emite la página pedida', async () => {
+    it('emite la página pedida con su tamaño', async () => {
         await crear([RESUMEN_JUAN]);
-        const paginas: number[] = [];
+        const paginas: PaginaPedida[] = [];
         fixture.componentInstance.cambiarPagina.subscribe((p) => paginas.push(p));
 
         fixture.componentInstance['alCargar']({ first: 20 });
+        fixture.componentInstance['alCargar']({ first: 40, rows: 20 });
 
-        expect(paginas).toEqual([2]);
+        expect(paginas).toEqual([
+            { pagina: 2, tamano: 10 },
+            { pagina: 2, tamano: 20 }
+        ]);
+    });
+
+    it('muestra siempre el paginador, con cuántos hay y cuántos por página', async () => {
+        await crear([RESUMEN_JUAN]);
+
+        expect(html().querySelector<HTMLElement>('p-paginator')?.style.display).not.toBe('none');
+        expect(html().querySelector('p-paginator')?.textContent).toContain('1–1 de 1');
+        expect(html().querySelector('p-paginator p-select')).not.toBeNull();
     });
 });

@@ -30,22 +30,25 @@ describe('Menú lateral', () => {
             expect(grupos).toEqual(['Principal']);
         });
 
-        it('el perfil Líder ve «Miembros» (miembros.ver) pero no los grupos ni los niveles', () => {
+        it('el perfil Líder ve «Miembros» y «Mis aportes» pero no los grupos, los niveles ni la configuración de aportes', () => {
             const etiquetasMenu = etiquetas(construirMenu(perfilBase('LIDER'), true, true));
 
-            expect(etiquetasMenu).toEqual(['Principal', 'Inicio', 'Iglesia', 'Miembros']);
+            expect(etiquetasMenu).toEqual(['Principal', 'Inicio', 'Iglesia', 'Miembros', 'Mis aportes']);
         });
 
-        it('el Administrador de iglesia ve los grupos con el nombre de su iglesia y «Niveles» en Administración', () => {
+        it('el Administrador de iglesia ve los grupos con el nombre de su iglesia, «Aportes» y la configuración de aportes', () => {
             const menu = construirMenu(perfilBase('ADMIN_IGLESIA'), true, true, 'Hogares de paz');
             const iglesia = menu.find((grupo) => grupo.label === 'Iglesia');
             const administracion = menu.find((grupo) => grupo.label === 'Administración');
 
-            expect(iglesia?.items?.map((item) => item.label)).toEqual(['Miembros', 'Hogares de paz']);
+            expect(iglesia?.items?.map((item) => item.label)).toEqual(['Miembros', 'Hogares de paz', 'Aportes']);
             expect(iglesia?.items?.[1].routerLink).toEqual(['/grupos']);
             expect(iglesia?.items?.[1].icon).toContain('pi-sitemap');
-            expect(administracion?.items?.at(-1)?.label).toBe('Niveles');
-            expect(administracion?.items?.at(-1)?.icon).toContain('pi-sort-amount-up');
+            expect(iglesia?.items?.[2].routerLink).toEqual(['/aportes']);
+            expect(iglesia?.items?.[2].icon).toContain('pi-wallet');
+            expect(administracion?.items?.at(-1)?.label).toBe('Configuración de aportes');
+            expect(administracion?.items?.at(-1)?.routerLink).toEqual(['/aportes/configuracion']);
+            expect(administracion?.items?.at(-1)?.icon).toContain('pi-cog');
         });
 
         it('sin nombre configurado los grupos se llaman «Grupos»', () => {
@@ -79,7 +82,7 @@ describe('Menú lateral', () => {
         it('con usuarios.ver aparece «Administración › Usuarios», antes de «Roles»', () => {
             const administracion = construirMenu(perfilBase('ADMIN_IGLESIA'), true, true).find((grupo) => grupo.label === 'Administración');
 
-            expect(administracion?.items?.map((item) => item.label)).toEqual(['Usuarios', 'Roles', 'Niveles']);
+            expect(administracion?.items?.map((item) => item.label)).toEqual(['Usuarios', 'Roles', 'Niveles', 'Configuración de aportes']);
             expect(administracion?.items?.[0].routerLink).toEqual(['/usuarios']);
             expect(administracion?.items?.[0].icon).toContain('pi-users');
         });

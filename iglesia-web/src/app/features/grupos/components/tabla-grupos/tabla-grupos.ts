@@ -6,6 +6,7 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { describirUbicacion } from '@/app/core/models/ubicacion';
+import { FILAS_POR_PAGINA, OPCIONES_FILAS_POR_PAGINA, PLANTILLA_REPORTE_PAGINA } from '@/app/shared/utils/paginacion';
 import { ETIQUETA_DIA, Grupo, nombreDeGrupo } from '../../models/grupo';
 
 /** Filas de relleno que se muestran como skeleton mientras se cargan los grupos. */
@@ -22,6 +23,10 @@ const FILAS_CARGA = 4;
     templateUrl: './tabla-grupos.html'
 })
 export class TablaGruposComponent {
+    protected readonly filasPorPagina = FILAS_POR_PAGINA;
+    protected readonly opcionesPorPagina = OPCIONES_FILAS_POR_PAGINA;
+    protected readonly plantillaReporte = PLANTILLA_REPORTE_PAGINA;
+
     readonly grupos = input.required<readonly Grupo[]>();
     readonly cargando = input(false);
     readonly puedeAdministrar = input(false);

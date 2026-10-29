@@ -29,8 +29,7 @@ describe('FormularioRolComponent', () => {
     // p-dialog puede renderizar su contenido fuera del host: se busca en todo el documento.
     const dialogo = (): HTMLElement => document.querySelector('.p-dialog') as HTMLElement;
     const casilla = (codigo: string): HTMLInputElement => document.getElementById(`permiso-${codigo}`) as HTMLInputElement;
-    const boton = (etiqueta: string): HTMLButtonElement | undefined =>
-        Array.from(dialogo().querySelectorAll('button')).find((b) => b.textContent?.trim() === etiqueta);
+    const boton = (etiqueta: string): HTMLButtonElement | undefined => Array.from(dialogo().querySelectorAll('button')).find((b) => b.textContent?.trim() === etiqueta);
     const formulario = () => fixture.componentInstance['formulario'];
 
     const escribirNombre = async (nombre: string): Promise<void> => {

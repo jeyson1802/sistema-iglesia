@@ -1,0 +1,116 @@
+<p-dialog [(visible)]="visible" [header]="titulo()" [modal]="true" [draggable]="false" [dismissableMask]="false" [closable]="!guardando()" [focusOnShow]="false" styleClass="w-full max-w-xl mx-4">
+    <div aria-live="polite">
+        @if (error()) {
+        <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-4">{{ error() }}</p-message>
+        } @if (registrados() > 0 && !editando()) {
+        <p-message severity="success" icon="pi pi-check-circle" styleClass="mb-4">{{ registrados() === 1 ? '1 aporte registrado' : registrados() + ' aportes registrados' }} en esta tanda.</p-message>
+        }
+    </div>
+
+    <form [formGroup]="formulario" (ngSubmit)="enviar(false)" (keydown)="atajo($event)" class="flex flex-col gap-4" novalidate>
+        <div class="flex flex-col gap-2">
+            <label for="aporte-monto" class="font-medium">Monto</label>
+            <p-inputnumber
+                inputId="aporte-monto"
+                formControlName="monto"
+                mode="currency"
+                [currency]="moneda()"
+                locale="es-PE"
+                [min]="0"
+                [maxFractionDigits]="2"
+                inputStyleClass="text-2xl font-semibold tabular-nums"
+                placeholder="0.00"
+                [fluid]="true"
+                autocomplete="off"
+            />
+            <app-mensaje-error-campo [control]="formulario.controls.monto" [mensajes]="mensajesMonto" />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-2">
+                <label for="aporte-categoria" class="font-medium">Categoría</label>
+                <p-select inputId="aporte-categoria" [options]="opcionesCategoria()" optionLabel="nombre" optionValue="id" formControlName="categoriaId" placeholder="Elige la categoría" [fluid]="true" appendTo="body" />
+                <app-mensaje-error-campo [control]="formulario.controls.categoriaId" [mensajes]="mensajesCategoria" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label for="aporte-medio" class="font-medium">Medio</label>
+                <p-select inputId="aporte-medio" [options]="medios" optionLabel="etiqueta" optionValue="valor" formControlName="medio" [fluid]="true" appendTo="body">
+                    <ng-template #selectedItem let-medio>
+                        <span class="flex items-center gap-2"><i [class]="medio.icono" aria-hidden="true"></i>{{ medio.etiqueta }}</span>
+                    </ng-template>
+                    <ng-template #item let-medio>
+                        <span class="flex items-center gap-2"><i [class]="medio.icono" aria-hidden="true"></i>{{ medio.etiqueta }}</span>
+                    </ng-template>
+                </p-select>
+            </div>
+        </div>
+
+        @if (ayudaOperacion(); as ayuda) {
+        <div class="flex flex-col gap-2">
+            <label for="aporte-operacion" class="font-medium">N.º de operación <span class="text-muted-color font-normal">(opcional)</span></label>
+            <input pInputText id="aporte-operacion" formControlName="numeroOperacion" autocomplete="off" [maxlength]="limites.numeroOperacion" [placeholder]="ayuda" [fluid]="true" aria-describedby="aporte-operacion-ayuda" />
+            <small id="aporte-operacion-ayuda" class="text-muted-color">{{ ayuda }}</small>
+            <app-mensaje-error-campo [control]="formulario.controls.numeroOperacion" [mensajes]="mensajesOperacion" [reservarEspacio]="false" />
+        </div>
+        }
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-2">
+                <label for="aporte-miembro" class="font-medium">
+                    Aportante @if (exigeAportante()) {
+                    <span class="text-muted-color font-normal">(obligatorio)</span>
+                    }
+                </label>
+                <app-selector-miembro inputId="aporte-miembro" formControlName="miembro" placeholder="Busca por nombre" />
+                @if (!exigeAportante()) {
+                <small class="text-muted-color">Déjalo vacío si es anónimo.</small>
+                }
+                <app-mensaje-error-campo [control]="formulario.controls.miembro" [mensajes]="mensajesMiembro" [reservarEspacio]="!exigeAportante()" />
+                @if (erroresCampo()['miembroId']) {
+                <small class="text-red-500" role="alert">{{ erroresCampo()['miembroId'] }}</small>
+                }
+            </div>
+            <div class="flex flex-col gap-2">
+                <label for="aporte-fecha" class="font-medium">Fecha</label>
+                <input pInputText id="aporte-fecha" type="date" formControlName="fecha" autocomplete="off" [max]="hoy" [fluid]="true" />
+                <app-mensaje-error-campo [control]="formulario.controls.fecha" [mensajes]="mensajesFecha" />
+            </div>
+        </div>
+
+        <div>
+            <p-button
+                [label]="masDatos() ? 'Ocultar más datos' : 'Más datos (opcional)'"
+                [icon]="masDatos() ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
+                [text]="true"
+                size="small"
+                severity="secondary"
+                [attr.aria-expanded]="masDatos()"
+                aria-controls="aporte-mas-datos"
+                (onClick)="masDatos.set(!masDatos())"
+            />
+            <div id="aporte-mas-datos" [hidden]="!masDatos()" class="flex flex-col gap-4 mt-2">
+                <div class="flex flex-col gap-2">
+                    <label for="aporte-peticion" class="font-medium">Petición</label>
+                    <textarea pTextarea id="aporte-peticion" formControlName="peticion" rows="3" [autoResize]="true" [maxlength]="limites.peticion" placeholder="Motivo de oración que acompaña el aporte" [fluid]="true"></textarea>
+                    <app-mensaje-error-campo [control]="formulario.controls.peticion" [mensajes]="mensajesPeticion" [reservarEspacio]="false" />
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label for="aporte-observacion" class="font-medium">Observación interna</label>
+                    <textarea pTextarea id="aporte-observacion" formControlName="observacion" rows="2" [autoResize]="true" [maxlength]="limites.observacion" placeholder="Nota para tesorería (no la ve el aportante)" [fluid]="true"></textarea>
+                    <app-mensaje-error-campo [control]="formulario.controls.observacion" [mensajes]="mensajesObservacion" [reservarEspacio]="false" />
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 mt-2">
+            @if (!editando()) {
+            <small class="text-muted-color sm:mr-auto hidden sm:inline">Ctrl/⌘ + Enter: guardar y registrar otro</small>
+            }
+            <p-button label="Cancelar" severity="secondary" [outlined]="true" [disabled]="guardando()" (onClick)="cerrar()" />
+            @if (!editando()) {
+            <p-button label="Guardar y registrar otro" icon="pi pi-replay" severity="secondary" [loading]="guardando()" [disabled]="!valido() || guardando()" (onClick)="enviar(true)" />
+            }
+            <p-button type="submit" label="Guardar" icon="pi pi-check" [loading]="guardando()" [disabled]="!valido() || guardando()" />
+        </div>
+    </form>
+</p-dialog>

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -20,6 +21,7 @@ import com.iglesia.api.iglesia.dto.GuardarIglesiaRequest;
 import com.iglesia.api.iglesia.dto.IglesiaResponse;
 import com.iglesia.api.iglesia.entity.Iglesia;
 import com.iglesia.api.iglesia.mapper.IglesiaMapper;
+import com.iglesia.api.iglesia.model.IglesiaCreada;
 import com.iglesia.api.iglesia.repository.IglesiaRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,11 +42,14 @@ class IglesiaServiceTest {
 	@Mock
 	private UsuarioActual usuarioActual;
 
+	@Mock
+	private ApplicationEventPublisher eventos;
+
 	private IglesiaService servicio;
 
 	@BeforeEach
 	void configurar() {
-		servicio = new IglesiaService(iglesias, new IglesiaMapper(), usuarioActual);
+		servicio = new IglesiaService(iglesias, new IglesiaMapper(), usuarioActual, eventos);
 	}
 
 	@Test
@@ -73,6 +78,7 @@ class IglesiaServiceTest {
 		assertThat(guardada.getValue().getNombre()).isEqualTo("Iglesia Central");
 		assertThat(creada.id()).isEqualTo(5L);
 		then(iglesias).should().existsByNombreIgnoreCase("Iglesia Central");
+		then(eventos).should().publishEvent(new IglesiaCreada(5L));
 	}
 
 	@Test

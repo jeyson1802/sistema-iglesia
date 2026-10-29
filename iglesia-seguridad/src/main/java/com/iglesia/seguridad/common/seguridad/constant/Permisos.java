@@ -14,6 +14,16 @@ public final class Permisos {
 
 	public static final String GRUPOS_ADMINISTRAR = "grupos.administrar";
 
+	public static final String APORTES_VER = "aportes.ver";
+
+	public static final String APORTES_REGISTRAR = "aportes.registrar";
+
+	public static final String APORTES_EDITAR = "aportes.editar";
+
+	public static final String APORTES_ANULAR = "aportes.anular";
+
+	public static final String APORTES_CONFIGURAR = "aportes.configurar";
+
 	public static final String USUARIOS_VER = "usuarios.ver";
 
 	public static final String USUARIOS_ADMINISTRAR = "usuarios.administrar";

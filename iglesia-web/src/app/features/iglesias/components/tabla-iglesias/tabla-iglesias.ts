@@ -6,6 +6,7 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { Iglesia } from '@/app/core/iglesias/models/iglesia';
+import { FILAS_POR_PAGINA, OPCIONES_FILAS_POR_PAGINA, PLANTILLA_REPORTE_PAGINA } from '@/app/shared/utils/paginacion';
 
 /** Fila de relleno que se pinta como skeleton mientras llega el catálogo. */
 interface FilaCarga {
@@ -25,6 +26,10 @@ const FILAS_CARGA: readonly FilaCarga[] = Array.from({ length: 5 }, (_, indice) 
     templateUrl: './tabla-iglesias.html'
 })
 export class TablaIglesiasComponent {
+    protected readonly filasPorPagina = FILAS_POR_PAGINA;
+    protected readonly opcionesPorPagina = OPCIONES_FILAS_POR_PAGINA;
+    protected readonly plantillaReporte = PLANTILLA_REPORTE_PAGINA;
+
     readonly iglesias = input.required<readonly Iglesia[]>();
     readonly cargando = input(false);
     readonly puedeAdministrar = input(false);

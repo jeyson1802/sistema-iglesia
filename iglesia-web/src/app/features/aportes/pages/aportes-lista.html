@@ -1,0 +1,74 @@
+<div class="flex flex-col gap-4">
+    <div class="card mb-0!">
+        <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div>
+                <h1 class="font-semibold text-xl text-surface-900 dark:text-surface-0 m-0 mb-2">{{ titulo() }}</h1>
+                <p class="text-muted-color m-0">{{ veTodaLaIglesia() ? 'Diezmos, ofrendas y demás aportes de la iglesia.' : 'Los aportes que has entregado a la iglesia.' }}</p>
+            </div>
+            @if (puedeRegistrar()) {
+            <p-button label="Registrar aporte" icon="pi pi-plus" styleClass="hidden sm:inline-flex" (onClick)="nuevo()" />
+            }
+        </header>
+        <app-filtros-aportes [filtro]="filtro()" [categorias]="categorias()" [mostrarMiembro]="veTodaLaIglesia()" [nombreMiembro]="nombreMiembro()" (cambiar)="filtrar($event)" />
+    </div>
+
+    <app-resumen-aportes [resumen]="resumen()" [cargando]="cargandoResumen()" (filtrarCategoria)="filtrarCategoria($event)" (filtrarMedio)="filtrarMedio($event)" />
+
+    <div class="card mb-0!">
+        @if (errorCarga()) {
+        <div class="flex flex-col items-center gap-4 py-8 text-center" role="alert">
+            <i class="pi pi-exclamation-circle text-4xl text-muted-color" aria-hidden="true"></i>
+            <span class="font-medium text-surface-900 dark:text-surface-0">{{ errorCarga() }}</span>
+            <p-button label="Reintentar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="recargar()" />
+        </div>
+        } @else {
+        <app-tabla-aportes
+            [aportes]="aportes()"
+            [totalRegistros]="totalRegistros()"
+            [pagina]="pagina()"
+            [tamanoPagina]="tamanoPagina()"
+            [cargando]="cargando()"
+            [moneda]="moneda()"
+            [puedeEditar]="puedeEditar()"
+            [puedeAnular]="puedeAnular()"
+            (cambiarPagina)="cambiarPagina($event)"
+            (ver)="ver($event)"
+            (editar)="editar($event)"
+            (anular)="pedirAnulacion($event)"
+        >
+            <div vacio class="flex flex-col items-center gap-3 py-10 text-center">
+                <i class="pi pi-wallet text-5xl text-muted-color" aria-hidden="true"></i>
+                <span class="font-medium text-surface-900 dark:text-surface-0">Aún no hay aportes en este período</span>
+                <span class="text-muted-color">Prueba con otro período o quita algún filtro.</span>
+                @if (puedeRegistrar()) {
+                <p-button label="Registrar aporte" icon="pi pi-plus" [outlined]="true" (onClick)="nuevo()" />
+                }
+            </div>
+        </app-tabla-aportes>
+        }
+    </div>
+</div>
+
+@if (puedeRegistrar()) {
+<div class="sm:hidden fixed bottom-6 right-6 z-10">
+    <p-button icon="pi pi-plus" [rounded]="true" size="large" ariaLabel="Registrar aporte" styleClass="shadow-lg" (onClick)="nuevo()" />
+</div>
+}
+
+<app-detalle-aporte [(visible)]="detalleVisible" [aporte]="seleccionado()" [moneda]="moneda()" [puedeEditar]="puedeEditar()" [puedeAnular]="puedeAnular()" (editar)="editar($event)" (anular)="pedirAnulacion($event)" />
+
+<app-formulario-aporte
+    [(visible)]="formularioVisible"
+    [aporte]="aporteEditado()"
+    [categorias]="categorias()"
+    [moneda]="moneda()"
+    [guardando]="guardando()"
+    [error]="errorFormulario()"
+    [erroresCampo]="erroresCampo()"
+    [registrados]="registrados()"
+    (guardar)="guardar($event)"
+/>
+
+<app-anular-aporte [(visible)]="anularVisible" [aporte]="seleccionado()" [moneda]="moneda()" [anulando]="anulando()" [error]="errorAnular()" (anular)="anular($event)" />
+
+<p-toast position="bottom-center" [breakpoints]="{ '640px': { width: '90vw' } }" />

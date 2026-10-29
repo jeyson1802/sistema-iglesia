@@ -5,6 +5,7 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { ETIQUETA_ROL } from '@/app/core/auth/models/rol';
+import { FILAS_POR_PAGINA, OPCIONES_FILAS_POR_PAGINA, PLANTILLA_REPORTE_PAGINA } from '@/app/shared/utils/paginacion';
 import { RolAcceso } from '../../models/rol-acceso';
 
 /** Filas de relleno que se muestran como skeleton mientras se cargan los roles. */
@@ -21,6 +22,10 @@ const FILAS_CARGA = 4;
     templateUrl: './tabla-roles.html'
 })
 export class TablaRolesComponent {
+    protected readonly filasPorPagina = FILAS_POR_PAGINA;
+    protected readonly opcionesPorPagina = OPCIONES_FILAS_POR_PAGINA;
+    protected readonly plantillaReporte = PLANTILLA_REPORTE_PAGINA;
+
     readonly roles = input.required<RolAcceso[]>();
     readonly cargando = input(false);
     readonly puedeAdministrar = input(false);

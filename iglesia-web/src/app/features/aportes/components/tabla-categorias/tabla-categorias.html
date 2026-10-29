@@ -1,0 +1,94 @@
+@if (cargando()) {
+<div class="flex flex-col gap-4" role="status" aria-label="Cargando categorías">
+    @for (fila of filasCarga; track fila) {
+    <div class="flex items-center gap-4">
+        <p-skeleton width="3rem" height="1.5rem" />
+        <p-skeleton width="35%" height="1.5rem" />
+        <p-skeleton width="20%" height="1.5rem" />
+    </div>
+    }
+</div>
+} @else {
+<p-table
+    [value]="filas()"
+    [paginator]="true"
+    [rows]="filasPorPagina"
+    [rowsPerPageOptions]="opcionesPorPagina"
+    [showCurrentPageReport]="true"
+    [currentPageReportTemplate]="plantillaReporte"
+    [alwaysShowPaginator]="true"
+    [rowHover]="true"
+    dataKey="id"
+    [scrollable]="true"
+    tableStyleClass="min-w-160"
+>
+    <ng-template #header>
+        <tr>
+            <th scope="col" class="w-24">Orden</th>
+            <th scope="col">Nombre</th>
+            <th scope="col">Aportante</th>
+            <th scope="col">Estado</th>
+            <th scope="col"><span class="sr-only">Acciones</span></th>
+        </tr>
+    </ng-template>
+    <ng-template #body let-categoria let-indice="rowIndex">
+        <tr>
+            <td>{{ categoria.orden }}</td>
+            <td class="font-medium">{{ categoria.nombre }}</td>
+            <td>
+                @if (categoria.exigeAportante) {
+                <p-tag value="Exige aportante" icon="pi pi-user" severity="info" />
+                } @else {
+                <p-tag value="Admite anónimos" icon="pi pi-eye-slash" severity="secondary" />
+                }
+            </td>
+            <td>
+                <p-tag [value]="categoria.activo ? 'Activa' : 'Inactiva'" [severity]="categoria.activo ? 'success' : 'danger'" />
+            </td>
+            <td>
+                <div class="flex justify-end gap-2">
+                    <p-button
+                        icon="pi pi-arrow-up"
+                        [rounded]="true"
+                        [text]="true"
+                        severity="secondary"
+                        [ariaLabel]="'Subir ' + categoria.nombre"
+                        pTooltip="Subir"
+                        tooltipPosition="top"
+                        [disabled]="indice === 0 || ordenando()"
+                        (onClick)="subir.emit(categoria)"
+                    />
+                    <p-button
+                        icon="pi pi-arrow-down"
+                        [rounded]="true"
+                        [text]="true"
+                        severity="secondary"
+                        [ariaLabel]="'Bajar ' + categoria.nombre"
+                        pTooltip="Bajar"
+                        tooltipPosition="top"
+                        [disabled]="indice === categorias().length - 1 || ordenando()"
+                        (onClick)="bajar.emit(categoria)"
+                    />
+                    <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" severity="secondary" [ariaLabel]="'Editar ' + categoria.nombre" pTooltip="Editar" tooltipPosition="top" (onClick)="editar.emit(categoria)" />
+                    @if (categoria.activo) {
+                    <p-button icon="pi pi-ban" [rounded]="true" [outlined]="true" severity="danger" [ariaLabel]="'Desactivar ' + categoria.nombre" pTooltip="Desactivar" tooltipPosition="top" (onClick)="cambiarEstado.emit(categoria)" />
+                    } @else {
+                    <p-button icon="pi pi-replay" [rounded]="true" [outlined]="true" severity="success" [ariaLabel]="'Reactivar ' + categoria.nombre" pTooltip="Reactivar" tooltipPosition="top" (onClick)="cambiarEstado.emit(categoria)" />
+                    }
+                </div>
+            </td>
+        </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+        <tr>
+            <td colspan="5">
+                <div class="flex flex-col items-center gap-2 py-8 text-center">
+                    <i class="pi pi-tags text-4xl text-muted-color" aria-hidden="true"></i>
+                    <span class="font-medium text-surface-900 dark:text-surface-0">Aún no hay categorías</span>
+                    <span class="text-muted-color">Crea los conceptos de los aportes de tu iglesia (p. ej. «Diezmo», «Ofrenda», «Misiones»).</span>
+                </div>
+            </td>
+        </tr>
+    </ng-template>
+</p-table>
+}

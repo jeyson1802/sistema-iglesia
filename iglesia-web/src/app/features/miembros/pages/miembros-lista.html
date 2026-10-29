@@ -20,6 +20,6 @@
         <p-button label="Reintentar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="cargar()" />
     </div>
     } @else {
-    <app-tabla-miembros [miembros]="miembros()" [totalRegistros]="totalRegistros()" [pagina]="pagina()" [cargando]="cargando()" (cambiarPagina)="cambiarPagina($event)" />
+    <app-tabla-miembros [miembros]="miembros()" [totalRegistros]="totalRegistros()" [pagina]="pagina()" [tamanoPagina]="tamanoPagina()" [cargando]="cargando()" (cambiarPagina)="cambiarPagina($event)" />
     }
 </div>

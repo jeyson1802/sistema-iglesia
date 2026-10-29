@@ -16,9 +16,9 @@ export class MiembrosService {
     private readonly http = inject(HttpClient);
     private readonly miembrosUrl = `${environment.apiUrl}/miembros`;
 
-    /** Página `pagina` (desde 0) ordenada por apellidos y nombres. Solo se envían los filtros con valor. */
-    listar(filtro: FiltroMiembros, pagina: number): Observable<Page<MiembroResumen>> {
-        return this.http.get<Page<MiembroResumen>>(this.miembrosUrl, { params: parametrosDeListado(filtro, pagina) });
+    /** Página `pagina` (desde 0) de `tamano` registros, ordenada por apellidos y nombres. Solo se envían los filtros con valor. */
+    listar(filtro: FiltroMiembros, pagina: number, tamano: number = PAGINA_MIEMBROS): Observable<Page<MiembroResumen>> {
+        return this.http.get<Page<MiembroResumen>>(this.miembrosUrl, { params: parametrosDeListado(filtro, pagina, tamano) });
     }
 
     obtener(id: number): Observable<Miembro> {
@@ -63,8 +63,8 @@ export class MiembrosService {
     }
 }
 
-function parametrosDeListado({ q, condicion, nivelId, liderId, ubigeo, activo }: FiltroMiembros, pagina: number): HttpParams {
-    let parametros = new HttpParams().set('page', pagina).set('size', PAGINA_MIEMBROS);
+function parametrosDeListado({ q, condicion, nivelId, liderId, ubigeo, activo }: FiltroMiembros, pagina: number, tamano: number): HttpParams {
+    let parametros = new HttpParams().set('page', pagina).set('size', tamano);
     for (const orden of ORDEN_LISTADO) {
         parametros = parametros.append('sort', orden);
     }

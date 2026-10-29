@@ -9,7 +9,19 @@
     }
 </div>
 } @else {
-<p-table [value]="filas()" [rowHover]="true" dataKey="id" [scrollable]="true" tableStyleClass="min-w-160">
+<p-table
+    [value]="filas()"
+    [paginator]="true"
+    [rows]="filasPorPagina"
+    [rowsPerPageOptions]="opcionesPorPagina"
+    [showCurrentPageReport]="true"
+    [currentPageReportTemplate]="plantillaReporte"
+    [alwaysShowPaginator]="true"
+    [rowHover]="true"
+    dataKey="id"
+    [scrollable]="true"
+    tableStyleClass="min-w-160"
+>
     <ng-template #header>
         <tr>
             <th scope="col" class="w-24">Orden</th>

@@ -27,6 +27,11 @@ public final class Textos {
 		return StringUtils.hasText(texto) ? normalizar(texto) : null;
 	}
 
+	/** Quita solo los espacios del inicio y del final (conserva los saltos de línea); vacío o nulo queda en {@code null}. */
+	public static String recortarOpcional(String texto) {
+		return StringUtils.hasText(texto) ? texto.strip() : null;
+	}
+
 	/**
 	 * Si dos textos son iguales sin distinguir mayúsculas (incluidas las vocales con tilde y la «ñ») ni espacios
 	 * sobrantes. Se compara en Java porque {@code lower()} de PostgreSQL depende de la configuración regional del

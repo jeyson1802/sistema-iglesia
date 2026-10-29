@@ -4,6 +4,7 @@ import { environment } from '@/environments/environment';
 import { Perfil } from '@/app/core/auth/models/perfil';
 import { Permiso } from '@/app/core/auth/models/permiso';
 import { RUTA_INICIO_POR_ROL } from '@/app/core/auth/models/rol';
+import { veAportesDeTodaLaIglesia } from '@/app/features/aportes/models/ambito-aportes';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
 import { ConfiguracionIglesiaService, NOMBRES_GRUPOS_POR_DEFECTO } from '@/app/core/configuracion/configuracion-iglesia.service';
 import { RUTA_IGLESIAS } from '@/app/core/iglesias/models/rutas-iglesias';
@@ -19,9 +20,10 @@ export interface EntradaMenu extends MenuItem {
 
 /**
  * Entradas propias de la aplicación. «Inicio» se agrega aparte porque su ruta depende del perfil; los grupos se
- * muestran con el nombre plural que les da la iglesia (p. ej. «Células»).
+ * muestran con el nombre plural que les da la iglesia (p. ej. «Células») y los aportes, como «Mis aportes» para quien
+ * solo ve los suyos.
  */
-const entradasApp = (nombreGrupos: string): EntradaMenu[] => [
+const entradasApp = (nombreGrupos: string, etiquetaAportes: string): EntradaMenu[] => [
     {
         label: 'Sistema',
         items: [{ label: 'Iglesias', icon: 'pi pi-fw pi-building', routerLink: [RUTA_IGLESIAS], permiso: 'iglesias.ver' }]
@@ -30,7 +32,8 @@ const entradasApp = (nombreGrupos: string): EntradaMenu[] => [
         label: 'Iglesia',
         items: [
             { label: 'Miembros', icon: 'pi pi-fw pi-users', routerLink: ['/miembros'], permiso: 'miembros.ver', requiereIglesia: true },
-            { label: nombreGrupos, icon: 'pi pi-fw pi-sitemap', routerLink: ['/grupos'], permiso: 'grupos.ver', requiereIglesia: true }
+            { label: nombreGrupos, icon: 'pi pi-fw pi-sitemap', routerLink: ['/grupos'], permiso: 'grupos.ver', requiereIglesia: true },
+            { label: etiquetaAportes, icon: 'pi pi-fw pi-wallet', routerLink: ['/aportes'], permiso: 'aportes.ver', requiereIglesia: true }
         ]
     },
     {
@@ -38,7 +41,8 @@ const entradasApp = (nombreGrupos: string): EntradaMenu[] => [
         items: [
             { label: 'Usuarios', icon: 'pi pi-fw pi-users', routerLink: ['/usuarios'], permiso: 'usuarios.ver', requiereIglesia: true },
             { label: 'Roles', icon: 'pi pi-fw pi-shield', routerLink: ['/roles'], permiso: 'roles.ver', requiereIglesia: true },
-            { label: 'Niveles', icon: 'pi pi-fw pi-sort-amount-up', routerLink: ['/niveles'], permiso: 'niveles.administrar', requiereIglesia: true }
+            { label: 'Niveles', icon: 'pi pi-fw pi-sort-amount-up', routerLink: ['/niveles'], permiso: 'niveles.administrar', requiereIglesia: true },
+            { label: 'Configuración de aportes', icon: 'pi pi-fw pi-cog', routerLink: ['/aportes/configuracion'], permiso: 'aportes.configurar', requiereIglesia: true }
         ]
     }
 ];
@@ -175,7 +179,8 @@ interface AlcanceMenu {
  */
 export function construirMenu(perfil: Perfil | null, operaEnIglesia: boolean, produccion: boolean, nombreGrupos = NOMBRES_GRUPOS_POR_DEFECTO.nombreGrupoPlural): MenuItem[] {
     const inicio: EntradaMenu[] = perfil ? [{ label: 'Principal', items: [{ label: 'Inicio', icon: 'pi pi-fw pi-home', routerLink: [RUTA_INICIO_POR_ROL[perfil.rolBase]] }] }] : [];
-    const entradas = [...inicio, ...entradasApp(nombreGrupos), ...(produccion ? [] : ENTRADAS_DEMO)];
+    const etiquetaAportes = perfil === null || veAportesDeTodaLaIglesia(perfil) ? 'Aportes' : 'Mis aportes';
+    const entradas = [...inicio, ...entradasApp(nombreGrupos, etiquetaAportes), ...(produccion ? [] : ENTRADAS_DEMO)];
     return filtrar(entradas, { permisos: new Set(perfil?.permisos ?? []), operaEnIglesia });
 }
 

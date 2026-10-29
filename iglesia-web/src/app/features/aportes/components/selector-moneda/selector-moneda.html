@@ -1,0 +1,33 @@
+<section aria-labelledby="titulo-moneda">
+    <h2 id="titulo-moneda" class="font-semibold text-lg text-surface-900 dark:text-surface-0 m-0 mb-1">Moneda</h2>
+    <p class="text-muted-color m-0 mb-4">Todos los montos de los aportes se registran y muestran en esta moneda.</p>
+
+    @if (cargando()) {
+    <p-skeleton height="2.5rem" styleClass="max-w-md" />
+    } @else {
+    <div class="flex flex-col sm:flex-row sm:items-end gap-3 max-w-2xl">
+        <div class="flex flex-col gap-2 grow">
+            <label for="moneda-aportes" class="font-medium">Moneda de la iglesia</label>
+            <p-select
+                inputId="moneda-aportes"
+                [options]="opciones()"
+                optionLabel="etiqueta"
+                optionValue="codigo"
+                [ngModel]="seleccion()"
+                (ngModelChange)="seleccion.set($event)"
+                [filter]="true"
+                filterBy="etiqueta"
+                emptyFilterMessage="No hay monedas con ese texto"
+                [disabled]="bloqueada() || guardando()"
+                [fluid]="true"
+                ariaLabel="Moneda de la iglesia"
+            />
+        </div>
+        @if (!bloqueada()) {
+        <p-button label="Guardar moneda" icon="pi pi-check" [loading]="guardando()" [disabled]="!cambio() || guardando()" (onClick)="enviar()" />
+        }
+    </div>
+    @if (bloqueada()) {
+    <p-message severity="info" icon="pi pi-lock" styleClass="mt-4 max-w-2xl">Ya hay aportes registrados en esta moneda, así que no se puede cambiar: los montos guardados perderían su significado.</p-message>
+    } }
+</section>

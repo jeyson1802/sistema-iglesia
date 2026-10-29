@@ -66,7 +66,7 @@ describe('UsuariosListaComponent', () => {
         await crear();
 
         expect(rolesServicio.listar).toHaveBeenCalledTimes(1);
-        expect(servicio.listar).toHaveBeenCalledOnceWith(FILTRO_INICIAL, 0);
+        expect(servicio.listar).toHaveBeenCalledOnceWith(FILTRO_INICIAL, 0, 10);
         expect(filas().length).toBe(2);
         expect(html().textContent).toContain('ana@iglesia.test');
     });
@@ -122,13 +122,13 @@ describe('UsuariosListaComponent', () => {
 
     it('un filtro nuevo vuelve a la primera página con el filtro aplicado', async () => {
         await crear();
-        componente()['cambiarPagina'](2);
+        componente()['cambiarPagina']({ pagina: 2, tamano: 10 });
         const filtro = { correo: 'ana', activo: true, rolId: 10 };
 
         componente()['filtrar'](filtro);
         await fixture.whenStable();
 
-        expect(servicio.listar.calls.mostRecent().args).toEqual([filtro, 0]);
+        expect(servicio.listar.calls.mostRecent().args).toEqual([filtro, 0, 10]);
         expect(componente()['pagina']()).toBe(0);
         expect(rolesServicio.listar).toHaveBeenCalledTimes(1);
     });
@@ -138,18 +138,23 @@ describe('UsuariosListaComponent', () => {
         await crear();
         componente()['filtrar']({ correo: 'a', activo: null, rolId: null });
 
-        componente()['cambiarPagina'](2);
+        componente()['cambiarPagina']({ pagina: 2, tamano: 10 });
         await fixture.whenStable();
 
-        expect(servicio.listar.calls.mostRecent().args).toEqual([{ correo: 'a', activo: null, rolId: null }, 2]);
+        expect(servicio.listar.calls.mostRecent().args).toEqual([{ correo: 'a', activo: null, rolId: null }, 2, 10]);
         expect(componente()['pagina']()).toBe(2);
+
+        componente()['cambiarPagina']({ pagina: 2, tamano: 20 });
+        await fixture.whenStable();
+
+        expect(servicio.listar.calls.mostRecent().args).toEqual([{ correo: 'a', activo: null, rolId: null }, 0, 20]);
     });
 
     it('una petición nueva cancela la anterior', async () => {
         const lenta = new Subject<Page<UsuarioAdmin>>();
         await crear();
         servicio.listar.and.returnValues(lenta, of(pagina([ANA])));
-        componente()['cambiarPagina'](1);
+        componente()['cambiarPagina']({ pagina: 1, tamano: 10 });
 
         componente()['filtrar']({ correo: 'ana', activo: null, rolId: null });
         await fixture.whenStable();

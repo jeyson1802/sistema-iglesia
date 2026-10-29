@@ -17,8 +17,7 @@ describe('TablaRolesComponent', () => {
 
     const html = (): HTMLElement => fixture.nativeElement;
     const filas = (): HTMLTableRowElement[] => Array.from(html().querySelectorAll('tbody tr'));
-    const botones = (fila: HTMLElement): string[] =>
-        Array.from(fila.querySelectorAll('button')).map((boton) => boton.getAttribute('aria-label') ?? boton.textContent?.trim() ?? '');
+    const botones = (fila: HTMLElement): string[] => Array.from(fila.querySelectorAll('button')).map((boton) => boton.getAttribute('aria-label') ?? boton.textContent?.trim() ?? '');
 
     it('muestra nombre, rol base, tipo, estado, usuarios y número de permisos', async () => {
         await crear([SECRETARIA]);
@@ -88,5 +87,12 @@ describe('TablaRolesComponent', () => {
         await crear([]);
 
         expect(html().textContent).toContain('No hay roles para mostrar');
+    });
+
+    it('muestra siempre el paginador con cuántos hay', async () => {
+        await crear([SECRETARIA]);
+
+        expect(html().querySelector<HTMLElement>('p-paginator')?.style.display).not.toBe('none');
+        expect(html().querySelector('p-paginator')?.textContent).toContain('1–1 de 1');
     });
 });

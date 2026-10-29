@@ -69,4 +69,11 @@ describe('TablaGruposComponent', () => {
         await crear([]);
         expect(html().textContent).toContain('Aún no hay células');
     });
+
+    it('muestra siempre el paginador con cuántos hay', async () => {
+        await crear([OLIVOS, BETANIA]);
+
+        expect(html().querySelector<HTMLElement>('p-paginator')?.style.display).not.toBe('none');
+        expect(html().querySelector('p-paginator')?.textContent).toContain('1–2 de 2');
+    });
 });

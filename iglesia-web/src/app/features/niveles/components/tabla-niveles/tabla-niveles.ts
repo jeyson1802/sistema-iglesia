@@ -4,6 +4,7 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
+import { FILAS_POR_PAGINA, OPCIONES_FILAS_POR_PAGINA, PLANTILLA_REPORTE_PAGINA } from '@/app/shared/utils/paginacion';
 import { Nivel } from '../../models/nivel';
 
 /** Filas de relleno que se muestran como skeleton mientras se cargan los niveles. */
@@ -17,6 +18,10 @@ const FILAS_CARGA = 4;
     templateUrl: './tabla-niveles.html'
 })
 export class TablaNivelesComponent {
+    protected readonly filasPorPagina = FILAS_POR_PAGINA;
+    protected readonly opcionesPorPagina = OPCIONES_FILAS_POR_PAGINA;
+    protected readonly plantillaReporte = PLANTILLA_REPORTE_PAGINA;
+
     readonly niveles = input.required<readonly Nivel[]>();
     readonly cargando = input(false);
     /** Mientras se guarda un nuevo orden no se puede volver a mover. */

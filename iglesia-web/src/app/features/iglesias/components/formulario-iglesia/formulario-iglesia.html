@@ -1,7 +1,7 @@
 <p-dialog [(visible)]="visible" [header]="titulo()" [modal]="true" [draggable]="false" [dismissableMask]="!guardando()" [closable]="!guardando()" styleClass="w-full max-w-xl mx-4">
     <div aria-live="polite">
         @if (error()) {
-            <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-4">{{ error() }}</p-message>
+        <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-4">{{ error() }}</p-message>
         }
     </div>
 
@@ -14,11 +14,11 @@
         </div>
 
         @if (modo() === 'crear') {
-            <fieldset class="flex flex-col gap-2 border-0 p-0 m-0">
-                <legend class="font-medium mb-1">Primer administrador</legend>
-                <small class="text-muted-color mb-2">Tendrá el rol «Administrador de iglesia» y podrá crear los demás usuarios.</small>
-                <app-campos-administrador [grupo]="formulario.controls.administrador" idPrefijo="iglesia-administrador" />
-            </fieldset>
+        <fieldset class="flex flex-col gap-2 border-0 p-0 m-0">
+            <legend class="font-medium mb-1">Primer administrador</legend>
+            <small class="text-muted-color mb-2">Tendrá el rol «Administrador de iglesia» y podrá crear los demás usuarios.</small>
+            <app-campos-administrador [grupo]="formulario.controls.administrador" idPrefijo="iglesia-administrador" />
+        </fieldset>
         }
 
         <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-4">

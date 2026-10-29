@@ -53,7 +53,7 @@ describe('MiembrosListaComponent', () => {
     it('carga la primera página con solo los activos y la muestra', async () => {
         await crear();
 
-        expect(servicio.listar).toHaveBeenCalledWith(FILTRO_MIEMBROS_INICIAL, 0);
+        expect(servicio.listar).toHaveBeenCalledWith(FILTRO_MIEMBROS_INICIAL, 0, 10);
         expect(html().textContent).toContain('Pérez Torres, Juan Carlos');
     });
 
@@ -81,11 +81,20 @@ describe('MiembrosListaComponent', () => {
     it('al filtrar vuelve a la primera página', async () => {
         await crear();
         const componente = fixture.componentInstance as unknown as Record<string, (...a: unknown[]) => void>;
-        componente['cambiarPagina'](3);
+        componente['cambiarPagina']({ pagina: 3, tamano: 10 });
 
         componente['filtrar']({ ...FILTRO_MIEMBROS_INICIAL, q: 'ana' });
 
-        expect(servicio.listar).toHaveBeenCalledWith({ ...FILTRO_MIEMBROS_INICIAL, q: 'ana' }, 0);
+        expect(servicio.listar).toHaveBeenCalledWith({ ...FILTRO_MIEMBROS_INICIAL, q: 'ana' }, 0, 10);
+    });
+
+    it('al cambiar cuántos se ven por página vuelve a la primera con el nuevo tamaño', async () => {
+        await crear();
+        const componente = fixture.componentInstance as unknown as Record<string, (...a: unknown[]) => void>;
+
+        componente['cambiarPagina']({ pagina: 2, tamano: 50 });
+
+        expect(servicio.listar).toHaveBeenCalledWith(FILTRO_MIEMBROS_INICIAL, 0, 50);
     });
 
     it('muestra el error de carga con reintento', async () => {

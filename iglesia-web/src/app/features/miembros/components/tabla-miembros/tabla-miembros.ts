@@ -4,6 +4,7 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { TableLazyLoadEvent, TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { describirUbicacion } from '@/app/core/models/ubicacion';
+import { OPCIONES_FILAS_POR_PAGINA, PaginaPedida, paginaPedida, PLANTILLA_REPORTE_PAGINA } from '@/app/shared/utils/paginacion';
 import { ETIQUETA_CONDICION, MiembroResumen, PAGINA_MIEMBROS } from '../../models/miembro';
 
 /** Fila de relleno que se pinta como skeleton mientras llega la página. */
@@ -28,12 +29,14 @@ export class TablaMiembrosComponent {
     readonly totalRegistros = input.required<number>();
     /** Página mostrada, desde 0. */
     readonly pagina = input(0);
+    readonly tamanoPagina = input(PAGINA_MIEMBROS);
     readonly cargando = input(false);
 
-    readonly cambiarPagina = output<number>();
+    readonly cambiarPagina = output<PaginaPedida>();
 
-    protected readonly filasPorPagina = PAGINA_MIEMBROS;
-    protected readonly primerRegistro = computed(() => this.pagina() * PAGINA_MIEMBROS);
+    protected readonly opcionesPorPagina = OPCIONES_FILAS_POR_PAGINA;
+    protected readonly plantillaReporte = PLANTILLA_REPORTE_PAGINA;
+    protected readonly primerRegistro = computed(() => this.pagina() * this.tamanoPagina());
     /** Mientras carga se conservan cabecera y paginador, y el cuerpo se rellena con skeletons. */
     protected readonly filas = computed<(MiembroResumen | FilaCarga)[]>(() => [...(this.cargando() ? FILAS_CARGA : this.miembros())]);
 
@@ -48,6 +51,6 @@ export class TablaMiembrosComponent {
     }
 
     protected alCargar(evento: TableLazyLoadEvent): void {
-        this.cambiarPagina.emit(Math.floor((evento.first ?? 0) / PAGINA_MIEMBROS));
+        this.cambiarPagina.emit(paginaPedida(evento, this.tamanoPagina()));
     }
 }

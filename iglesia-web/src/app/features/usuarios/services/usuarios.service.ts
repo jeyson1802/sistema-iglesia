@@ -19,9 +19,9 @@ export class UsuariosService {
     private readonly sesion = inject(SesionService);
     private readonly usuariosUrl = `${environment.seguridadUrl}/usuarios`;
 
-    /** Página `pagina` (desde 0) ordenada por correo. Solo se envían los filtros con valor. */
-    listar(filtro: FiltroUsuarios, pagina: number): Observable<Page<UsuarioAdmin>> {
-        return this.http.get<Page<UsuarioAdminResponse>>(this.usuariosUrl, { params: parametrosDeListado(filtro, pagina) }).pipe(map(aPaginaUsuarios));
+    /** Página `pagina` (desde 0) de `tamano` registros, ordenada por correo. Solo se envían los filtros con valor. */
+    listar(filtro: FiltroUsuarios, pagina: number, tamano: number = PAGINA_USUARIOS): Observable<Page<UsuarioAdmin>> {
+        return this.http.get<Page<UsuarioAdminResponse>>(this.usuariosUrl, { params: parametrosDeListado(filtro, pagina, tamano) }).pipe(map(aPaginaUsuarios));
     }
 
     /** Crea el usuario en la iglesia del usuario autenticado, con una contraseña temporal. */
@@ -58,8 +58,8 @@ export class UsuariosService {
     }
 }
 
-function parametrosDeListado({ correo, activo, rolId }: FiltroUsuarios, pagina: number): HttpParams {
-    let parametros = new HttpParams().set('page', pagina).set('size', PAGINA_USUARIOS).set('sort', ORDEN_LISTADO);
+function parametrosDeListado({ correo, activo, rolId }: FiltroUsuarios, pagina: number, tamano: number): HttpParams {
+    let parametros = new HttpParams().set('page', pagina).set('size', tamano).set('sort', ORDEN_LISTADO);
     const correoBuscado = correo.trim();
     if (correoBuscado) {
         parametros = parametros.set('correo', correoBuscado);

@@ -13,7 +13,8 @@ import { FiltrosUsuariosComponent } from '../components/filtros-usuarios/filtros
 import { FormularioUsuarioComponent, ModoFormularioUsuario } from '../components/formulario-usuario/formulario-usuario';
 import { RestablecerContrasenaComponent } from '../components/restablecer-contrasena/restablecer-contrasena';
 import { TablaUsuariosComponent } from '../components/tabla-usuarios/tabla-usuarios';
-import { CrearUsuario, EditarUsuario, FiltroUsuarios, UsuarioAdmin } from '../models/usuario-admin';
+import { PaginaPedida, paginaACargar } from '@/app/shared/utils/paginacion';
+import { CrearUsuario, EditarUsuario, FiltroUsuarios, UsuarioAdmin, PAGINA_USUARIOS } from '../models/usuario-admin';
 import { UsuariosService } from '../services/usuarios.service';
 
 const MENSAJE_ERROR_CARGA = 'No se pudieron cargar los usuarios.';
@@ -51,6 +52,7 @@ export class UsuariosListaComponent {
     protected readonly usuarios = signal<readonly UsuarioAdmin[]>([]);
     protected readonly totalRegistros = signal(0);
     protected readonly pagina = signal(0);
+    protected readonly tamanoPagina = signal(PAGINA_USUARIOS);
     private readonly filtro = signal<FiltroUsuarios>(FILTRO_INICIAL);
     protected readonly cargando = signal(true);
     protected readonly errorCarga = signal<string | null>(null);
@@ -85,7 +87,9 @@ export class UsuariosListaComponent {
         this.cargarPagina(0);
     }
 
-    protected cambiarPagina(pagina: number): void {
+    protected cambiarPagina(pedida: PaginaPedida): void {
+        const pagina = paginaACargar(pedida, this.tamanoPagina());
+        this.tamanoPagina.set(pedida.tamano);
         this.cargarPagina(pagina);
     }
 
@@ -148,7 +152,7 @@ export class UsuariosListaComponent {
         this.pagina.set(pagina);
         this.cargando.set(true);
         this.errorCarga.set(null);
-        this.carga = forkJoin({ roles: this.rolesPendientes(), usuarios: this.servicio.listar(this.filtro(), pagina) })
+        this.carga = forkJoin({ roles: this.rolesPendientes(), usuarios: this.servicio.listar(this.filtro(), pagina, this.tamanoPagina()) })
             .pipe(finalize(() => this.cargando.set(false)))
             .subscribe({
                 next: ({ roles, usuarios }) => {

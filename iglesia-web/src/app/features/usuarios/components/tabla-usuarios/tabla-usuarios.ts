@@ -5,6 +5,7 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { TableLazyLoadEvent, TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
+import { OPCIONES_FILAS_POR_PAGINA, PaginaPedida, paginaPedida, PLANTILLA_REPORTE_PAGINA } from '@/app/shared/utils/paginacion';
 import { PAGINA_USUARIOS, UsuarioAdmin } from '../../models/usuario-admin';
 
 /** Fila de relleno que se pinta como skeleton mientras llega la página. */
@@ -29,21 +30,23 @@ export class TablaUsuariosComponent {
     readonly totalRegistros = input.required<number>();
     /** Página mostrada, desde 0. */
     readonly pagina = input(0);
+    readonly tamanoPagina = input(PAGINA_USUARIOS);
     readonly cargando = input(false);
     readonly puedeAdministrar = input(false);
     readonly usuarioActualId = input<number | null>(null);
 
-    readonly cambiarPagina = output<number>();
+    readonly cambiarPagina = output<PaginaPedida>();
     readonly editar = output<UsuarioAdmin>();
     readonly restablecer = output<UsuarioAdmin>();
 
-    protected readonly filasPorPagina = PAGINA_USUARIOS;
-    protected readonly primerRegistro = computed(() => this.pagina() * PAGINA_USUARIOS);
+    protected readonly opcionesPorPagina = OPCIONES_FILAS_POR_PAGINA;
+    protected readonly plantillaReporte = PLANTILLA_REPORTE_PAGINA;
+    protected readonly primerRegistro = computed(() => this.pagina() * this.tamanoPagina());
     /** Mientras carga se conservan cabecera y paginador, y el cuerpo se rellena con skeletons. */
     protected readonly filas = computed<(UsuarioAdmin | FilaCarga)[]>(() => [...(this.cargando() ? FILAS_CARGA : this.usuarios())]);
 
     protected alCargar(evento: TableLazyLoadEvent): void {
-        this.cambiarPagina.emit(Math.floor((evento.first ?? 0) / PAGINA_USUARIOS));
+        this.cambiarPagina.emit(paginaPedida(evento, this.tamanoPagina()));
     }
 
     protected esPropio(usuario: UsuarioAdmin): boolean {

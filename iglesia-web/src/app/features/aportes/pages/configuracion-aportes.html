@@ -1,0 +1,47 @@
+<div class="card">
+    <header class="mb-6">
+        <h1 class="font-semibold text-xl text-surface-900 dark:text-surface-0 m-0 mb-2">Configuración de aportes</h1>
+        <p class="text-muted-color m-0">La moneda y los conceptos (categorías) con los que tu iglesia registra diezmos, ofrendas y demás aportes.</p>
+    </header>
+
+    <app-selector-moneda [configuracion]="configuracion()" [monedas]="monedas()" [cargando]="cargandoMoneda()" [guardando]="guardandoMoneda()" (guardar)="guardarMoneda($event)" />
+    <div aria-live="polite">
+        @if (mensajeMoneda(); as mensaje) {
+        <p-message [severity]="mensaje.severidad" [icon]="mensaje.severidad === 'success' ? 'pi pi-check-circle' : 'pi pi-times-circle'" [closable]="true" styleClass="mt-4 max-w-2xl" (onClose)="mensajeMoneda.set(null)">{{ mensaje.texto }}</p-message>
+        }
+    </div>
+
+    <p-divider styleClass="my-8" />
+
+    <section aria-labelledby="titulo-categorias">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <div>
+                <h2 id="titulo-categorias" class="font-semibold text-lg text-surface-900 dark:text-surface-0 m-0 mb-1">Categorías</h2>
+                <p class="text-muted-color m-0">Se ofrecen en este orden al registrar un aporte.</p>
+            </div>
+            @if (!errorCarga()) {
+            <p-button label="Nueva categoría" icon="pi pi-plus" [disabled]="cargando()" (onClick)="nueva()" />
+            }
+        </div>
+
+        <div aria-live="polite">
+            @if (errorAccion()) {
+            <p-message severity="error" icon="pi pi-times-circle" [closable]="true" styleClass="mb-4" (onClose)="errorAccion.set(null)">{{ errorAccion() }}</p-message>
+            }
+        </div>
+
+        @if (errorCarga()) {
+        <div class="flex flex-col items-center gap-4 py-8 text-center" role="alert">
+            <i class="pi pi-exclamation-circle text-4xl text-muted-color" aria-hidden="true"></i>
+            <span class="font-medium text-surface-900 dark:text-surface-0">{{ errorCarga() }}</span>
+            <p-button label="Reintentar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="cargar()" />
+        </div>
+        } @else {
+        <app-tabla-categorias [categorias]="categorias()" [cargando]="cargando()" [ordenando]="ordenando()" (subir)="subir($event)" (bajar)="bajar($event)" (editar)="editar($event)" (cambiarEstado)="cambiarEstado($event)" />
+        }
+    </section>
+</div>
+
+<app-formulario-categoria [(visible)]="dialogoVisible" [categoria]="categoriaEditada()" [guardando]="guardando()" [error]="errorDialogo()" (guardar)="guardar($event)" />
+
+<p-confirmdialog styleClass="w-full max-w-md mx-4" />

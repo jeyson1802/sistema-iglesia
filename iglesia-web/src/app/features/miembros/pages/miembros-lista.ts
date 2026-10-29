@@ -7,7 +7,8 @@ import { Referencia } from '@/app/core/models/referencia';
 import { NivelesService } from '@/app/features/niveles/services/niveles.service';
 import { FiltrosMiembrosComponent } from '../components/filtros-miembros/filtros-miembros';
 import { TablaMiembrosComponent } from '../components/tabla-miembros/tabla-miembros';
-import { FILTRO_MIEMBROS_INICIAL, FiltroMiembros, MiembroResumen } from '../models/miembro';
+import { PaginaPedida, paginaACargar } from '@/app/shared/utils/paginacion';
+import { FILTRO_MIEMBROS_INICIAL, FiltroMiembros, MiembroResumen, PAGINA_MIEMBROS } from '../models/miembro';
 import { MiembrosService } from '../services/miembros.service';
 
 const MENSAJE_ERROR_CARGA = 'No se pudieron cargar los miembros.';
@@ -30,6 +31,7 @@ export class MiembrosListaComponent {
     protected readonly miembros = signal<readonly MiembroResumen[]>([]);
     protected readonly totalRegistros = signal(0);
     protected readonly pagina = signal(0);
+    protected readonly tamanoPagina = signal(PAGINA_MIEMBROS);
     protected readonly cargando = signal(true);
     protected readonly errorCarga = signal<string | null>(null);
     /** Opciones del filtro de nivel (los activos, en el orden del backend). */
@@ -54,7 +56,9 @@ export class MiembrosListaComponent {
         this.cargarPagina(0);
     }
 
-    protected cambiarPagina(pagina: number): void {
+    protected cambiarPagina(pedida: PaginaPedida): void {
+        const pagina = paginaACargar(pedida, this.tamanoPagina());
+        this.tamanoPagina.set(pedida.tamano);
         this.cargarPagina(pagina);
     }
 
@@ -65,7 +69,7 @@ export class MiembrosListaComponent {
         this.cargando.set(true);
         this.errorCarga.set(null);
         this.carga = this.servicio
-            .listar(this.filtro(), pagina)
+            .listar(this.filtro(), pagina, this.tamanoPagina())
             .pipe(finalize(() => this.cargando.set(false)))
             .subscribe({
                 next: ({ content, page }) => {

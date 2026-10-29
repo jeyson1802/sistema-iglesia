@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,12 +16,14 @@ import com.iglesia.api.iglesia.dto.GuardarIglesiaRequest;
 import com.iglesia.api.iglesia.dto.IglesiaResponse;
 import com.iglesia.api.iglesia.entity.Iglesia;
 import com.iglesia.api.iglesia.mapper.IglesiaMapper;
+import com.iglesia.api.iglesia.model.IglesiaCreada;
 import com.iglesia.api.iglesia.repository.IglesiaRepository;
 
 /**
  * Catálogo de iglesias (tenants): dar de alta una iglesia es insertar una fila, sin crear bases ni esquemas. El
  * nombre es único sin distinguir mayúsculas; el índice {@code ux_iglesia_nombre} lo garantiza aunque dos altas
- * coincidan en el tiempo.
+ * coincidan en el tiempo. Al dar de alta publica {@link IglesiaCreada} para que otros contextos preparen sus datos
+ * iniciales en la misma transacción.
  */
 @Service
 public class IglesiaService {
@@ -37,10 +40,14 @@ public class IglesiaService {
 
 	private final UsuarioActual usuarioActual;
 
-	IglesiaService(IglesiaRepository iglesias, IglesiaMapper mapper, UsuarioActual usuarioActual) {
+	private final ApplicationEventPublisher eventos;
+
+	IglesiaService(IglesiaRepository iglesias, IglesiaMapper mapper, UsuarioActual usuarioActual,
+			ApplicationEventPublisher eventos) {
 		this.iglesias = iglesias;
 		this.mapper = mapper;
 		this.usuarioActual = usuarioActual;
+		this.eventos = eventos;
 	}
 
 	@Transactional(readOnly = true)
@@ -60,6 +67,7 @@ public class IglesiaService {
 			throw new ConflictoException(NOMBRE_REPETIDO);
 		}
 		Iglesia iglesia = guardar(Iglesia.nueva(nombre));
+		eventos.publishEvent(new IglesiaCreada(iglesia.getId()));
 		LOG.info("Iglesia creada id={} por usuarioId={}", iglesia.getId(), usuarioActual.id().orElse(null));
 		return mapper.aRespuesta(iglesia);
 	}

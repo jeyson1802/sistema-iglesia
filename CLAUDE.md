@@ -108,6 +108,10 @@ Todo el código, tanto de los backends como del frontend, debe aplicar **siempre
   - Retroalimentación inmediata: estados de carga, vacíos y de error; mensajes de validación junto al campo, en español y que digan cómo corregir.
   - Prevenir errores: deshabilitar acciones mientras se procesan y pedir confirmación en acciones destructivas.
 - **Identidad de la iglesia:** nunca se muestra el logo de la plantilla. Logo y nombre salen siempre del componente compartido `app-logo-iglesia` (`shared/components/logo-iglesia/`): en el layout principal, los de la iglesia del usuario autenticado; en el login, la identidad neutra del sistema (antes de autenticarse no se conoce la iglesia).
+- **Grillas siempre paginadas, sin excepción:** toda tabla (`p-table`) o lista de registros muestra el paginador siempre, aunque haya una sola página (`[alwaysShowPaginator]="true"`; nunca `false`). Todas usan la configuración común de `shared/utils/paginacion.ts`: filas por defecto (`FILAS_POR_PAGINA`), opciones 10/20/50 (`OPCIONES_FILAS_POR_PAGINA`) y el texto «1–10 de 45» (`PLANTILLA_REPORTE_PAGINA`); no se repiten esos valores en cada grilla.
+  - Si el backend devuelve una página (`Page<T>`), se pagina en el servidor (`[lazy]="true"` o `p-paginator`): la tabla emite `PaginaPedida` (`paginaPedida(...)`) y el contenedor pide página y tamaño al servicio, volviendo a la primera al cambiar el tamaño (`paginaACargar(...)`). Si la lista llega completa (catálogos), se pagina en el navegador.
+  - Con paginación local, las acciones que dependen de la posición (subir/bajar) usan `rowIndex`, que es el índice en la lista completa, no en la página.
+  - En el móvil, la vista en tarjetas usa el mismo paginador. Cada grilla nueva lleva en su `.spec.ts` una prueba de que el paginador se ve.
 - Servicios con `HttpClient` y URL base desde `environment`.
 - Textos de la interfaz en español.
 - Toda pieza nueva (componente, servicio, pipe) lleva su prueba unitaria `.spec.ts`.

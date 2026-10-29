@@ -2236,7 +2236,1112 @@
       ]
     },
     {
-      "name": "6. Infraestructura",
+      "name": "6. Configuración de aportes",
+      "description": "Moneda de la iglesia y categorías de aporte. Toda iglesia nace con Diezmo (exige aportante) y Ofrenda (admite anónimos). Consultar exige `aportes.ver`, `aportes.registrar` o `aportes.configurar`; modificar y ver las monedas, `aportes.configurar`. Usa la iglesia en la que se entró en «1. Iglesias».",
+      "item": [
+        {
+          "name": "Obtener la configuración de aportes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/aportes/configuracion",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "aportes",
+                "configuracion"
+              ]
+            },
+            "description": "Moneda de la iglesia (`PEN` si no se configuró) y si todavía se puede cambiar (`monedaEditable` es `false` cuando ya hay aportes vigentes)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Trae la moneda y si es editable', () => { const c = pm.response.json(); pm.expect(c.moneda).to.match(/^[A-Z]{3}$/); pm.expect(c.monedaEditable).to.be.a('boolean'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar las monedas admitidas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/aportes/monedas",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "aportes",
+                "monedas"
+              ]
+            },
+            "description": "Monedas que se pueden elegir, con código ISO 4217, nombre en español y símbolo."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('El sol va primero con su símbolo', () => { const m = pm.response.json()[0]; pm.expect(m.codigo).to.eql('PEN'); pm.expect(m.simbolo).to.eql('S/'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Elegir la moneda",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/aportes/configuracion",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "aportes",
+                "configuracion"
+              ]
+            },
+            "description": "Fija la moneda de la iglesia. Solo se puede cambiar mientras no haya aportes vigentes.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"moneda\": \"PEN\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Queda en soles', () => pm.expect(pm.response.json().moneda).to.eql('PEN'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Elegir una moneda no admitida",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/aportes/configuracion",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "aportes",
+                "configuracion"
+              ]
+            },
+            "description": "Una moneda fuera de la lista admitida responde 400 con el error en el campo `moneda`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"moneda\": \"JPY\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Incluye el traceId', () => pm.expect(pm.response.json().traceId).to.be.a('string'));",
+                  "pm.test('Señala el campo moneda', () => pm.expect(pm.response.json().errores).to.have.property('moneda'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar las categorías de aporte",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/categorias-aporte",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "categorias-aporte"
+              ]
+            },
+            "description": "Todas las categorías de la iglesia en su orden, activas e inactivas. Guarda los ids de Diezmo y Ofrenda."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const categorias = pm.response.json();",
+                  "const diezmo = categorias.find(c => c.nombre === 'Diezmo');",
+                  "const ofrenda = categorias.find(c => c.nombre === 'Ofrenda');",
+                  "pm.test('La iglesia nació con Diezmo y Ofrenda', () => { pm.expect(diezmo.exigeAportante).to.be.true; pm.expect(ofrenda.exigeAportante).to.be.false; });",
+                  "pm.environment.set('categoriaDiezmoId', diezmo.id);",
+                  "pm.environment.set('categoriaOfrendaId', ofrenda.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear categoría de aporte",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/categorias-aporte",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "categorias-aporte"
+              ]
+            },
+            "description": "Crea una categoría al final del orden. Nombre obligatorio (máx. 60), único en la iglesia sin distinguir mayúsculas.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Misiones\",\n  \"exigeAportante\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Indica la URL de la categoría', () => pm.expect(pm.response.headers.get('Location')).to.match(/\\/api\\/categorias-aporte\\/\\d+$/));",
+                  "pm.environment.set('categoriaAporteId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear categoría repetida",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/categorias-aporte",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "categorias-aporte"
+              ]
+            },
+            "description": "Un nombre que ya existe (sin distinguir mayúsculas) responde 409.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"MISIONES\",\n  \"exigeAportante\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Incluye el traceId', () => pm.expect(pm.response.json().traceId).to.be.a('string'));",
+                  "pm.test('Señala el campo nombre', () => pm.expect(pm.response.json().errores).to.have.property('nombre'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar categoría de aporte",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/categorias-aporte/{{categoriaAporteId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "categorias-aporte",
+                "{{categoriaAporteId}}"
+              ]
+            },
+            "description": "Cambia el nombre y si exige aportante. Los aportes ya registrados no cambian.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Misiones y evangelismo\",\n  \"exigeAportante\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Quedó editada', () => { const c = pm.response.json(); pm.expect(c.nombre).to.eql('Misiones y evangelismo'); pm.expect(c.exigeAportante).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reordenar categorías de aporte",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/categorias-aporte/orden",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "categorias-aporte",
+                "orden"
+              ]
+            },
+            "description": "Recibe los ids de todas las categorías de la iglesia en el nuevo orden.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\n    {{categoriaAporteId}},\n    {{categoriaDiezmoId}},\n    {{categoriaOfrendaId}}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('La nueva va primero', () => pm.expect(pm.response.json()[0].id).to.eql(pm.environment.get('categoriaAporteId')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reordenar con una lista incompleta",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/categorias-aporte/orden",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "categorias-aporte",
+                "orden"
+              ]
+            },
+            "description": "Si falta o se repite alguna categoría responde 400.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\n    {{categoriaAporteId}}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Incluye el traceId', () => pm.expect(pm.response.json().traceId).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Desactivar categoría de aporte",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/categorias-aporte/{{categoriaAporteId}}/estado",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "categorias-aporte",
+                "{{categoriaAporteId}}",
+                "estado"
+              ]
+            },
+            "description": "Deja de ofrecerse para aportes nuevos; sus aportes siguen contando.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Quedó inactiva', () => pm.expect(pm.response.json().activo).to.be.false);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reactivar categoría de aporte",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/categorias-aporte/{{categoriaAporteId}}/estado",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "categorias-aporte",
+                "{{categoriaAporteId}}",
+                "estado"
+              ]
+            },
+            "description": "Vuelve a ofrecerse para aportes nuevos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Quedó activa', () => pm.expect(pm.response.json().activo).to.be.true);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Aportes",
+      "description": "Registro, corrección, anulación y consulta de aportes. Leer exige `aportes.ver` (el administrador ve todos; un líder, solo los suyos); registrar, `aportes.registrar`; corregir, `aportes.editar`; anular, `aportes.anular`. Usa el miembro registrado en «5. Miembros». Las fechas `{{hoy}}` e `{{inicioMes}}` las calcula el script previo de la carpeta.",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const hoy = new Date();",
+              "const iso = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);",
+              "pm.variables.set('hoy', iso(hoy));",
+              "pm.variables.set('inicioMes', iso(new Date(hoy.getFullYear(), hoy.getMonth(), 1)));",
+              "pm.variables.set('manana', iso(new Date(hoy.getTime() + 86400000)));"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "name": "Registrar un diezmo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/aportes",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "aportes"
+              ]
+            },
+            "description": "Registra un aporte. La categoría Diezmo exige aportante (`miembroId`). Monto mayor que 0 con hasta 2 decimales; la fecha no puede ser futura.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fecha\": \"{{hoy}}\",\n  \"miembroId\": {{miembroId}},\n  \"categoriaId\": {{categoriaDiezmoId}},\n  \"monto\": 150.5,\n  \"medio\": \"YAPE\",\n  \"numeroOperacion\": \"00123456\",\n  \"peticion\": \"Por la salud de mi familia\",\n  \"observacion\": \"Entregado en el culto del domingo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Indica la URL del aporte', () => pm.expect(pm.response.headers.get('Location')).to.match(/\\/api\\/aportes\\/\\d+$/));",
+                  "pm.test('Trae aportante y categoría', () => { const a = pm.response.json(); pm.expect(a.miembro.id).to.eql(pm.environment.get('miembroId')); pm.expect(a.categoria.nombre).to.eql('Diezmo'); });",
+                  "pm.environment.set('aporteId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar un diezmo sin aportante",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/aportes",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "aportes"
+              ]
+            },
+            "description": "Una categoría que exige aportante no admite anónimos: responde 409 en el campo `miembroId`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fecha\": \"{{hoy}}\",\n  \"categoriaId\": {{categoriaDiezmoId}},\n  \"monto\": 50,\n  \"medio\": \"EFECTIVO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Incluye el traceId', () => pm.expect(pm.response.json().traceId).to.be.a('string'));",
+                  "pm.test('Señala el campo miembroId', () => pm.expect(pm.response.json().errores).to.have.property('miembroId'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar una ofrenda anónima",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/aportes",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "aportes"
+              ]
+            },
+            "description": "La Ofrenda admite anónimos. Con `EFECTIVO` se ignora el número de operación.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fecha\": \"{{hoy}}\",\n  \"categoriaId\": {{categoriaOfrendaId}},\n  \"monto\": 20,\n  \"medio\": \"EFECTIVO\",\n  \"numeroOperacion\": \"se ignora\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Es anónima y sin número de operación', () => { const a = pm.response.json(); pm.expect(a.miembro).to.be.null; pm.expect(a.numeroOperacion).to.be.null; });",
+                  "pm.environment.set('aporteAnonimoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar con fecha futura",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/aportes",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "aportes"
+              ]
+            },
+            "description": "La fecha no puede ser futura: responde 400.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fecha\": \"{{manana}}\",\n  \"categoriaId\": {{categoriaOfrendaId}},\n  \"monto\": 20,\n  \"medio\": \"EFECTIVO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Incluye el traceId', () => pm.expect(pm.response.json().traceId).to.be.a('string'));",
+                  "pm.test('Señala el campo fecha', () => pm.expect(pm.response.json().errores).to.have.property('fecha'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener aporte",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/aportes/{{aporteId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "aportes",
+                "{{aporteId}}"
+              ]
+            },
+            "description": "Detalle del aporte, incluidos los anulados con su motivo."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Es el diezmo registrado', () => pm.expect(pm.response.json().id).to.eql(pm.environment.get('aporteId')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar aportes del mes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/aportes?desde={{inicioMes}}&hasta={{hoy}}&page=0&size=20&sort=fecha,desc",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "aportes"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "{{inicioMes}}"
+                },
+                {
+                  "key": "hasta",
+                  "value": "{{hoy}}"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "sort",
+                  "value": "fecha,desc"
+                }
+              ]
+            },
+            "description": "Página de aportes del rango (obligatorio, hasta 366 días). Filtros opcionales: `categoriaId`, `medio`, `miembroId` e `incluirAnulados`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Trae los dos aportes del mes', () => pm.expect(pm.response.json().page.totalElements).to.be.at.least(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar con un rango invertido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/aportes?desde={{hoy}}&hasta=2000-01-01",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "aportes"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "{{hoy}}"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2000-01-01"
+                }
+              ]
+            },
+            "description": "`hasta` anterior a `desde` responde 400 en el campo `hasta`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Incluye el traceId', () => pm.expect(pm.response.json().traceId).to.be.a('string'));",
+                  "pm.test('Señala el campo hasta', () => pm.expect(pm.response.json().errores).to.have.property('hasta'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Totales del mes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/aportes/resumen?desde={{inicioMes}}&hasta={{hoy}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "aportes",
+                "resumen"
+              ],
+              "query": [
+                {
+                  "key": "desde",
+                  "value": "{{inicioMes}}"
+                },
+                {
+                  "key": "hasta",
+                  "value": "{{hoy}}"
+                }
+              ]
+            },
+            "description": "Total, cantidad y desglose por categoría y medio de los aportes vigentes (sin anulados), más el total del período anterior de la misma duración."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Suma los aportes y los desglosa', () => { const r = pm.response.json(); pm.expect(Number(r.total)).to.be.at.least(170.5); pm.expect(r.porCategoria).to.be.an('array').that.is.not.empty; pm.expect(r.porMedio).to.be.an('array').that.is.not.empty; pm.expect(r.moneda).to.eql('PEN'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Corregir aporte",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/aportes/{{aporteAnonimoId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "aportes",
+                "{{aporteAnonimoId}}"
+              ]
+            },
+            "description": "Cambia todos los datos con las reglas del registro y guarda quién y cuándo lo modificó.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fecha\": \"{{hoy}}\",\n  \"categoriaId\": {{categoriaOfrendaId}},\n  \"monto\": 25,\n  \"medio\": \"PLIN\",\n  \"numeroOperacion\": \"PL-7788\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Quedó corregido', () => { const a = pm.response.json(); pm.expect(Number(a.monto)).to.eql(25); pm.expect(a.modificadoEn).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Anular aporte",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/aportes/{{aporteAnonimoId}}/anulacion",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "aportes",
+                "{{aporteAnonimoId}}",
+                "anulacion"
+              ]
+            },
+            "description": "Anula con un motivo obligatorio; deja de contar en los totales. No se puede deshacer.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Registrado dos veces\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Quedó anulado con su motivo', () => { const a = pm.response.json(); pm.expect(a.anulado).to.be.true; pm.expect(a.motivoAnulacion).to.eql('Registrado dos veces'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Anular de nuevo",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/aportes/{{aporteAnonimoId}}/anulacion",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "aportes",
+                "{{aporteAnonimoId}}",
+                "anulacion"
+              ]
+            },
+            "description": "Un aporte anulado no se vuelve a anular: 409.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Otra vez\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Incluye el traceId', () => pm.expect(pm.response.json().traceId).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Corregir un aporte anulado",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/aportes/{{aporteAnonimoId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "aportes",
+                "{{aporteAnonimoId}}"
+              ]
+            },
+            "description": "Un aporte anulado no se corrige: 409.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fecha\": \"{{hoy}}\",\n  \"categoriaId\": {{categoriaOfrendaId}},\n  \"monto\": 30,\n  \"medio\": \"EFECTIVO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Incluye el traceId', () => pm.expect(pm.response.json().traceId).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cambiar la moneda con aportes registrados",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/aportes/configuracion",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "aportes",
+                "configuracion"
+              ]
+            },
+            "description": "Con aportes vigentes la moneda ya no se puede cambiar: 409.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"moneda\": \"USD\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Incluye el traceId', () => pm.expect(pm.response.json().traceId).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "8. Infraestructura",
       "description": "Endpoints públicos de soporte.",
       "auth": {
         "type": "noauth"
@@ -2274,7 +3379,7 @@
       ]
     },
     {
-      "name": "7. Documentación",
+      "name": "9. Documentación",
       "description": "Especificación OpenAPI 3 del backend. Solo responde con el perfil `local` (en producción está deshabilitada y responde 404). La versión navegable está en `{{apiUrl}}/swagger-ui.html`.",
       "auth": {
         "type": "noauth"
@@ -2316,7 +3421,7 @@
       ]
     },
     {
-      "name": "8. Cierre",
+      "name": "10. Cierre",
       "description": "Deja la sesión como estaba: el administrador del sistema sale de la iglesia de prueba.",
       "item": [
         {

@@ -21,6 +21,7 @@ import { RolesService } from '@/app/features/roles/services/roles.service';
 import { CrearUsuario, UsuarioAdmin } from '@/app/features/usuarios/models/usuario-admin';
 import { UsuariosService } from '@/app/features/usuarios/services/usuarios.service';
 import { Rol } from '@/app/core/auth/models/rol';
+import { AportesMiembroComponent } from '../components/aportes-miembro/aportes-miembro';
 import { ArbolLiderazgoComponent } from '../components/arbol-liderazgo/arbol-liderazgo';
 import { DarAccesoComponent, RolAccesoMiembro } from '../components/dar-acceso/dar-acceso';
 import { FormularioMiembroComponent } from '../components/formulario-miembro/formulario-miembro';
@@ -56,7 +57,7 @@ const BOTONES_CONFIRMACION = {
  */
 @Component({
     selector: 'app-miembro-ficha',
-    imports: [RouterLink, ButtonModule, ConfirmDialogModule, MessageModule, SkeletonModule, TagModule, ToastModule, ArbolLiderazgoComponent, DarAccesoComponent, FormularioMiembroComponent, ProgresoFichaComponent],
+    imports: [RouterLink, ButtonModule, ConfirmDialogModule, MessageModule, SkeletonModule, TagModule, ToastModule, AportesMiembroComponent, ArbolLiderazgoComponent, DarAccesoComponent, FormularioMiembroComponent, ProgresoFichaComponent],
     providers: [ConfirmationService, MessageService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './miembro-ficha.html'

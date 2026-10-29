@@ -187,6 +187,27 @@ describe('Rutas de la aplicación', () => {
             expect(await navegarA('/grupos/4')).toBe('/auth/acceso-denegado');
         });
 
+        it('con aportes.ver y aportes.configurar, el administrador abre /aportes y su configuración', async () => {
+            iniciarSesionCon('ADMIN_IGLESIA');
+
+            expect(await navegarA('/aportes')).toBe('/aportes');
+            expect(await navegarA('/aportes/configuracion')).toBe('/aportes/configuracion');
+        });
+
+        it('el Líder abre sus aportes, pero no la configuración', async () => {
+            iniciarSesionCon('LIDER');
+
+            expect(await navegarA('/aportes')).toBe('/aportes');
+            expect(await navegarA('/aportes/configuracion')).toBe('/auth/acceso-denegado');
+        });
+
+        it('el administrador del sistema sin iglesia fijada va de /aportes al catálogo de iglesias', async () => {
+            operaEnIglesia.set(false);
+            iniciarSesionCon('ADMIN_SISTEMA');
+
+            expect(await navegarA('/aportes')).toBe('/iglesias');
+        });
+
         it('el Líder abre /miembros y una ficha, pero no el alta', async () => {
             iniciarSesionCon('LIDER');
 

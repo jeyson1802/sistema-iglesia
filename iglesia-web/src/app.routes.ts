@@ -34,6 +34,7 @@ export function crearRutasApp(produccion: boolean): Routes {
                 { path: 'roles', canActivate: [iglesiaFijadaGuard], loadChildren: () => import('./app/features/roles/roles.routes') },
                 { path: 'niveles', canActivate: [iglesiaFijadaGuard], loadChildren: () => import('./app/features/niveles/niveles.routes') },
                 { path: 'grupos', canActivate: [iglesiaFijadaGuard], loadChildren: () => import('./app/features/grupos/grupos.routes') },
+                { path: 'aportes', canActivate: [iglesiaFijadaGuard], loadChildren: () => import('./app/features/aportes/aportes.routes') },
                 ...soloEnDesarrollo(RUTAS_DEMO_EN_LAYOUT)
             ]
         },

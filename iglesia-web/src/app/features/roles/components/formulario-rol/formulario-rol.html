@@ -1,55 +1,52 @@
 <p-dialog [(visible)]="visible" [header]="titulo()" [modal]="true" [draggable]="false" [dismissableMask]="!guardando()" [closable]="!guardando()" styleClass="w-full max-w-2xl mx-4">
     <div aria-live="polite">
         @if (error()) {
-            <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-4">{{ error() }}</p-message>
+        <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-4">{{ error() }}</p-message>
         }
     </div>
 
     <form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-2" novalidate>
         @if (!soloLectura()) {
-            <div class="flex flex-col gap-2">
-                <label for="rol-nombre" class="font-medium">Nombre</label>
-                <input pInputText id="rol-nombre" formControlName="nombre" autocomplete="off" [maxlength]="nombreMax" placeholder="Ej.: Secretaría" [fluid]="true" />
-                <app-mensaje-error-campo [control]="formulario.controls.nombre" [mensajes]="mensajesNombre" />
-            </div>
+        <div class="flex flex-col gap-2">
+            <label for="rol-nombre" class="font-medium">Nombre</label>
+            <input pInputText id="rol-nombre" formControlName="nombre" autocomplete="off" [maxlength]="nombreMax" placeholder="Ej.: Secretaría" [fluid]="true" />
+            <app-mensaje-error-campo [control]="formulario.controls.nombre" [mensajes]="mensajesNombre" />
+        </div>
 
-            @if (modo() === 'crear') {
-                <div class="flex flex-col gap-2">
-                    <label for="rol-base" class="font-medium">Hereda de</label>
-                    <p-select inputId="rol-base" formControlName="rolBaseId" [options]="opcionesRolBase()" optionLabel="etiqueta" optionValue="id" placeholder="Elige un rol base" [fluid]="true" />
-                    <small class="text-muted-color">Define la página de inicio y los permisos que se pueden marcar.</small>
-                    <app-mensaje-error-campo [control]="formulario.controls.rolBaseId" [mensajes]="mensajesRolBase" />
-                </div>
-            }
-        }
+        @if (modo() === 'crear') {
+        <div class="flex flex-col gap-2">
+            <label for="rol-base" class="font-medium">Hereda de</label>
+            <p-select inputId="rol-base" formControlName="rolBaseId" [options]="opcionesRolBase()" optionLabel="etiqueta" optionValue="id" placeholder="Elige un rol base" [fluid]="true" />
+            <small class="text-muted-color">Define la página de inicio y los permisos que se pueden marcar.</small>
+            <app-mensaje-error-campo [control]="formulario.controls.rolBaseId" [mensajes]="mensajesRolBase" />
+        </div>
+        } }
 
         <fieldset class="flex flex-col gap-4 border-0 p-0 m-0">
             <legend class="font-medium mb-2">Permisos</legend>
             @if (!soloLectura()) {
-                <small class="text-muted-color -mt-2">Solo se pueden marcar los permisos del rol base.</small>
-            }
-            @for (grupo of grupos(); track grupo.modulo) {
-                <div class="flex flex-col gap-3">
-                    <span class="text-sm font-semibold text-muted-color uppercase">{{ grupo.modulo }}</span>
-                    @for (permiso of grupo.permisos; track permiso.codigo) {
-                        <div class="flex items-center gap-2">
-                            <p-checkbox [inputId]="'permiso-' + permiso.codigo" [binary]="true" [formControl]="controlPermiso(permiso.codigo)" />
-                            <label [for]="'permiso-' + permiso.codigo" [class.text-muted-color]="controlPermiso(permiso.codigo).disabled">{{ permiso.descripcion }}</label>
-                        </div>
-                    }
+            <small class="text-muted-color -mt-2">Solo se pueden marcar los permisos del rol base.</small>
+            } @for (grupo of grupos(); track grupo.modulo) {
+            <div class="flex flex-col gap-3">
+                <span class="text-sm font-semibold text-muted-color uppercase">{{ grupo.modulo }}</span>
+                @for (permiso of grupo.permisos; track permiso.codigo) {
+                <div class="flex items-center gap-2">
+                    <p-checkbox [inputId]="'permiso-' + permiso.codigo" [binary]="true" [formControl]="controlPermiso(permiso.codigo)" />
+                    <label [for]="'permiso-' + permiso.codigo" [class.text-muted-color]="controlPermiso(permiso.codigo).disabled">{{ permiso.descripcion }}</label>
                 </div>
-            }
-            @if (!soloLectura()) {
-                <app-mensaje-error-campo [control]="formulario.controls.permisos" [mensajes]="mensajesPermisos" />
+                }
+            </div>
+            } @if (!soloLectura()) {
+            <app-mensaje-error-campo [control]="formulario.controls.permisos" [mensajes]="mensajesPermisos" />
             }
         </fieldset>
 
         <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-4">
             @if (soloLectura()) {
-                <p-button label="Cerrar" severity="secondary" [outlined]="true" (onClick)="cerrar()" />
+            <p-button label="Cerrar" severity="secondary" [outlined]="true" (onClick)="cerrar()" />
             } @else {
-                <p-button label="Cancelar" severity="secondary" [outlined]="true" [disabled]="guardando()" (onClick)="cerrar()" />
-                <p-button type="submit" label="Guardar" icon="pi pi-check" [loading]="guardando()" [disabled]="!valido() || guardando()" />
+            <p-button label="Cancelar" severity="secondary" [outlined]="true" [disabled]="guardando()" (onClick)="cerrar()" />
+            <p-button type="submit" label="Guardar" icon="pi pi-check" [loading]="guardando()" [disabled]="!valido() || guardando()" />
             }
         </div>
     </form>

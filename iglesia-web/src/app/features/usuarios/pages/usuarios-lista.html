@@ -5,7 +5,7 @@
             <p class="text-muted-color m-0">Gestiona quién puede entrar al sistema y con qué roles.</p>
         </div>
         @if (puedeAdministrar()) {
-            <p-button label="Nuevo usuario" icon="pi pi-plus" [disabled]="roles().length === 0" (onClick)="nuevo()" />
+        <p-button label="Nuevo usuario" icon="pi pi-plus" [disabled]="roles().length === 0" (onClick)="nuevo()" />
         }
     </header>
 
@@ -14,23 +14,24 @@
     </div>
 
     @if (errorCarga()) {
-        <div class="flex flex-col items-center gap-4 py-8 text-center" role="alert">
-            <i class="pi pi-exclamation-circle text-4xl text-muted-color" aria-hidden="true"></i>
-            <span class="font-medium text-surface-900 dark:text-surface-0">{{ errorCarga() }}</span>
-            <p-button label="Reintentar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="cargar()" />
-        </div>
+    <div class="flex flex-col items-center gap-4 py-8 text-center" role="alert">
+        <i class="pi pi-exclamation-circle text-4xl text-muted-color" aria-hidden="true"></i>
+        <span class="font-medium text-surface-900 dark:text-surface-0">{{ errorCarga() }}</span>
+        <p-button label="Reintentar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="cargar()" />
+    </div>
     } @else {
-        <app-tabla-usuarios
-            [usuarios]="usuarios()"
-            [totalRegistros]="totalRegistros()"
-            [pagina]="pagina()"
-            [cargando]="cargando()"
-            [puedeAdministrar]="puedeAdministrar()"
-            [usuarioActualId]="usuarioActualId()"
-            (cambiarPagina)="cambiarPagina($event)"
-            (editar)="editar($event)"
-            (restablecer)="abrirRestablecer($event)"
-        />
+    <app-tabla-usuarios
+        [usuarios]="usuarios()"
+        [totalRegistros]="totalRegistros()"
+        [pagina]="pagina()"
+        [tamanoPagina]="tamanoPagina()"
+        [cargando]="cargando()"
+        [puedeAdministrar]="puedeAdministrar()"
+        [usuarioActualId]="usuarioActualId()"
+        (cambiarPagina)="cambiarPagina($event)"
+        (editar)="editar($event)"
+        (restablecer)="abrirRestablecer($event)"
+    />
     }
 </div>
 

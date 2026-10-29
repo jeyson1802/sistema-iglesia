@@ -1,0 +1,58 @@
+<p-drawer [(visible)]="visible" position="right" header="Detalle del aporte" styleClass="w-full md:w-[28rem]">
+    @if (aporte(); as aporte) {
+    <div class="flex flex-col gap-6">
+        <div>
+            <div class="text-3xl font-semibold tabular-nums text-surface-900 dark:text-surface-0" [class.line-through]="aporte.anulado">{{ aporte.monto | moneda: moneda() }}</div>
+            <div class="flex flex-wrap gap-2 mt-2">
+                <p-tag [value]="aporte.categoria.nombre" severity="secondary" />
+                @if (aporte.anulado) {
+                <p-tag value="Anulado" severity="danger" icon="pi pi-ban" />
+                }
+            </div>
+        </div>
+
+        @if (aporte.anulado) {
+        <p-message severity="error" icon="pi pi-ban">Anulado: {{ aporte.motivoAnulacion }}. No cuenta en los totales.</p-message>
+        }
+
+        <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 m-0">
+            <dt class="text-muted-color">Fecha</dt>
+            <dd class="m-0">{{ aporte.fecha | date: 'dd/MM/yyyy' }}</dd>
+            <dt class="text-muted-color">Aportante</dt>
+            <dd class="m-0">
+                @if (aporte.miembro) { {{ aporte.miembro.nombre }} } @else {
+                <span class="italic text-muted-color">Anónimo</span>
+                }
+            </dd>
+            <dt class="text-muted-color">Medio</dt>
+            <dd class="m-0"><i [class]="medio()?.icono + ' text-muted-color mr-2'" aria-hidden="true"></i>{{ medio()?.etiqueta }}</dd>
+            @if (aporte.numeroOperacion) {
+            <dt class="text-muted-color">N.º de operación</dt>
+            <dd class="m-0 tabular-nums">{{ aporte.numeroOperacion }}</dd>
+            } @if (aporte.observacion) {
+            <dt class="text-muted-color">Observación</dt>
+            <dd class="m-0 whitespace-pre-line">{{ aporte.observacion }}</dd>
+            }
+        </dl>
+
+        @if (aporte.peticion) {
+        <figure class="m-0 p-4 rounded-border bg-primary-50 dark:bg-primary-400/10 border-l-4 border-primary">
+            <figcaption class="font-medium text-primary mb-2"><i class="pi pi-heart mr-2" aria-hidden="true"></i>Petición</figcaption>
+            <blockquote class="m-0 whitespace-pre-line text-surface-900 dark:text-surface-0">{{ aporte.peticion }}</blockquote>
+        </figure>
+        }
+
+        <p class="text-muted-color text-sm m-0">Registrado el {{ aporte.registradoEn | date: 'dd/MM/yyyy HH:mm' }} @if (aporte.modificadoEn) { · Modificado el {{ aporte.modificadoEn | date: 'dd/MM/yyyy HH:mm' }} }</p>
+
+        @if (!aporte.anulado && (puedeEditar() || puedeAnular())) {
+        <div class="flex flex-col sm:flex-row gap-3">
+            @if (puedeEditar()) {
+            <p-button label="Editar" icon="pi pi-pencil" severity="secondary" [outlined]="true" (onClick)="editar.emit(aporte)" />
+            } @if (puedeAnular()) {
+            <p-button label="Anular" icon="pi pi-ban" severity="danger" [outlined]="true" (onClick)="anular.emit(aporte)" />
+            }
+        </div>
+        }
+    </div>
+    }
+</p-drawer>

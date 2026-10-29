@@ -1,0 +1,73 @@
+<section aria-label="Filtros de aportes" class="flex flex-col gap-4">
+    <div class="flex flex-col lg:flex-row lg:items-end gap-4">
+        <div class="flex flex-col gap-2">
+            <span id="filtro-periodo" class="font-medium">Período</span>
+            <p-selectbutton [options]="periodos" optionLabel="etiqueta" optionValue="valor" [ngModel]="periodo()" (ngModelChange)="elegirPeriodo($event)" [allowEmpty]="false" ariaLabelledBy="filtro-periodo" styleClass="flex-wrap" />
+        </div>
+        @if (periodo() === 'PERSONALIZADO') {
+        <div class="flex flex-col gap-2">
+            <label for="filtro-rango" class="font-medium">Rango de fechas</label>
+            <p-datepicker
+                inputId="filtro-rango"
+                selectionMode="range"
+                [ngModel]="rango()"
+                (ngModelChange)="elegirRango($event)"
+                [maxDate]="hoy"
+                dateFormat="dd/mm/yy"
+                [readonlyInput]="true"
+                [showIcon]="true"
+                [showButtonBar]="true"
+                placeholder="Desde – hasta"
+                [attr.aria-describedby]="errorRango() ? 'filtro-rango-error' : null"
+            />
+            @if (errorRango()) {
+            <small id="filtro-rango-error" class="text-red-500" role="alert">{{ errorRango() }}</small>
+            }
+        </div>
+        }
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 items-end">
+        <div class="flex flex-col gap-2">
+            <label for="filtro-categoria" class="font-medium">Categoría</label>
+            <p-select
+                inputId="filtro-categoria"
+                [options]="opcionesCategoria()"
+                optionLabel="etiqueta"
+                optionValue="id"
+                [ngModel]="filtro().categoriaId"
+                (ngModelChange)="elegirCategoria($event ?? null)"
+                [showClear]="true"
+                placeholder="Todas"
+                [fluid]="true"
+            />
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="filtro-medio" class="font-medium">Medio</label>
+            <p-select inputId="filtro-medio" [options]="medios" optionLabel="etiqueta" optionValue="valor" [ngModel]="filtro().medio" (ngModelChange)="elegirMedio($event ?? null)" [showClear]="true" placeholder="Todos" [fluid]="true">
+                <ng-template #item let-medio>
+                    <span class="flex items-center gap-2"><i [class]="medio.icono" aria-hidden="true"></i>{{ medio.etiqueta }}</span>
+                </ng-template>
+            </p-select>
+        </div>
+        @if (mostrarMiembro()) {
+        <div class="flex flex-col gap-2">
+            <label for="filtro-miembro" class="font-medium">Aportante</label>
+            <app-selector-miembro inputId="filtro-miembro" placeholder="Todos" [ngModel]="miembro()" (ngModelChange)="elegirMiembro($event)" />
+        </div>
+        }
+        <div class="flex items-center gap-2 min-h-10">
+            <p-checkbox inputId="filtro-anulados" [binary]="true" [ngModel]="filtro().incluirAnulados" (ngModelChange)="elegirAnulados($event)" />
+            <label for="filtro-anulados">Incluir anulados</label>
+        </div>
+    </div>
+
+    @if (chips().length > 0) {
+    <div class="flex flex-wrap items-center gap-2" aria-label="Filtros activos">
+        @for (chip of chips(); track chip.clave) {
+        <p-chip [label]="chip.etiqueta" [removable]="true" (onRemove)="quitar(chip)" [removeIcon]="'pi pi-times'" />
+        }
+        <p-button label="Limpiar filtros" icon="pi pi-filter-slash" [text]="true" size="small" severity="secondary" (onClick)="limpiar()" />
+    </div>
+    }
+</section>

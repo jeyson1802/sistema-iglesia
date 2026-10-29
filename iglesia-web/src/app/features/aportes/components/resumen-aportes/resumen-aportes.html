@@ -1,0 +1,81 @@
+<section aria-label="Resumen del período" aria-live="polite" [attr.aria-busy]="cargando()">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        @if (cargando() || !resumen()) { @for (tarjeta of [1, 2, 3]; track tarjeta) {
+        <div class="card mb-0!">
+            <p-skeleton width="40%" height="1rem" styleClass="mb-4" />
+            <p-skeleton width="60%" height="2rem" styleClass="mb-3" />
+            <p-skeleton width="50%" height="1rem" />
+        </div>
+        } } @else if (resumen(); as resumen) {
+        <div class="card mb-0!">
+            <div class="flex justify-between gap-4 mb-4">
+                <div>
+                    <span class="block text-muted-color font-medium mb-3">Total del período</span>
+                    <div class="text-surface-900 dark:text-surface-0 font-semibold text-2xl tabular-nums">{{ resumen.total | moneda: resumen.moneda }}</div>
+                </div>
+                <div class="flex items-center justify-center bg-primary-100 dark:bg-primary-400/10 rounded-border w-10 h-10 shrink-0">
+                    <i class="pi pi-wallet text-primary text-xl!" aria-hidden="true"></i>
+                </div>
+            </div>
+            @if (variacion(); as variacion) { @switch (variacion.sentido) { @case ('sube') {
+            <span class="text-green-600 dark:text-green-400 font-medium"><i class="pi pi-arrow-up text-sm" aria-hidden="true"></i> {{ variacion.porcentaje !== null ? variacion.porcentaje + '% más' : 'Más' }}</span>
+            } @case ('baja') {
+            <span class="text-red-600 dark:text-red-400 font-medium"><i class="pi pi-arrow-down text-sm" aria-hidden="true"></i> {{ variacion.porcentaje !== null ? -variacion.porcentaje + '% menos' : 'Menos' }}</span>
+            } @default {
+            <span class="text-muted-color font-medium"><i class="pi pi-minus text-sm" aria-hidden="true"></i> Igual</span>
+            } }
+            <span class="text-muted-color"> que el período anterior ({{ resumen.totalPeriodoAnterior | moneda: resumen.moneda }})</span>
+            }
+        </div>
+        <div class="card mb-0!">
+            <div class="flex justify-between gap-4 mb-4">
+                <div>
+                    <span class="block text-muted-color font-medium mb-3">Aportes</span>
+                    <div class="text-surface-900 dark:text-surface-0 font-semibold text-2xl tabular-nums">{{ resumen.cantidad }}</div>
+                </div>
+                <div class="flex items-center justify-center bg-cyan-100 dark:bg-cyan-400/10 rounded-border w-10 h-10 shrink-0">
+                    <i class="pi pi-inbox text-cyan-500 text-xl!" aria-hidden="true"></i>
+                </div>
+            </div>
+            <span class="text-muted-color">Registrados y vigentes (sin anulados)</span>
+        </div>
+        <div class="card mb-0!">
+            <div class="flex justify-between gap-4 mb-4">
+                <div>
+                    <span class="block text-muted-color font-medium mb-3">Promedio por aporte</span>
+                    <div class="text-surface-900 dark:text-surface-0 font-semibold text-2xl tabular-nums">{{ promedio() | moneda: resumen.moneda }}</div>
+                </div>
+                <div class="flex items-center justify-center bg-orange-100 dark:bg-orange-400/10 rounded-border w-10 h-10 shrink-0">
+                    <i class="pi pi-chart-line text-orange-500 text-xl!" aria-hidden="true"></i>
+                </div>
+            </div>
+            <span class="text-muted-color">Total dividido entre la cantidad</span>
+        </div>
+        }
+    </div>
+
+    @if (!cargando() && hayDatos()) {
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="card mb-0!">
+            <h2 class="font-semibold text-lg m-0 mb-1">Por categoría</h2>
+            <p class="text-muted-color text-sm m-0 mb-4">Toca una porción para ver solo esa categoría.</p>
+            <p-chart type="doughnut" [data]="datosCategorias()" [options]="opcionesAnillo()" (onDataSelect)="elegirCategoria($event)" styleClass="h-72" ariaLabel="Gráfico de aportes por categoría" />
+            <ul class="sr-only">
+                @for (total of resumen()?.porCategoria; track total.categoria.id) {
+                <li>{{ total.categoria.nombre }}: {{ total.total | moneda: resumen()!.moneda }} en {{ total.cantidad }} aportes</li>
+                }
+            </ul>
+        </div>
+        <div class="card mb-0!">
+            <h2 class="font-semibold text-lg m-0 mb-1">Por medio</h2>
+            <p class="text-muted-color text-sm m-0 mb-4">Toca una barra para ver solo ese medio.</p>
+            <p-chart type="bar" [data]="datosMedios()" [options]="opcionesBarras()" (onDataSelect)="elegirMedio($event)" styleClass="h-72" ariaLabel="Gráfico de aportes por medio" />
+            <ul class="sr-only">
+                @for (total of resumen()?.porMedio; track total.medio) {
+                <li>{{ etiquetaMedio(total.medio) }}: {{ total.total | moneda: resumen()!.moneda }} en {{ total.cantidad }} aportes</li>
+                }
+            </ul>
+        </div>
+    </div>
+    }
+</section>

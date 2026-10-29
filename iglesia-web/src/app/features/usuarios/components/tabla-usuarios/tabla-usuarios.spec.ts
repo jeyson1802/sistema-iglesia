@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { PaginaPedida } from '@/app/shared/utils/paginacion';
 import { UsuarioAdmin } from '../../models/usuario-admin';
 import { TablaUsuariosComponent } from './tabla-usuarios';
 
@@ -109,20 +110,21 @@ describe('TablaUsuariosComponent', () => {
         expect(html().textContent).toContain('No hay usuarios que coincidan con los filtros');
     });
 
-    it('con una sola página no muestra el paginador', async () => {
+    it('con una sola página también muestra el paginador, con cuántos hay', async () => {
         await crear([ANA, LUIS]);
 
-        expect(html().querySelector<HTMLElement>('p-paginator')?.style.display).toBe('none');
+        expect(html().querySelector<HTMLElement>('p-paginator')?.style.display).not.toBe('none');
+        expect(html().querySelector('p-paginator')?.textContent).toContain('1–2 de 2');
     });
 
     it('al pasar de página pide al contenedor la siguiente', async () => {
         await crear(paginaDe(0), { totalRegistros: 25 });
-        const pedidas: number[] = [];
+        const pedidas: PaginaPedida[] = [];
         fixture.componentInstance.cambiarPagina.subscribe((pagina) => pedidas.push(pagina));
 
         html().querySelector<HTMLButtonElement>('.p-paginator-next')!.click();
 
-        expect(pedidas).toEqual([1]);
+        expect(pedidas).toEqual([{ pagina: 1, tamano: 10 }]);
     });
 
     it('marca en el paginador la página que indica el contenedor', async () => {

@@ -36,8 +36,7 @@ describe('RolesListaComponent', () => {
     });
 
     const html = (): HTMLElement => fixture.nativeElement;
-    const boton = (etiqueta: string): HTMLButtonElement | undefined =>
-        Array.from(html().querySelectorAll('button')).find((b) => b.textContent?.trim() === etiqueta || b.getAttribute('aria-label') === etiqueta);
+    const boton = (etiqueta: string): HTMLButtonElement | undefined => Array.from(html().querySelectorAll('button')).find((b) => b.textContent?.trim() === etiqueta || b.getAttribute('aria-label') === etiqueta);
     const componente = () => fixture.componentInstance;
     const confirmacion = (): ConfirmationService => fixture.debugElement.injector.get(ConfirmationService);
 
@@ -59,7 +58,10 @@ describe('RolesListaComponent', () => {
     });
 
     it('si falla la carga muestra el error y permite reintentar', async () => {
-        servicio.listar.and.returnValues(throwError(() => new HttpErrorResponse({ status: 500 })), of([SECRETARIA]));
+        servicio.listar.and.returnValues(
+            throwError(() => new HttpErrorResponse({ status: 500 })),
+            of([SECRETARIA])
+        );
         await crear();
 
         expect(html().querySelector('[role="alert"]')?.textContent).toContain('No se pudieron cargar los roles.');

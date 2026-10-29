@@ -14,6 +14,13 @@ class TextosTest {
 	}
 
 	@Test
+	void recortaSoloLosExtremosYConservaLosSaltosDeLinea() {
+		assertThat(Textos.recortarOpcional("  Por mi familia\n  y mi trabajo  ")).isEqualTo("Por mi familia\n  y mi trabajo");
+		assertThat(Textos.recortarOpcional(" \n ")).isNull();
+		assertThat(Textos.recortarOpcional(null)).isNull();
+	}
+
+	@Test
 	void comparaSinDistinguirMayusculasNiTildesEnMayuscula() {
 		assertThat(Textos.mismoTexto("PÉREZ ", "pérez")).isTrue();
 		assertThat(Textos.mismoTexto("Líder", "  LÍDER")).isTrue();

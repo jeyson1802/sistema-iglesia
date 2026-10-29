@@ -69,4 +69,25 @@ describe('TablaNivelesComponent', () => {
         await crear([]);
         expect(html().textContent).toContain('Aún no hay niveles');
     });
+
+    it('muestra siempre el paginador con cuántos hay', async () => {
+        await crear(niveles);
+
+        expect(html().querySelector<HTMLElement>('p-paginator')?.style.display).not.toBe('none');
+        expect(html().querySelector('p-paginator')?.textContent).toContain('1–2 de 2');
+    });
+
+    it('pagina de 10 en 10 y en la última página no deja bajar el último de la lista completa', async () => {
+        const muchos: Nivel[] = Array.from({ length: 12 }, (_, indice) => ({ id: indice + 1, nombre: `Nivel ${indice + 1}`, orden: indice + 1, activo: true }));
+        await crear(muchos);
+        expect(html().querySelectorAll('tbody tr').length).toBe(10);
+        expect(boton('Bajar Nivel 10').disabled).toBeFalse();
+
+        html().querySelector<HTMLButtonElement>('.p-paginator-next')!.click();
+        await fixture.whenStable();
+
+        expect(html().querySelector('p-paginator')?.textContent).toContain('11–12 de 12');
+        expect(boton('Subir Nivel 11').disabled).toBeFalse();
+        expect(boton('Bajar Nivel 12').disabled).toBeTrue();
+    });
 });

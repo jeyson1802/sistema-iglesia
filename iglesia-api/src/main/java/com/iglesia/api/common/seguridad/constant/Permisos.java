@@ -24,6 +24,16 @@ public final class Permisos {
 
 	public static final String GRUPOS_ADMINISTRAR = "grupos.administrar";
 
+	public static final String APORTES_VER = "aportes.ver";
+
+	public static final String APORTES_REGISTRAR = "aportes.registrar";
+
+	public static final String APORTES_EDITAR = "aportes.editar";
+
+	public static final String APORTES_ANULAR = "aportes.anular";
+
+	public static final String APORTES_CONFIGURAR = "aportes.configurar";
+
 	public static final String PUEDE_VER_IGLESIAS = "hasAuthority('" + IGLESIAS_VER + "')";
 
 	public static final String PUEDE_ADMINISTRAR_IGLESIAS = "hasAuthority('" + IGLESIAS_ADMINISTRAR + "')";
@@ -46,6 +56,20 @@ public final class Permisos {
 	public static final String PUEDE_VER_GRUPOS = "hasAnyAuthority('" + GRUPOS_VER + "', '" + MIEMBROS_VER + "')";
 
 	public static final String PUEDE_ADMINISTRAR_GRUPOS = "hasAuthority('" + GRUPOS_ADMINISTRAR + "')";
+
+	public static final String PUEDE_VER_APORTES = "hasAuthority('" + APORTES_VER + "')";
+
+	public static final String PUEDE_REGISTRAR_APORTES = "hasAuthority('" + APORTES_REGISTRAR + "')";
+
+	public static final String PUEDE_EDITAR_APORTES = "hasAuthority('" + APORTES_EDITAR + "')";
+
+	public static final String PUEDE_ANULAR_APORTES = "hasAuthority('" + APORTES_ANULAR + "')";
+
+	public static final String PUEDE_CONFIGURAR_APORTES = "hasAuthority('" + APORTES_CONFIGURAR + "')";
+
+	/** Quien registra o configura aportes necesita ver las categorías y la moneda para elegirlas. */
+	public static final String PUEDE_CONSULTAR_CONFIGURACION_APORTES = "hasAnyAuthority('" + APORTES_VER + "', '"
+			+ APORTES_REGISTRAR + "', '" + APORTES_CONFIGURAR + "')";
 
 	private Permisos() {
 	}
