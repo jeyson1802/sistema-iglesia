@@ -5,25 +5,32 @@ import { Perfil } from '@/app/core/auth/models/perfil';
 import { Permiso } from '@/app/core/auth/models/permiso';
 import { RUTA_INICIO_POR_ROL } from '@/app/core/auth/models/rol';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
+import { RUTA_IGLESIAS } from '@/app/core/iglesias/models/rutas-iglesias';
 import { AppMenuitem } from './app.menuitem';
 
 /** Entrada del menú con el permiso que exige; sin `permiso`, la ven todos. */
 export interface EntradaMenu extends MenuItem {
     readonly permiso?: Permiso;
+    /** Muestra datos de una iglesia: se oculta mientras no se opere en ninguna (vista global del administrador del sistema). */
+    readonly requiereIglesia?: boolean;
     readonly items?: EntradaMenu[];
 }
 
 /** Entradas propias de la aplicación. «Inicio» se agrega aparte porque su ruta depende del perfil. */
 const ENTRADAS_APP: EntradaMenu[] = [
     {
+        label: 'Sistema',
+        items: [{ label: 'Iglesias', icon: 'pi pi-fw pi-building', routerLink: [RUTA_IGLESIAS], permiso: 'iglesias.ver' }]
+    },
+    {
         label: 'Iglesia',
-        items: [{ label: 'Miembros', icon: 'pi pi-fw pi-users', routerLink: ['/miembros'], permiso: 'miembros.ver' }]
+        items: [{ label: 'Miembros', icon: 'pi pi-fw pi-users', routerLink: ['/miembros'], permiso: 'miembros.ver', requiereIglesia: true }]
     },
     {
         label: 'Administración',
         items: [
-            { label: 'Usuarios', icon: 'pi pi-fw pi-users', routerLink: ['/usuarios'], permiso: 'usuarios.ver' },
-            { label: 'Roles', icon: 'pi pi-fw pi-shield', routerLink: ['/roles'], permiso: 'roles.ver' }
+            { label: 'Usuarios', icon: 'pi pi-fw pi-users', routerLink: ['/usuarios'], permiso: 'usuarios.ver', requiereIglesia: true },
+            { label: 'Roles', icon: 'pi pi-fw pi-shield', routerLink: ['/roles'], permiso: 'roles.ver', requiereIglesia: true }
         ]
     }
 ];
@@ -147,20 +154,27 @@ const ENTRADAS_DEMO: EntradaMenu[] = [
     }
 ];
 
-/**
- * Arma el menú del perfil activo: filtra por los permisos de ese perfil (no por la unión de todos los del usuario),
- * quita grupos vacíos y en producción omite las demos. «Inicio» apunta a la página del rol base.
- */
-export function construirMenu(perfil: Perfil | null, produccion: boolean): MenuItem[] {
-    const inicio: EntradaMenu[] = perfil ? [{ label: 'Principal', items: [{ label: 'Inicio', icon: 'pi pi-fw pi-home', routerLink: [RUTA_INICIO_POR_ROL[perfil.rolBase]] }] }] : [];
-    const entradas = [...inicio, ...ENTRADAS_APP, ...(produccion ? [] : ENTRADAS_DEMO)];
-    return filtrarPorPermisos(entradas, new Set(perfil?.permisos ?? []));
+/** Qué entradas se pueden mostrar: permisos del perfil activo y si hay una iglesia en la que operar. */
+interface AlcanceMenu {
+    readonly permisos: ReadonlySet<Permiso>;
+    readonly operaEnIglesia: boolean;
 }
 
-function filtrarPorPermisos(entradas: readonly EntradaMenu[], permisos: ReadonlySet<Permiso>): MenuItem[] {
+/**
+ * Arma el menú del perfil activo: filtra por los permisos de ese perfil (no por la unión de todos los del usuario),
+ * oculta las páginas de datos de una iglesia si no se opera en ninguna, quita grupos vacíos y en producción omite las
+ * demos. «Inicio» apunta a la página del rol base.
+ */
+export function construirMenu(perfil: Perfil | null, operaEnIglesia: boolean, produccion: boolean): MenuItem[] {
+    const inicio: EntradaMenu[] = perfil ? [{ label: 'Principal', items: [{ label: 'Inicio', icon: 'pi pi-fw pi-home', routerLink: [RUTA_INICIO_POR_ROL[perfil.rolBase]] }] }] : [];
+    const entradas = [...inicio, ...ENTRADAS_APP, ...(produccion ? [] : ENTRADAS_DEMO)];
+    return filtrar(entradas, { permisos: new Set(perfil?.permisos ?? []), operaEnIglesia });
+}
+
+function filtrar(entradas: readonly EntradaMenu[], alcance: AlcanceMenu): MenuItem[] {
     return entradas
-        .filter(({ permiso }) => !permiso || permisos.has(permiso))
-        .map(({ permiso: _permiso, items, ...entrada }): MenuItem => (items ? { ...entrada, items: filtrarPorPermisos(items, permisos) } : entrada))
+        .filter(({ permiso, requiereIglesia }) => (!permiso || alcance.permisos.has(permiso)) && (!requiereIglesia || alcance.operaEnIglesia))
+        .map(({ permiso: _permiso, requiereIglesia: _requiereIglesia, items, ...entrada }): MenuItem => (items ? { ...entrada, items: filtrar(items, alcance) } : entrada))
         .filter((entrada) => !entrada.items || entrada.items.length > 0);
 }
 
@@ -173,5 +187,5 @@ function filtrarPorPermisos(entradas: readonly EntradaMenu[], permisos: Readonly
 export class AppMenu {
     private readonly sesion = inject(SesionService);
 
-    protected readonly model = computed(() => construirMenu(this.sesion.perfilActivo(), environment.production));
+    protected readonly model = computed(() => construirMenu(this.sesion.perfilActivo(), this.sesion.operaEnIglesia(), environment.production));
 }
