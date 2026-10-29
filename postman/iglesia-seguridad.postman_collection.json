@@ -18,7 +18,7 @@
   "item": [
     {
       "name": "1. Autenticación",
-      "description": "Inicio de sesión, refresco y cierre de sesión. El token de refresco nunca viaja en el cuerpo: va en la cookie `iglesia_refresco` (HttpOnly, Secure, SameSite=Strict, Path=/api/auth).",
+      "description": "Inicio de sesión, refresco, entrada y salida del administrador del sistema a una iglesia, y cierre de sesión. El token de refresco nunca viaja en el cuerpo: va en la cookie `iglesia_refresco` (HttpOnly, Secure, SameSite=Strict, Path=/api/auth).",
       "auth": {
         "type": "noauth"
       },
@@ -112,6 +112,152 @@
                   "// porque algunos clientes no reenvían cookies 'Secure' por http://localhost.",
                   "const refresco = pm.cookies.get('iglesia_refresco');",
                   "if (refresco) { pm.environment.set('tokenRefresco', refresco); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Entrar a una iglesia",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAcceso}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "iglesia_refresco={{tokenRefresco}}",
+                "description": "Token de refresco guardado por «Iniciar sesión» o «Refrescar token»."
+              }
+            ],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/auth/iglesia-actuando",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "iglesia-actuando"
+              ]
+            },
+            "description": "El administrador del sistema pasa a operar dentro de la iglesia `{{iglesiaActuandoId}}` (id del catálogo de iglesia-api). Requiere el permiso `iglesias.administrar` y la cookie de refresco. Rota la cookie y responde un token de acceso con `iglesia_id`, `actuando_en_iglesia: true`, el rol `ADMIN_SISTEMA` y los permisos de un administrador de iglesia; renovar el token conserva la iglesia. Sin el permiso: 403. Sin cookie o con la de otro usuario: 401 y la cookie se borra. Iniciar sesión como ADMIN_SISTEMA para ver el caso de éxito.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"iglesiaId\": {{iglesiaActuandoId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Lee los claims de un JWT (sin validar la firma: solo para las pruebas).",
+                  "const claimsDe = (jwt) => {",
+                  "  const parte = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');",
+                  "  return JSON.parse(atob(parte.padEnd(parte.length + (4 - parte.length % 4) % 4, '=')));",
+                  "};",
+                  "// Solo quien tiene `iglesias.administrar` (ADMIN_SISTEMA) puede entrar o salir; con otro usuario se comprueba el 403.",
+                  "const puedeEntrar = (claimsDe(pm.environment.get('tokenAcceso')).permisos || []).includes('iglesias.administrar');",
+                  "if (puedeEntrar) {",
+                  "  pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "  const cuerpo = pm.response.json();",
+                  "  pm.environment.set('tokenAcceso', cuerpo.tokenAcceso);",
+                  "  pm.test('Rota la cookie de refresco', () => pm.expect(pm.response.headers.get('Set-Cookie')).to.include('iglesia_refresco='));",
+                  "  const refresco = pm.cookies.get('iglesia_refresco');",
+                  "  if (refresco) { pm.environment.set('tokenRefresco', refresco); }",
+                  "  const claims = claimsDe(cuerpo.tokenAcceso);",
+                  "  pm.test('El token lleva la iglesia elegida', () => pm.expect(claims.iglesia_id).to.eql(Number(pm.environment.get('iglesiaActuandoId'))));",
+                  "  pm.test('Marca que actúa dentro de la iglesia', () => pm.expect(claims.actuando_en_iglesia).to.eql(true));",
+                  "  pm.test('Sigue siendo ADMIN_SISTEMA', () => pm.expect(claims.roles).to.eql(['ADMIN_SISTEMA']));",
+                  "  pm.test('Suma los permisos de un administrador de iglesia', () => pm.expect(claims.permisos).to.include.members(['roles.administrar', 'usuarios.administrar', 'iglesias.administrar']));",
+                  "} else {",
+                  "  pm.test('Sin iglesias.administrar responde 403', () => pm.response.to.have.status(403));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Salir de la iglesia",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAcceso}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "iglesia_refresco={{tokenRefresco}}",
+                "description": "Token de refresco guardado por «Iniciar sesión» o «Refrescar token»."
+              }
+            ],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/auth/iglesia-actuando",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "iglesia-actuando"
+              ]
+            },
+            "description": "Sin cuerpo. El administrador del sistema vuelve a la vista global: rota la cookie de refresco sin iglesia y responde un token de acceso sin `iglesia_id` ni `actuando_en_iglesia`, solo con sus propios permisos. Si no operaba en ninguna iglesia responde igual. Requiere `iglesias.administrar` (si no, 403) y la cookie de refresco (si no, 401)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Lee los claims de un JWT (sin validar la firma: solo para las pruebas).",
+                  "const claimsDe = (jwt) => {",
+                  "  const parte = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');",
+                  "  return JSON.parse(atob(parte.padEnd(parte.length + (4 - parte.length % 4) % 4, '=')));",
+                  "};",
+                  "// Solo quien tiene `iglesias.administrar` (ADMIN_SISTEMA) puede entrar o salir; con otro usuario se comprueba el 403.",
+                  "const puedeEntrar = (claimsDe(pm.environment.get('tokenAcceso')).permisos || []).includes('iglesias.administrar');",
+                  "if (puedeEntrar) {",
+                  "  pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "  const cuerpo = pm.response.json();",
+                  "  pm.environment.set('tokenAcceso', cuerpo.tokenAcceso);",
+                  "  pm.test('Rota la cookie de refresco', () => pm.expect(pm.response.headers.get('Set-Cookie')).to.include('iglesia_refresco='));",
+                  "  const refresco = pm.cookies.get('iglesia_refresco');",
+                  "  if (refresco) { pm.environment.set('tokenRefresco', refresco); }",
+                  "  const claims = claimsDe(cuerpo.tokenAcceso);",
+                  "  pm.test('El token ya no lleva iglesia', () => pm.expect(claims).to.not.have.property('iglesia_id'));",
+                  "  pm.test('Ya no actúa dentro de una iglesia', () => pm.expect(claims).to.not.have.property('actuando_en_iglesia'));",
+                  "  pm.test('Solo conserva sus propios permisos', () => pm.expect(claims.permisos).to.not.include('roles.administrar'));",
+                  "} else {",
+                  "  pm.test('Sin iglesias.administrar responde 403', () => pm.response.to.have.status(403));",
+                  "}"
                 ]
               }
             }
