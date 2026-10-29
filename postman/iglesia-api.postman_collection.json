@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "b79cd32e-0856-5b97-890c-865dcb49f693",
     "name": "iglesia-api",
-    "description": "Backend de negocio del Sistema Iglesia (multi-iglesia). Valida el JWT que emite iglesia-seguridad y toma la iglesia del token, nunca de un parámetro.\n\n**Uso:** selecciona el entorno «Sistema Iglesia - local». Los endpoints protegidos usan `{{tokenAcceso}}`. La colección es autosuficiente: «1. Iglesias» inicia sesión con `{{correo}}`/`{{contrasena}}` de un administrador del sistema, crea una iglesia de prueba y entra a operarla; las carpetas 2 a 5 trabajan dentro de ella y «8. Cierre» sale. «1. Iglesias» exige el token de un administrador del sistema (permisos `iglesias.ver` e `iglesias.administrar`).\n\n**Trazabilidad:** la colección verifica en cada respuesta la cabecera `X-Trace-Id`. Ante un error, busca ese valor en los logs del backend para ver la petición completa.",
+    "description": "Backend de negocio del Sistema Iglesia (multi-iglesia). Valida el JWT que emite iglesia-seguridad y toma la iglesia del token, nunca de un parámetro.\n\n**Uso:** selecciona el entorno «Sistema Iglesia - local». Los endpoints protegidos usan `{{tokenAcceso}}`. La colección es autosuficiente: «1. Iglesias» inicia sesión con `{{correo}}`/`{{contrasena}}` de un administrador del sistema, crea una iglesia de prueba y entra a operarla; las carpetas 2 a 8 trabajan dentro de ella y «11. Cierre» sale. «1. Iglesias» exige el token de un administrador del sistema (permisos `iglesias.ver` e `iglesias.administrar`).\n\n**Trazabilidad:** la colección verifica en cada respuesta la cabecera `X-Trace-Id`. Ante un error, busca ese valor en los logs del backend para ver la petición completa.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -38,7 +38,7 @@
   "item": [
     {
       "name": "1. Iglesias",
-      "description": "Catálogo de iglesias (tenants). Solo para el administrador del sistema: iniciar sesión con un usuario `ADMIN_SISTEMA` en la colección iglesia-seguridad. Consultar exige `iglesias.ver` y dar de alta o renombrar, `iglesias.administrar`. El catálogo nunca se filtra por la iglesia del token.\n\nCada ejecución da de alta una iglesia «Prueba Postman …» con un nombre único (no se pueden borrar iglesias).\n\nLa carpeta empieza iniciando sesión como administrador del sistema y termina entrando a la iglesia recién creada: las carpetas siguientes trabajan dentro de ella.",
+      "description": "Catálogo de iglesias del administrador del sistema: alta con su identidad, filtros paginados, edición, apariencia y logo. Termina entrando a la iglesia nueva para recorrer las demás carpetas sobre datos limpios.",
       "item": [
         {
           "name": "Iniciar sesión (administrador del sistema)",
@@ -97,16 +97,30 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{apiUrl}}/api/iglesias",
+              "raw": "{{apiUrl}}/api/iglesias?page=0&size=10&sort=nombreComercial,asc",
               "host": [
                 "{{apiUrl}}"
               ],
               "path": [
                 "api",
                 "iglesias"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                },
+                {
+                  "key": "sort",
+                  "value": "nombreComercial,asc"
+                }
               ]
             },
-            "description": "Todas las iglesias del catálogo, ordenadas por nombre. Requiere `iglesias.ver`; sin el permiso responde 403."
+            "description": "Página del catálogo ordenada por nombre comercial. Requiere `iglesias.ver`; sin el permiso responde 403. Admite `page`, `size` (máx. 100) y `sort` (`nombreComercial`, `denominacion`, `creadaEn`)."
           },
           "event": [
             {
@@ -115,10 +129,10 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Responde 200', () => pm.response.to.have.status(200));",
-                  "const iglesias = pm.response.json();",
-                  "pm.test('Devuelve una lista con id, nombre y fecha de alta', () => {",
-                  "  pm.expect(iglesias).to.be.an('array');",
-                  "  iglesias.forEach((iglesia) => pm.expect(iglesia).to.have.all.keys('id', 'nombre', 'creadaEn'));",
+                  "const pagina = pm.response.json();",
+                  "pm.test('Devuelve una página con contenido y metadatos', () => {",
+                  "  pm.expect(pagina.content).to.be.an('array');",
+                  "  pm.expect(pagina.page).to.have.all.keys('size', 'number', 'totalElements', 'totalPages');",
                   "});"
                 ]
               }
@@ -145,10 +159,10 @@
                 "iglesias"
               ]
             },
-            "description": "Agrega una iglesia al catálogo. Requiere `iglesias.administrar`. El nombre es obligatorio (máx. 150), se guarda sin espacios al inicio ni al final y es único sin distinguir mayúsculas (409 si se repite). Responde 201 con la cabecera `Location`. Su primer administrador se crea después en iglesia-seguridad («Crear usuario» con este `iglesiaId` y el rol base `ADMIN_IGLESIA`).",
+            "description": "Agrega una iglesia con su identidad. Requiere `iglesias.administrar`. Nombre comercial (2 a 60, único sin distinguir mayúsculas; 409 si se repite), denominación, dirección y distrito (código INEI) obligatorios; teléfono, correo y sitio web opcionales. Los textos se guardan sin espacios sobrantes. Nace con la apariencia por defecto (Aura, emerald, Playfair Display) y sin logo. Responde 201 con `Location`. Su primer administrador se crea en iglesia-seguridad («Crear usuario» con este `iglesiaId`).",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"  {{nombreIglesiaNueva}}  \"\n}",
+              "raw": "{\n  \"nombreComercial\": \"  {{nombreIglesiaNueva}}  \",\n  \"denominacion\": \"Iglesia Evangélica {{nombreIglesiaNueva}}\",\n  \"direccion\": \"Av. Los Próceres 123\",\n  \"distritoCodigo\": \"150132\",\n  \"telefono\": \"+51 1 234 5678\",\n  \"correo\": \"contacto@iglesia.org\",\n  \"sitioWeb\": \"https://iglesia.org\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -162,7 +176,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "// Nombre único en cada ejecución: el catálogo no admite nombres repetidos.",
+                  "// Nombre único en cada ejecución: el catálogo no admite nombres comerciales repetidos.",
                   "pm.collectionVariables.set('nombreIglesiaNueva', `Prueba Postman ${Date.now()}`);"
                 ]
               }
@@ -175,7 +189,13 @@
                   "pm.test('Responde 201', () => pm.response.to.have.status(201));",
                   "pm.test('Indica la URL de la iglesia creada', () => pm.expect(pm.response.headers.get('Location')).to.match(/\\/api\\/iglesias\\/\\d+$/));",
                   "const iglesia = pm.response.json();",
-                  "pm.test('Guarda el nombre sin espacios alrededor', () => pm.expect(iglesia.nombre).to.eql(pm.collectionVariables.get('nombreIglesiaNueva')));",
+                  "pm.test('Devuelve la identidad completa', () => pm.expect(iglesia).to.have.all.keys('id', 'nombreComercial', 'denominacion', 'direccion', 'distritoCodigo', 'ubicacion', 'telefono', 'correo', 'sitioWeb', 'activa', 'tieneLogo', 'logoActualizadoEn', 'apariencia', 'creadaEn'));",
+                  "pm.test('Guarda el nombre comercial sin espacios alrededor', () => pm.expect(iglesia.nombreComercial).to.eql(pm.collectionVariables.get('nombreIglesiaNueva')));",
+                  "pm.test('Resuelve la ubicación del distrito', () => pm.expect(iglesia.ubicacion.distrito.nombre).to.eql('SAN JUAN DE LURIGANCHO'));",
+                  "pm.test('Nace con la apariencia por defecto y sin logo', () => {",
+                  "  pm.expect(iglesia.apariencia).to.include({ preset: 'Aura', colorPrimario: 'emerald', tipografia: 'Playfair Display' });",
+                  "  pm.expect(iglesia.tieneLogo).to.be.false;",
+                  "});",
                   "pm.environment.set('iglesiaNuevaId', iglesia.id);"
                 ]
               }
@@ -202,10 +222,10 @@
                 "iglesias"
               ]
             },
-            "description": "Mismo nombre que la iglesia recién creada, en mayúsculas: el nombre es único sin distinguir mayúsculas, así que responde 409 con un `ProblemDetail`.",
+            "description": "Mismo nombre comercial que la iglesia recién creada, en mayúsculas: es único sin distinguir mayúsculas, así que responde 409 con un `ProblemDetail` y el error junto al campo `nombreComercial`.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"{{nombreIglesiaRepetido}}\"\n}",
+              "raw": "{\n  \"nombreComercial\": \"{{nombreIglesiaRepetido}}\",\n  \"denominacion\": \"Iglesia Evangélica {{nombreIglesiaNueva}}\",\n  \"direccion\": \"Av. Los Próceres 123\",\n  \"distritoCodigo\": \"150132\",\n  \"telefono\": \"+51 1 234 5678\",\n  \"correo\": \"contacto@iglesia.org\",\n  \"sitioWeb\": \"https://iglesia.org\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -229,7 +249,105 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Responde 409', () => pm.response.to.have.status(409));",
-                  "pm.test('Explica que el nombre ya existe', () => pm.expect(pm.response.json().detail).to.eql('Ya existe una iglesia con ese nombre'));"
+                  "pm.test('Indica el campo del conflicto', () => pm.expect(pm.response.json().errores.nombreComercial).to.eql('Ya existe una iglesia con ese nombre comercial'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dar de alta con datos inválidos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/iglesias",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "iglesias"
+              ]
+            },
+            "description": "Nombre comercial de un carácter y un distrito inexistente: responde 400 con los errores junto a cada campo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombreComercial\": \"x\",\n  \"denominacion\": \"Iglesia Evangélica {{nombreIglesiaNueva}}\",\n  \"direccion\": \"Av. Los Próceres 123\",\n  \"distritoCodigo\": \"999999\",\n  \"telefono\": \"+51 1 234 5678\",\n  \"correo\": \"contacto@iglesia.org\",\n  \"sitioWeb\": \"https://iglesia.org\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Señala el nombre comercial', () => pm.expect(pm.response.json().errores).to.have.property('nombreComercial'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filtrar iglesias",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/iglesias?q={{nombreIglesiaNueva}}&ubigeo=15&activa=true&page=0&size=10",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "iglesias"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "{{nombreIglesiaNueva}}"
+                },
+                {
+                  "key": "ubigeo",
+                  "value": "15"
+                },
+                {
+                  "key": "activa",
+                  "value": "true"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Filtros opcionales: `q` (nombre comercial o denominación, sin distinguir tildes ni mayúsculas), `ubigeo` (2, 4 o 6 dígitos: departamento, provincia o distrito) y `activa`. Un `ubigeo` mal formado responde 400."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const pagina = pm.response.json();",
+                  "pm.test('Encuentra la iglesia creada en Lima', () => pm.expect(pagina.content.map((i) => i.id)).to.include(Number(pm.environment.get('iglesiaNuevaId'))));",
+                  "pm.test('Todas están en el departamento filtrado', () => pagina.content.forEach((i) => pm.expect(i.distritoCodigo).to.match(/^15/)));"
                 ]
               }
             }
@@ -267,7 +385,7 @@
           ]
         },
         {
-          "name": "Renombrar iglesia",
+          "name": "Editar iglesia",
           "request": {
             "method": "PUT",
             "header": [
@@ -287,10 +405,10 @@
                 "{{iglesiaNuevaId}}"
               ]
             },
-            "description": "Cambia el nombre, el único dato editable. Requiere `iglesias.administrar`. Mismas reglas que al crear; se pueden cambiar solo las mayúsculas del nombre actual. Si no existe: 404; si el nombre es de otra iglesia: 409.",
+            "description": "Cambia la identidad (nombres, dirección y contacto). Requiere `iglesias.administrar`. Mismas reglas que al crear; se pueden cambiar solo las mayúsculas del nombre comercial actual. Si no existe: 404; si el nombre es de otra iglesia: 409.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"{{nombreIglesiaNueva}} renombrada\"\n}",
+              "raw": "{\n  \"nombreComercial\": \"{{nombreIglesiaNueva}} Norte\",\n  \"denominacion\": \"Iglesia Evangélica {{nombreIglesiaNueva}}\",\n  \"direccion\": \"Av. Los Próceres 123\",\n  \"distritoCodigo\": \"150132\",\n  \"telefono\": \"\",\n  \"correo\": \"contacto@iglesia.org\",\n  \"sitioWeb\": \"https://iglesia.org\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -305,7 +423,244 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Responde 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Tiene el nombre nuevo', () => pm.expect(pm.response.json().nombre).to.eql(`${pm.collectionVariables.get('nombreIglesiaNueva')} renombrada`));"
+                  "const iglesia = pm.response.json();",
+                  "pm.test('Tiene el nombre comercial nuevo', () => pm.expect(iglesia.nombreComercial).to.eql(`${pm.collectionVariables.get('nombreIglesiaNueva')} Norte`));",
+                  "pm.test('El teléfono vacío se guarda como nulo', () => pm.expect(iglesia.telefono).to.be.null);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cambiar la apariencia de una iglesia",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/iglesias/{{iglesiaNuevaId}}/apariencia",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "iglesias",
+                "{{iglesiaNuevaId}}",
+                "apariencia"
+              ]
+            },
+            "description": "Preset (Aura, Lara, Nora), color primario (noir o un color de Tailwind), superficie opcional (slate, gray, zinc, neutral, stone, soho, viva, ocean) y tipografía (Playfair Display, Cinzel, Montserrat, Merriweather, Poppins). Requiere `iglesias.administrar`. Un valor fuera de la lista responde 400 junto a su campo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"preset\": \"Lara\",\n  \"colorPrimario\": \"indigo\",\n  \"colorSuperficie\": \"zinc\",\n  \"tipografia\": \"Cinzel\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Devuelve la apariencia guardada', () => pm.expect(pm.response.json()).to.eql({ preset: 'Lara', colorPrimario: 'indigo', colorSuperficie: 'zinc', tipografia: 'Cinzel' }));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cambiar la apariencia con un valor no admitido",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/iglesias/{{iglesiaNuevaId}}/apariencia",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "iglesias",
+                "{{iglesiaNuevaId}}",
+                "apariencia"
+              ]
+            },
+            "description": "Tipografía fuera de la lista: responde 400 con el error en `errores.tipografia`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"preset\": \"Aura\",\n  \"colorPrimario\": \"emerald\",\n  \"colorSuperficie\": null,\n  \"tipografia\": \"Comic Sans\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Señala la tipografía', () => pm.expect(pm.response.json().errores).to.have.property('tipografia'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Subir el logo de una iglesia",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "image/png"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/iglesias/{{iglesiaNuevaId}}/logo",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "iglesias",
+                "{{iglesiaNuevaId}}",
+                "logo"
+              ]
+            },
+            "description": "Cuerpo binario con la imagen (PNG, JPEG o WebP, máx. 1 MB). El tipo se reconoce por la firma del archivo, no por la cabecera: un SVG o un archivo renombrado responde 400; uno mayor de 1 MB, 413. Requiere `iglesias.administrar`. El archivo de ejemplo es `postman/archivos/logo-iglesia.png` (PNG de 1×1); con newman, ejecutar con `--working-dir postman`.",
+            "body": {
+              "mode": "file",
+              "file": {
+                "src": "archivos/logo-iglesia.png"
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener el logo de una iglesia",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/iglesias/{{iglesiaNuevaId}}/logo",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "iglesias",
+                "{{iglesiaNuevaId}}",
+                "logo"
+              ]
+            },
+            "description": "Devuelve la imagen con su tipo y un `ETag`; con `If-None-Match` igual responde 304. Requiere `iglesias.ver`. Sin logo: 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Es un PNG', () => pm.expect(pm.response.headers.get('Content-Type')).to.eql('image/png'));",
+                  "pm.test('Trae ETag', () => pm.expect(pm.response.headers.get('ETag')).to.match(/^\"\\d+\"$/));",
+                  "pm.collectionVariables.set('etagLogo', pm.response.headers.get('ETag'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener el logo sin cambios",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "If-None-Match",
+                "value": "{{etagLogo}}"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/iglesias/{{iglesiaNuevaId}}/logo",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "iglesias",
+                "{{iglesiaNuevaId}}",
+                "logo"
+              ]
+            },
+            "description": "Con el `ETag` recibido en `If-None-Match`, responde 304 sin cuerpo: el navegador reutiliza su copia."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 304', () => pm.response.to.have.status(304));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Quitar el logo de una iglesia",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/iglesias/{{iglesiaNuevaId}}/logo",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "iglesias",
+                "{{iglesiaNuevaId}}",
+                "logo"
+              ]
+            },
+            "description": "Borra el logo; la interfaz vuelve a mostrar el monograma. Requiere `iglesias.administrar`. Responde 204 aunque no tuviera."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 204', () => pm.response.to.have.status(204));"
                 ]
               }
             }
@@ -337,7 +692,7 @@
                 "iglesia-actuando"
               ]
             },
-            "description": "El administrador del sistema pasa a operar dentro de la iglesia recién creada (`{{iglesiaNuevaId}}`), con su cookie de refresco. El token resultante trae `iglesia_id` y los permisos de un administrador de iglesia; con él se recorren las carpetas 2 a 5 sobre datos limpios en cada ejecución. «8. Cierre» sale de la iglesia.",
+            "description": "El administrador del sistema pasa a operar dentro de la iglesia recién creada (`{{iglesiaNuevaId}}`), con su cookie de refresco. El token resultante trae `iglesia_id` y los permisos de un administrador de iglesia; con él se recorren las carpetas 2 a 8 sobre datos limpios en cada ejecución. «11. Cierre» sale de la iglesia.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"iglesiaId\": {{iglesiaNuevaId}}\n}",
@@ -370,7 +725,276 @@
       ]
     },
     {
-      "name": "2. Ubigeo",
+      "name": "2. Mi iglesia",
+      "description": "Identidad y apariencia de la iglesia del token (la nueva, tras «Entrar a la iglesia nueva»). Cualquier usuario autenticado la lee; editarla exige `iglesia.personalizar` (administrador de la iglesia). Sin iglesia en el token responde 400.",
+      "item": [
+        {
+          "name": "Obtener mi iglesia",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/mi-iglesia",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "mi-iglesia"
+              ]
+            },
+            "description": "Identidad y apariencia de la iglesia del token. Basta con estar autenticado dentro de una iglesia; la usan la topbar, el footer y el tema de todos los usuarios."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const iglesia = pm.response.json();",
+                  "pm.test('Es la iglesia del token', () => pm.expect(iglesia.id).to.eql(Number(pm.environment.get('iglesiaNuevaId'))));",
+                  "pm.test('Trae la apariencia elegida en el catálogo', () => pm.expect(iglesia.apariencia.tipografia).to.eql('Cinzel'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar mi iglesia",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/mi-iglesia",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "mi-iglesia"
+              ]
+            },
+            "description": "Cambia los nombres, la dirección y el contacto de la iglesia del token. Requiere `iglesia.personalizar`. Mismas reglas que el alta del catálogo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombreComercial\": \"{{nombreIglesiaNueva}} Norte\",\n  \"denominacion\": \"Iglesia Evangélica {{nombreIglesiaNueva}}\",\n  \"direccion\": \"Jr. Las Flores 456\",\n  \"distritoCodigo\": \"150132\",\n  \"telefono\": \"+51 1 234 5678\",\n  \"correo\": \"contacto@iglesia.org\",\n  \"sitioWeb\": \"https://iglesia.org\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Guarda la dirección nueva', () => pm.expect(pm.response.json().direccion).to.eql('Jr. Las Flores 456'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cambiar la apariencia de mi iglesia",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/mi-iglesia/apariencia",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "mi-iglesia",
+                "apariencia"
+              ]
+            },
+            "description": "Preset, color primario, superficie y tipografía que verán todos los usuarios de la iglesia al iniciar sesión. Requiere `iglesia.personalizar`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"preset\": \"Nora\",\n  \"colorPrimario\": \"rose\",\n  \"colorSuperficie\": null,\n  \"tipografia\": \"Poppins\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Sin superficie usa la del preset', () => pm.expect(pm.response.json().colorSuperficie).to.be.null);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Subir el logo de mi iglesia",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "image/png"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/mi-iglesia/logo",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "mi-iglesia",
+                "logo"
+              ]
+            },
+            "description": "Cuerpo binario con la imagen (PNG, JPEG o WebP, máx. 1 MB, reconocida por su firma). Requiere `iglesia.personalizar`. El archivo de ejemplo es `postman/archivos/logo-iglesia.png` (PNG de 1×1); con newman, ejecutar con `--working-dir postman`.",
+            "body": {
+              "mode": "file",
+              "file": {
+                "src": "archivos/logo-iglesia.png"
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Subir un logo SVG",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "image/png"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/mi-iglesia/logo",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "mi-iglesia",
+                "logo"
+              ]
+            },
+            "description": "Un SVG puede llevar scripts y no se admite aunque la cabecera diga `image/png`: responde 400 con el error en `errores.logo`.",
+            "body": {
+              "mode": "raw",
+              "raw": "<svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script></svg>"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Señala el logo', () => pm.expect(pm.response.json().errores.logo).to.eql('El archivo no es una imagen PNG, JPEG o WebP'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener el logo de mi iglesia",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/mi-iglesia/logo",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "mi-iglesia",
+                "logo"
+              ]
+            },
+            "description": "Imagen del logo de la iglesia del token, con `ETag`. Basta con estar autenticado dentro de la iglesia."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Es un PNG', () => pm.expect(pm.response.headers.get('Content-Type')).to.eql('image/png'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Quitar el logo de mi iglesia",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/mi-iglesia/logo",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "mi-iglesia",
+                "logo"
+              ]
+            },
+            "description": "Borra el logo; la topbar vuelve a mostrar el monograma. Requiere `iglesia.personalizar`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Ubigeo",
       "description": "Ubigeo oficial del INEI para los selectores en cascada de la dirección. Basta con estar autenticado.",
       "item": [
         {
@@ -505,7 +1129,7 @@
       ]
     },
     {
-      "name": "3. Niveles",
+      "name": "4. Niveles",
       "description": "Niveles (rangos) configurables de la iglesia. Consultar exige `miembros.ver` o `niveles.administrar`; modificar, `niveles.administrar`.",
       "item": [
         {
@@ -901,7 +1525,7 @@
       ]
     },
     {
-      "name": "4. Grupos y configuración",
+      "name": "5. Grupos y configuración",
       "description": "Grupos de la iglesia y el nombre con el que la iglesia los llama. Ver exige `grupos.ver` o `miembros.ver`; modificar, `grupos.administrar`.",
       "item": [
         {
@@ -1478,7 +2102,7 @@
       ]
     },
     {
-      "name": "5. Miembros",
+      "name": "6. Miembros",
       "description": "Registro de miembros. Leer exige `miembros.ver` (limitado al ámbito del usuario); registrar, `miembros.crear`; editar y designar pastor, `miembros.editar`; desactivar, `miembros.desactivar`.",
       "item": [
         {
@@ -2236,7 +2860,7 @@
       ]
     },
     {
-      "name": "6. Configuración de aportes",
+      "name": "7. Configuración de aportes",
       "description": "Moneda de la iglesia y categorías de aporte. Toda iglesia nace con Diezmo (exige aportante) y Ofrenda (admite anónimos). Consultar exige `aportes.ver`, `aportes.registrar` o `aportes.configurar`; modificar y ver las monedas, `aportes.configurar`. Usa la iglesia en la que se entró en «1. Iglesias».",
       "item": [
         {
@@ -2747,8 +3371,8 @@
       ]
     },
     {
-      "name": "7. Aportes",
-      "description": "Registro, corrección, anulación y consulta de aportes. Leer exige `aportes.ver` (el administrador ve todos; un líder, solo los suyos); registrar, `aportes.registrar`; corregir, `aportes.editar`; anular, `aportes.anular`. Usa el miembro registrado en «5. Miembros». Las fechas `{{hoy}}` e `{{inicioMes}}` las calcula el script previo de la carpeta.",
+      "name": "8. Aportes",
+      "description": "Registro, corrección, anulación y consulta de aportes. Leer exige `aportes.ver` (el administrador ve todos; un líder, solo los suyos); registrar, `aportes.registrar`; corregir, `aportes.editar`; anular, `aportes.anular`. Usa el miembro registrado en «6. Miembros». Las fechas `{{hoy}}` e `{{inicioMes}}` las calcula el script previo de la carpeta.",
       "event": [
         {
           "listen": "prerequest",
@@ -3341,7 +3965,7 @@
       ]
     },
     {
-      "name": "8. Infraestructura",
+      "name": "9. Infraestructura",
       "description": "Endpoints públicos de soporte.",
       "auth": {
         "type": "noauth"
@@ -3379,7 +4003,7 @@
       ]
     },
     {
-      "name": "9. Documentación",
+      "name": "10. Documentación",
       "description": "Especificación OpenAPI 3 del backend. Solo responde con el perfil `local` (en producción está deshabilitada y responde 404). La versión navegable está en `{{apiUrl}}/swagger-ui.html`.",
       "auth": {
         "type": "noauth"
@@ -3421,7 +4045,7 @@
       ]
     },
     {
-      "name": "10. Cierre",
+      "name": "11. Cierre",
       "description": "Deja la sesión como estaba: el administrador del sistema sale de la iglesia de prueba.",
       "item": [
         {

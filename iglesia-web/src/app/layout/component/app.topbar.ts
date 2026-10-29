@@ -1,33 +1,32 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterModule } from '@angular/router';
-import { catchError, finalize, map, of, switchMap } from 'rxjs';
+import { finalize } from 'rxjs';
 import { MenuItem } from 'primeng/api';
 import { AvatarModule } from 'primeng/avatar';
 import { ButtonModule } from 'primeng/button';
 import { MenuModule } from 'primeng/menu';
-import { StyleClassModule } from 'primeng/styleclass';
 import { TagModule } from 'primeng/tag';
 import { RUTAS_AUTH } from '@/app/core/auth/models/rutas-auth';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
 import { RUTA_IGLESIAS } from '@/app/core/iglesias/models/rutas-iglesias';
-import { IglesiasService } from '@/app/core/iglesias/services/iglesias.service';
+import { PreferenciaModoOscuroService } from '@/app/core/apariencia/services/preferencia-modo-oscuro.service';
+import { IdentidadIglesiaService } from '@/app/core/iglesias/services/identidad-iglesia.service';
 import { LayoutService } from '@/app/layout/service/layout.service';
 import { LogoIglesiaComponent } from '@/app/shared/components/logo-iglesia/logo-iglesia';
-import { AppConfigurator } from './app.configurator';
 
 const RUTA_CAMBIAR_CONTRASENA = '/cuenta/contrasena';
 
 @Component({
     selector: 'app-topbar',
-    imports: [RouterModule, StyleClassModule, AvatarModule, ButtonModule, MenuModule, TagModule, AppConfigurator, LogoIglesiaComponent],
+    imports: [RouterModule, AvatarModule, ButtonModule, MenuModule, TagModule, LogoIglesiaComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './app.topbar.html'
 })
 export class AppTopbar {
     private readonly sesion = inject(SesionService);
     private readonly router = inject(Router);
-    private readonly iglesias = inject(IglesiasService);
+    private readonly identidad = inject(IdentidadIglesiaService);
+    private readonly modoOscuro = inject(PreferenciaModoOscuroService);
 
     readonly layoutService = inject(LayoutService);
 
@@ -38,23 +37,10 @@ export class AppTopbar {
     /** Iglesia en la que opera el administrador del sistema; `null` fuera de ella (y para cualquier otro usuario). */
     private readonly iglesiaActuandoId = computed(() => (this.sesion.actuandoEnIglesia() ? (this.sesion.usuarioActual()?.iglesiaId ?? null) : null));
 
-    /**
-     * Nombre de esa iglesia, pedido a iglesia-api cada vez que cambia. Si no se puede obtener se muestra su número: el
-     * indicador importa más que el nombre exacto.
-     */
-    protected readonly nombreIglesia = toSignal(
-        toObservable(this.iglesiaActuandoId).pipe(
-            switchMap((id) =>
-                id === null
-                    ? of(null)
-                    : this.iglesias.obtener(id).pipe(
-                          map(({ nombre }) => nombre),
-                          catchError(() => of(`Iglesia ${id}`))
-                      )
-            )
-        ),
-        { initialValue: null }
-    );
+    /** Nombre comercial de esa iglesia; mientras carga (o si no se pudo obtener), su número. */
+    protected readonly nombreIglesia = computed(() => (this.iglesiaActuandoId() === null ? null : (this.identidad.nombreComercial() ?? `Iglesia ${this.iglesiaActuandoId()}`)));
+    /** Nombre del enlace al inicio: en el móvil la topbar solo muestra el logo. */
+    protected readonly etiquetaInicio = computed(() => `${this.identidad.nombreComercial() ?? 'IGLESIA-WEB'}: ir a la página de inicio`);
 
     protected readonly actuandoEnIglesia = computed(() => this.iglesiaActuandoId() !== null);
     protected readonly saliendo = signal(false);
@@ -67,11 +53,9 @@ export class AppTopbar {
         { label: 'Cerrar sesión', icon: 'pi pi-sign-out', command: () => this.cerrarSesion() }
     ]);
 
-    toggleDarkMode() {
-        this.layoutService.layoutConfig.update((state) => ({
-            ...state,
-            darkTheme: !state.darkTheme
-        }));
+    /** El modo oscuro es de cada persona: se recuerda en su navegador. */
+    protected alternarModoOscuro(): void {
+        this.modoOscuro.alternar();
     }
 
     /** Vuelve a la vista global del administrador del sistema, en el catálogo de iglesias. */

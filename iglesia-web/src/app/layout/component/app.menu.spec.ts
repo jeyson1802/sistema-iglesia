@@ -16,7 +16,7 @@ describe('Menú lateral', () => {
 
     describe('construirMenu', () => {
         it('con el perfil Miembro muestra «Inicio» hacia su página y no muestra «Miembros» ni «Roles»', () => {
-            const menu = construirMenu(perfilBase('MIEMBRO'), true, true);
+            const menu = construirMenu(perfilBase('MIEMBRO'), true);
 
             expect(etiquetas(menu)).toContain('Inicio');
             expect(etiquetas(menu)).not.toContain('Miembros');
@@ -25,19 +25,19 @@ describe('Menú lateral', () => {
         });
 
         it('quita los grupos que quedan vacíos para el perfil', () => {
-            const grupos = construirMenu(perfilBase('MIEMBRO'), true, true).map((grupo) => grupo.label);
+            const grupos = construirMenu(perfilBase('MIEMBRO'), true).map((grupo) => grupo.label);
 
             expect(grupos).toEqual(['Principal']);
         });
 
         it('el perfil Líder ve «Miembros» y «Mis aportes» pero no los grupos, los niveles ni la configuración de aportes', () => {
-            const etiquetasMenu = etiquetas(construirMenu(perfilBase('LIDER'), true, true));
+            const etiquetasMenu = etiquetas(construirMenu(perfilBase('LIDER'), true));
 
             expect(etiquetasMenu).toEqual(['Principal', 'Inicio', 'Iglesia', 'Miembros', 'Mis aportes']);
         });
 
         it('el Administrador de iglesia ve los grupos con el nombre de su iglesia, «Aportes» y la configuración de aportes', () => {
-            const menu = construirMenu(perfilBase('ADMIN_IGLESIA'), true, true, 'Hogares de paz');
+            const menu = construirMenu(perfilBase('ADMIN_IGLESIA'), true, 'Hogares de paz');
             const iglesia = menu.find((grupo) => grupo.label === 'Iglesia');
             const administracion = menu.find((grupo) => grupo.label === 'Administración');
 
@@ -52,11 +52,11 @@ describe('Menú lateral', () => {
         });
 
         it('sin nombre configurado los grupos se llaman «Grupos»', () => {
-            expect(etiquetas(construirMenu(perfilBase('ADMIN_IGLESIA'), true, true))).toContain('Grupos');
+            expect(etiquetas(construirMenu(perfilBase('ADMIN_IGLESIA'), true))).toContain('Grupos');
         });
 
         it('con el perfil Administrador de iglesia muestra «Miembros» y «Roles»', () => {
-            const menu = construirMenu(perfilBase('ADMIN_IGLESIA'), true, true);
+            const menu = construirMenu(perfilBase('ADMIN_IGLESIA'), true);
 
             expect(etiquetas(menu)).toContain('Miembros');
             expect(etiquetas(menu)).toContain('Roles');
@@ -64,7 +64,7 @@ describe('Menú lateral', () => {
         });
 
         it('con «Secretaría» muestra «Miembros» pero no «Roles», e «Inicio» va a la página de su rol base', () => {
-            const menu = construirMenu(secretaria, true, true);
+            const menu = construirMenu(secretaria, true);
 
             expect(etiquetas(menu)).toContain('Miembros');
             expect(etiquetas(menu)).not.toContain('Roles');
@@ -73,42 +73,42 @@ describe('Menú lateral', () => {
         });
 
         it('cada opción exige su propio permiso: con solo roles.ver aparece «Roles» y no «Miembros»', () => {
-            const etiquetasMenu = etiquetas(construirMenu(perfilPersonalizado(11, 'Auditoría', 'ADMIN_IGLESIA', ['roles.ver']), true, true));
+            const etiquetasMenu = etiquetas(construirMenu(perfilPersonalizado(11, 'Auditoría', 'ADMIN_IGLESIA', ['roles.ver']), true));
 
             expect(etiquetasMenu).toContain('Roles');
             expect(etiquetasMenu).not.toContain('Miembros');
         });
 
         it('con usuarios.ver aparece «Administración › Usuarios», antes de «Roles»', () => {
-            const administracion = construirMenu(perfilBase('ADMIN_IGLESIA'), true, true).find((grupo) => grupo.label === 'Administración');
+            const administracion = construirMenu(perfilBase('ADMIN_IGLESIA'), true).find((grupo) => grupo.label === 'Administración');
 
-            expect(administracion?.items?.map((item) => item.label)).toEqual(['Usuarios', 'Roles', 'Niveles', 'Configuración de aportes']);
-            expect(administracion?.items?.[0].routerLink).toEqual(['/usuarios']);
-            expect(administracion?.items?.[0].icon).toContain('pi-users');
+            expect(administracion?.items?.map((item) => item.label)).toEqual(['Mi iglesia', 'Usuarios', 'Roles', 'Niveles', 'Configuración de aportes']);
+            expect(administracion?.items?.[1].routerLink).toEqual(['/usuarios']);
+            expect(administracion?.items?.[1].icon).toContain('pi-users');
         });
 
         it('sin usuarios.ver no aparece «Usuarios»', () => {
-            const etiquetasMenu = etiquetas(construirMenu(perfilPersonalizado(11, 'Auditoría', 'ADMIN_IGLESIA', ['roles.ver']), true, true));
+            const etiquetasMenu = etiquetas(construirMenu(perfilPersonalizado(11, 'Auditoría', 'ADMIN_IGLESIA', ['roles.ver']), true));
 
             expect(etiquetasMenu).not.toContain('Usuarios');
         });
 
         it('con solo usuarios.ver aparece «Usuarios» y no «Roles»', () => {
-            const etiquetasMenu = etiquetas(construirMenu(perfilPersonalizado(12, 'Soporte', 'ADMIN_IGLESIA', ['usuarios.ver']), true, true));
+            const etiquetasMenu = etiquetas(construirMenu(perfilPersonalizado(12, 'Soporte', 'ADMIN_IGLESIA', ['usuarios.ver']), true));
 
             expect(etiquetasMenu).toContain('Usuarios');
             expect(etiquetasMenu).not.toContain('Roles');
         });
 
         it('dentro de una iglesia, el Administrador del sistema ve «Roles» (tiene roles.ver) pero no «Miembros»', () => {
-            const etiquetasMenu = etiquetas(construirMenu(perfilBase('ADMIN_SISTEMA'), true, true));
+            const etiquetasMenu = etiquetas(construirMenu(perfilBase('ADMIN_SISTEMA'), true));
 
             expect(etiquetasMenu).toContain('Roles');
             expect(etiquetasMenu).not.toContain('Miembros');
         });
 
         it('con iglesias.ver aparece «Sistema › Iglesias», antes del grupo «Iglesia»', () => {
-            const menu = construirMenu(perfilBase('ADMIN_SISTEMA'), false, true);
+            const menu = construirMenu(perfilBase('ADMIN_SISTEMA'), false);
             const sistema = menu.find((grupo) => grupo.label === 'Sistema');
 
             expect(sistema?.items?.map((item) => item.label)).toEqual(['Iglesias']);
@@ -118,11 +118,11 @@ describe('Menú lateral', () => {
         });
 
         it('sin iglesias.ver no aparece «Sistema»', () => {
-            expect(construirMenu(perfilBase('ADMIN_IGLESIA'), true, true).map((grupo) => grupo.label)).not.toContain('Sistema');
+            expect(construirMenu(perfilBase('ADMIN_IGLESIA'), true).map((grupo) => grupo.label)).not.toContain('Sistema');
         });
 
         it('sin iglesia en la que operar oculta «Miembros», «Grupos», «Niveles», «Usuarios» y «Roles» aunque haya permiso', () => {
-            const etiquetasMenu = etiquetas(construirMenu(perfilPersonalizado(1, 'Administrador del sistema', 'ADMIN_SISTEMA', ['iglesias.ver', 'miembros.ver', 'grupos.ver', 'niveles.administrar', 'usuarios.ver', 'roles.ver']), false, true));
+            const etiquetasMenu = etiquetas(construirMenu(perfilPersonalizado(1, 'Administrador del sistema', 'ADMIN_SISTEMA', ['iglesias.ver', 'miembros.ver', 'grupos.ver', 'niveles.administrar', 'usuarios.ver', 'roles.ver']), false));
 
             expect(etiquetasMenu).toEqual(['Principal', 'Inicio', 'Sistema', 'Iglesias']);
             expect(etiquetasMenu).not.toContain('Usuarios');
@@ -133,7 +133,7 @@ describe('Menú lateral', () => {
         it('el Administrador del sistema dentro de una iglesia, con los permisos de esa iglesia, ve «Iglesias» y las páginas de la iglesia', () => {
             const dentro = perfilPersonalizado(1, 'Administrador del sistema', 'ADMIN_SISTEMA', ['iglesias.ver', 'iglesias.administrar', 'miembros.ver', 'usuarios.ver', 'roles.ver']);
 
-            const menu = construirMenu(dentro, true, true);
+            const menu = construirMenu(dentro, true);
 
             expect(menu.map((grupo) => grupo.label)).toEqual(['Principal', 'Sistema', 'Iglesia', 'Administración']);
         });
@@ -142,28 +142,30 @@ describe('Menú lateral', () => {
             const rutas: Record<Rol, string> = { ADMIN_SISTEMA: '/sistema', ADMIN_IGLESIA: '/administracion', LIDER: '/mi-red', MIEMBRO: '/mi-perfil' };
 
             for (const rol of ROLES) {
-                expect(construirMenu(perfilBase(rol), true, true)[0].items?.[0].routerLink).toEqual([rutas[rol]]);
+                expect(construirMenu(perfilBase(rol), true)[0].items?.[0].routerLink).toEqual([rutas[rol]]);
             }
         });
 
         it('sin perfil activo solo quedan las entradas sin permiso', () => {
-            expect(construirMenu(null, true, true)).toEqual([]);
+            expect(construirMenu(null, true)).toEqual([]);
         });
 
-        it('en producción no muestra los grupos demo de Sakai', () => {
-            const grupos = construirMenu(perfilBase('ADMIN_IGLESIA'), true, true).map((grupo) => grupo.label);
+        it('solo tiene opciones del sistema: las demos de Sakai no aparecen en ningún entorno', () => {
+            const grupos = construirMenu(perfilBase('ADMIN_IGLESIA'), true).map((grupo) => grupo.label);
 
             expect(grupos).toEqual(['Principal', 'Iglesia', 'Administración']);
+            GRUPOS_DEMO.forEach((demo) => expect(grupos).not.toContain(demo));
         });
 
-        it('en desarrollo agrega los grupos demo al final', () => {
-            const grupos = construirMenu(perfilBase('MIEMBRO'), true, false).map((grupo) => grupo.label);
+        it('con iglesia.personalizar aparece «Administración › Mi iglesia»; sin él, no', () => {
+            const administracion = construirMenu(perfilBase('ADMIN_IGLESIA'), true).find((grupo) => grupo.label === 'Administración');
 
-            expect(grupos).toEqual(['Principal', ...GRUPOS_DEMO]);
+            expect(administracion?.items?.[0]).toEqual(jasmine.objectContaining({ label: 'Mi iglesia', routerLink: ['/mi-iglesia'] }));
+            expect(etiquetas(construirMenu(perfilBase('LIDER'), true))).not.toContain('Mi iglesia');
         });
 
         it('no expone las propiedades internas de permiso ni de iglesia requerida', () => {
-            const json = JSON.stringify(construirMenu(perfilBase('ADMIN_IGLESIA'), true, false));
+            const json = JSON.stringify(construirMenu(perfilBase('ADMIN_IGLESIA'), true));
 
             expect(json).not.toContain('"permiso"');
             expect(json).not.toContain('"requiereIglesia"');

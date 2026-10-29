@@ -26,8 +26,9 @@ public final class PruebasNegocio {
 
 	/** Crea una iglesia con nombre único (cada prueba usa la suya para no depender de las demás). */
 	public static long nuevaIglesia(JdbcTemplate jdbc) {
-		return jdbc.queryForObject("insert into iglesia (nombre) values (?) returning id", Long.class,
-				"Prueba " + UUID.randomUUID());
+		String nombre = "Prueba " + UUID.randomUUID();
+		return jdbc.queryForObject("insert into iglesia (nombre_comercial, denominacion) values (?, ?) returning id",
+				Long.class, nombre, nombre);
 	}
 
 	/** {@code ADMIN_IGLESIA} con todos los permisos de miembros, niveles, grupos y aportes. */

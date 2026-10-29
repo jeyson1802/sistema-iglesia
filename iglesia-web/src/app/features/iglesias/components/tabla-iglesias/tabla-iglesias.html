@@ -1,55 +1,55 @@
-<p-table
-    [value]="filas()"
-    [paginator]="true"
-    [rows]="filasPorPagina"
-    [rowsPerPageOptions]="opcionesPorPagina"
-    [showCurrentPageReport]="true"
-    [currentPageReportTemplate]="plantillaReporte"
-    [alwaysShowPaginator]="true"
-    [rowHover]="!cargando()"
-    dataKey="id"
-    [scrollable]="true"
-    tableStyleClass="min-w-160"
-    [attr.aria-busy]="cargando()"
->
+<p-table [value]="filas()" [rowHover]="!cargando()" dataKey="id" [scrollable]="true" tableStyleClass="min-w-200" [attr.aria-busy]="cargando()">
     <ng-template #header>
         <tr>
-            <th scope="col">Nombre</th>
-            <th scope="col">Creada</th>
+            <th scope="col"><span class="sr-only">Logo</span></th>
+            <th scope="col">Nombre comercial</th>
+            <th scope="col">Denominación</th>
+            <th scope="col">Ubicación</th>
+            <th scope="col">Estado</th>
             <th scope="col"><span class="sr-only">Acciones</span></th>
         </tr>
     </ng-template>
     <ng-template #body let-iglesia>
         @if (cargando()) {
         <tr>
+            <td><p-skeleton shape="circle" size="2.5rem" /></td>
             <td><p-skeleton width="70%" height="1.5rem" /></td>
-            <td><p-skeleton width="40%" height="1.5rem" /></td>
+            <td><p-skeleton width="80%" height="1.5rem" /></td>
+            <td><p-skeleton width="60%" height="1.5rem" /></td>
+            <td><p-skeleton width="4rem" height="1.5rem" /></td>
             <td><p-skeleton width="50%" height="1.5rem" /></td>
         </tr>
         } @else {
         <tr>
+            <td><app-miniatura-iglesia [iglesia]="iglesia" /></td>
             <td>
                 <div class="flex flex-wrap items-center gap-2">
-                    <span class="font-medium">{{ iglesia.nombre }}</span>
+                    <span class="font-medium">{{ iglesia.nombreComercial }}</span>
                     @if (esActual(iglesia)) {
                     <p-tag value="Actual" severity="info" />
                     }
                 </div>
             </td>
-            <td class="whitespace-nowrap">{{ iglesia.creadaEn | date: 'dd/MM/yyyy' }}</td>
+            <td class="text-muted-color">{{ iglesia.denominacion }}</td>
+            <td>
+                @if (sinDireccion(iglesia)) {
+                <p-tag value="Sin dirección" severity="warn" icon="pi pi-map-marker" pTooltip="Completa la dirección de la iglesia" tooltipPosition="top" />
+                } @else { {{ ubicacion(iglesia) }} }
+            </td>
+            <td><p-tag [value]="iglesia.activa ? 'Activa' : 'Inactiva'" [severity]="iglesia.activa ? 'success' : 'secondary'" /></td>
             <td>
                 @if (puedeAdministrar()) {
                 <div class="flex justify-end gap-2">
                     @if (!esActual(iglesia)) {
-                    <p-button label="Entrar" icon="pi pi-sign-in" size="small" [ariaLabel]="'Entrar a ' + iglesia.nombre" [disabled]="entrando()" (onClick)="entrar.emit(iglesia)" />
+                    <p-button label="Entrar" icon="pi pi-sign-in" size="small" [ariaLabel]="'Entrar a ' + iglesia.nombreComercial" [disabled]="entrando()" (onClick)="entrar.emit(iglesia)" />
                     }
-                    <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" severity="secondary" [ariaLabel]="'Editar nombre de ' + iglesia.nombre" pTooltip="Editar nombre" tooltipPosition="top" (onClick)="editar.emit(iglesia)" />
+                    <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" severity="secondary" [ariaLabel]="'Editar ' + iglesia.nombreComercial" pTooltip="Editar" tooltipPosition="top" [routerLink]="[rutaIglesias, iglesia.id]" />
                     <p-button
                         icon="pi pi-user-plus"
                         [rounded]="true"
                         [outlined]="true"
                         severity="secondary"
-                        [ariaLabel]="'Crear administrador de ' + iglesia.nombre"
+                        [ariaLabel]="'Crear administrador de ' + iglesia.nombreComercial"
                         pTooltip="Crear administrador"
                         tooltipPosition="top"
                         (onClick)="crearAdministrador.emit(iglesia)"
@@ -62,13 +62,25 @@
     </ng-template>
     <ng-template #emptymessage>
         <tr>
-            <td colspan="3">
+            <td colspan="6">
                 <div class="flex flex-col items-center gap-2 py-8 text-center">
                     <i class="pi pi-building text-4xl text-muted-color" aria-hidden="true"></i>
-                    <span class="font-medium text-surface-900 dark:text-surface-0">Aún no hay iglesias</span>
-                    <span class="text-muted-color">Da de alta la primera con «Nueva iglesia».</span>
+                    <span class="font-medium text-surface-900 dark:text-surface-0">No hay iglesias que mostrar</span>
+                    <span class="text-muted-color">Cambia los filtros o da de alta una con «Nueva iglesia».</span>
                 </div>
             </td>
         </tr>
     </ng-template>
 </p-table>
+<p-paginator
+    [first]="primerRegistro()"
+    [rows]="tamanoPagina()"
+    [totalRecords]="totalRegistros()"
+    [rowsPerPageOptions]="opcionesPorPagina"
+    [showCurrentPageReport]="true"
+    [currentPageReportTemplate]="plantillaReporte"
+    [alwaysShow]="true"
+    appendTo="body"
+    (onPageChange)="alPaginar($event)"
+    styleClass="mt-4"
+/>

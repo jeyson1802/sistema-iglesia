@@ -1,17 +1,14 @@
 package com.iglesia.api.iglesia.repository;
 
-import java.util.List;
-
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import com.iglesia.api.iglesia.entity.Iglesia;
 
-public interface IglesiaRepository extends JpaRepository<Iglesia, Long> {
+public interface IglesiaRepository extends JpaRepository<Iglesia, Long>, JpaSpecificationExecutor<Iglesia> {
 
-	List<Iglesia> findAllByOrderByNombreAsc();
+	boolean existsByNombreComercialIgnoreCase(String nombreComercial);
 
-	boolean existsByNombreIgnoreCase(String nombre);
-
-	boolean existsByNombreIgnoreCaseAndIdNot(String nombre, Long id);
+	boolean existsByNombreComercialIgnoreCaseAndIdNot(String nombreComercial, Long id);
 
 }

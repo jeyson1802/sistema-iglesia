@@ -1,0 +1,73 @@
+<ng-container [formGroup]="grupo()">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="flex flex-col gap-2">
+            <label [for]="idPrefijo() + '-nombre-comercial'" class="font-medium">Nombre comercial</label>
+            <input
+                pInputText
+                [id]="idPrefijo() + '-nombre-comercial'"
+                type="text"
+                formControlName="nombreComercial"
+                autocomplete="organization"
+                [maxlength]="limites.nombreComercial"
+                placeholder="MMM Lima Centro"
+                [fluid]="true"
+                [attr.aria-describedby]="idPrefijo() + '-nombre-comercial-ayuda'"
+            />
+            <small [id]="idPrefijo() + '-nombre-comercial-ayuda'" class="flex justify-between gap-2 text-muted-color">
+                <span>El nombre corto de la barra superior. Distinto al de las demás iglesias.</span>
+                <span aria-live="polite">{{ largoNombre() }}/{{ limites.nombreComercial }}</span>
+            </small>
+            <app-mensaje-error-campo [control]="grupo().controls.nombreComercial" [mensajes]="mensajes['nombreComercial']" />
+            <app-mensaje-error-servidor [mensaje]="erroresCampo()['nombreComercial']" />
+        </div>
+        <div class="flex flex-col gap-2">
+            <label [for]="idPrefijo() + '-denominacion'" class="font-medium">Denominación completa</label>
+            <input
+                pInputText
+                [id]="idPrefijo() + '-denominacion'"
+                type="text"
+                formControlName="denominacion"
+                autocomplete="off"
+                [maxlength]="limites.denominacion"
+                placeholder="Iglesia Evangélica Pentecostal Movimiento Misionero Mundial"
+                [fluid]="true"
+            />
+            <app-mensaje-error-campo [control]="grupo().controls.denominacion" [mensajes]="mensajes['denominacion']" />
+            <app-mensaje-error-servidor [mensaje]="erroresCampo()['denominacion']" />
+        </div>
+    </div>
+
+    <div class="flex flex-col gap-2">
+        <label [for]="idPrefijo() + '-direccion'" class="font-medium">Dirección</label>
+        <input pInputText [id]="idPrefijo() + '-direccion'" type="text" formControlName="direccion" autocomplete="street-address" [maxlength]="limites.direccion" placeholder="Av. Los Próceres 123" [fluid]="true" />
+        <app-mensaje-error-campo [control]="grupo().controls.direccion" [mensajes]="mensajes['direccion']" />
+        <app-mensaje-error-servidor [mensaje]="erroresCampo()['direccion']" />
+    </div>
+    <div class="flex flex-col gap-1">
+        <app-selector-ubigeo [idBase]="idPrefijo() + '-ubigeo'" formControlName="distritoCodigo" />
+        <app-mensaje-error-campo [control]="grupo().controls.distritoCodigo" [mensajes]="mensajes['distritoCodigo']" />
+        <app-mensaje-error-servidor [mensaje]="erroresCampo()['distritoCodigo']" />
+    </div>
+
+    <fieldset class="grid grid-cols-1 md:grid-cols-3 gap-4 border-0 p-0 m-0">
+        <legend class="font-medium mb-2">Contacto <span class="font-normal text-muted-color">(opcional)</span></legend>
+        <div class="flex flex-col gap-2">
+            <label [for]="idPrefijo() + '-telefono'">Teléfono</label>
+            <input pInputText [id]="idPrefijo() + '-telefono'" type="tel" formControlName="telefono" autocomplete="tel" [maxlength]="limites.telefono" placeholder="+51 1 234 5678" [fluid]="true" />
+            <app-mensaje-error-campo [control]="grupo().controls.telefono" [mensajes]="mensajes['telefono']" />
+            <app-mensaje-error-servidor [mensaje]="erroresCampo()['telefono']" />
+        </div>
+        <div class="flex flex-col gap-2">
+            <label [for]="idPrefijo() + '-correo'">Correo</label>
+            <input pInputText [id]="idPrefijo() + '-correo'" type="email" formControlName="correo" autocomplete="email" [maxlength]="limites.correo" placeholder="contacto@iglesia.org" [fluid]="true" />
+            <app-mensaje-error-campo [control]="grupo().controls.correo" [mensajes]="mensajes['correo']" />
+            <app-mensaje-error-servidor [mensaje]="erroresCampo()['correo']" />
+        </div>
+        <div class="flex flex-col gap-2">
+            <label [for]="idPrefijo() + '-sitio-web'">Sitio web</label>
+            <input pInputText [id]="idPrefijo() + '-sitio-web'" type="url" formControlName="sitioWeb" autocomplete="url" [maxlength]="limites.sitioWeb" placeholder="https://iglesia.org" [fluid]="true" />
+            <app-mensaje-error-campo [control]="grupo().controls.sitioWeb" [mensajes]="mensajes['sitioWeb']" />
+            <app-mensaje-error-servidor [mensaje]="erroresCampo()['sitioWeb']" />
+        </div>
+    </fieldset>
+</ng-container>

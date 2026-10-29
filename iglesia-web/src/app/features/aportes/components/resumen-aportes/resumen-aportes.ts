@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { ChartModule } from 'primeng/chart';
 import { SkeletonModule } from 'primeng/skeleton';
+import { AparienciaService } from '@/app/core/apariencia/services/apariencia.service';
 import { LayoutService } from '@/app/layout/service/layout.service';
 import { formatearMonto, MonedaPipe } from '@/app/shared/pipes/moneda.pipe';
 import { DESCRIPCION_MEDIO, MedioAporte, ResumenAportes } from '../../models/aporte';
@@ -36,6 +37,7 @@ interface Variacion {
 })
 export class ResumenAportesComponent {
     private readonly layout = inject(LayoutService);
+    private readonly apariencia = inject(AparienciaService);
 
     readonly resumen = input<ResumenAportes | null>(null);
     readonly cargando = input(false);
@@ -93,7 +95,9 @@ export class ResumenAportesComponent {
 
     constructor() {
         effect((alLimpiar) => {
+            // Se repinta al cambiar el modo oscuro o la apariencia de la iglesia.
             this.layout.layoutConfig();
+            this.apariencia.actual();
             const espera = setTimeout(() => this.colores.set(leerColores()), ESPERA_TEMA_MS);
             alLimpiar(() => clearTimeout(espera));
         });

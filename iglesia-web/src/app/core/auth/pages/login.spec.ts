@@ -1,4 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
@@ -13,14 +14,11 @@ describe('LoginComponent', () => {
     let fixture: ComponentFixture<LoginComponent>;
 
     const crear = async (motivo: string | null = null): Promise<void> => {
-        sesion = jasmine.createSpyObj<SesionService>('SesionService', ['iniciarSesion', 'rutaInicio']);
+        // Antes de autenticarse no hay usuario: el logo muestra la identidad neutra del sistema.
+        sesion = jasmine.createSpyObj<SesionService>('SesionService', ['iniciarSesion', 'rutaInicio'], { usuarioActual: signal(null) });
         await TestBed.configureTestingModule({
             imports: [LoginComponent],
-            providers: [
-                provideRouter([]),
-                { provide: SesionService, useValue: sesion },
-                { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap(motivo ? { motivo } : {}) } } }
-            ]
+            providers: [provideRouter([]), { provide: SesionService, useValue: sesion }, { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap(motivo ? { motivo } : {}) } } }]
         })
             .overrideComponent(TarjetaAccesoComponent, SIN_CONFIGURADOR_DE_TEMA)
             .compileComponents();

@@ -20,7 +20,8 @@ export const PERMISOS = [
     'roles.ver',
     'roles.administrar',
     'iglesias.ver',
-    'iglesias.administrar'
+    'iglesias.administrar',
+    'iglesia.personalizar'
 ] as const;
 export type Permiso = (typeof PERMISOS)[number];
 

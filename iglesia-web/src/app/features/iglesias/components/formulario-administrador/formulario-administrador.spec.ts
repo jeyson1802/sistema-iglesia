@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Iglesia } from '@/app/core/iglesias/models/iglesia';
+import { iglesiaPrueba } from '@/app/core/iglesias/testing/iglesia-prueba';
 import { NuevoAdministrador } from '../../models/administrador-iglesia';
 import { FormularioAdministradorComponent } from './formulario-administrador';
 
@@ -7,7 +7,7 @@ describe('FormularioAdministradorComponent', () => {
     let fixture: ComponentFixture<FormularioAdministradorComponent>;
     let emitidos: NuevoAdministrador[];
 
-    const NORTE: Iglesia = { id: 2, nombre: 'Iglesia del Norte', creadaEn: new Date(2026, 0, 1) };
+    const NORTE = iglesiaPrueba({ id: 2, nombreComercial: 'Iglesia del Norte' });
 
     const abrir = async (): Promise<void> => {
         fixture.componentInstance.visible.set(true);

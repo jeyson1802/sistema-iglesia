@@ -1,18 +1,23 @@
 import { HttpErrorResponse, HttpStatusCode } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
-import { finalize, Observable, Subscription } from 'rxjs';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, signal, untracked } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router } from '@angular/router';
+import { finalize, map, Observable, Subscription } from 'rxjs';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
 import { esErrorGlobal } from '@/app/core/errores/clasificar-error';
-import { Iglesia } from '@/app/core/iglesias/models/iglesia';
+import { erroresPorCampo } from '@/app/core/errores/detalle-de-error';
+import { FiltroIglesias, Iglesia } from '@/app/core/iglesias/models/iglesia';
 import { IglesiasService } from '@/app/core/iglesias/services/iglesias.service';
+import { FILAS_POR_PAGINA, PaginaPedida, paginaACargar } from '@/app/shared/utils/paginacion';
+import { FiltrosIglesiasComponent } from '../components/filtros-iglesias/filtros-iglesias';
 import { FormularioAdministradorComponent } from '../components/formulario-administrador/formulario-administrador';
 import { FormularioIglesiaComponent } from '../components/formulario-iglesia/formulario-iglesia';
 import { TablaIglesiasComponent } from '../components/tabla-iglesias/tabla-iglesias';
-import { AltaIglesia, ModoFormularioIglesia, NuevoAdministrador } from '../models/administrador-iglesia';
+import { AltaIglesia, NuevoAdministrador } from '../models/administrador-iglesia';
+import { filtroIglesiasAUrl, filtroIglesiasDesdeUrl } from '../models/filtro-url';
 import { AdministradoresIglesiaService } from '../services/administradores-iglesia.service';
 
 const MENSAJE_ERROR_CARGA = 'No se pudieron cargar las iglesias.';
@@ -27,19 +32,14 @@ const RUTA_AL_ENTRAR = '/usuarios';
 /** Errores de negocio cuyo `detail` (ProblemDetail, en español) se muestra tal cual. */
 const ESTADOS_CON_DETALLE: readonly number[] = [HttpStatusCode.BadRequest, HttpStatusCode.Forbidden, HttpStatusCode.NotFound, HttpStatusCode.Conflict];
 
-interface DialogoIglesia {
-    readonly modo: ModoFormularioIglesia;
-    readonly iglesia: Iglesia | null;
-}
-
 /**
- * Catálogo de iglesias del administrador del sistema (contenedor): carga, alta de una iglesia con su primer
- * administrador (dos llamadas, a iglesia-api y a iglesia-seguridad), renombrado, creación de administradores y entrada
- * a una iglesia para operarla.
+ * Catálogo de iglesias del administrador del sistema (contenedor): filtros en la URL y página pedida al servidor, alta
+ * de una iglesia con su primer administrador (dos llamadas, a iglesia-api y a iglesia-seguridad), creación de
+ * administradores y entrada a una iglesia para operarla. La edición completa vive en `/iglesias/:id`.
  */
 @Component({
     selector: 'app-iglesias-lista',
-    imports: [ButtonModule, ToastModule, FormularioAdministradorComponent, FormularioIglesiaComponent, TablaIglesiasComponent],
+    imports: [ButtonModule, ToastModule, FiltrosIglesiasComponent, FormularioAdministradorComponent, FormularioIglesiaComponent, TablaIglesiasComponent],
     providers: [MessageService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './iglesias-lista.html'
@@ -49,17 +49,22 @@ export class IglesiasListaComponent {
     private readonly administradores = inject(AdministradoresIglesiaService);
     private readonly sesion = inject(SesionService);
     private readonly router = inject(Router);
+    private readonly ruta = inject(ActivatedRoute);
     private readonly mensajes = inject(MessageService);
 
+    protected readonly filtro = toSignal(this.ruta.queryParamMap.pipe(map((parametros) => filtroIglesiasDesdeUrl(parametros))), { requireSync: true });
     protected readonly iglesias = signal<readonly Iglesia[]>([]);
+    protected readonly totalRegistros = signal(0);
+    protected readonly pagina = signal(0);
+    protected readonly tamanoPagina = signal(FILAS_POR_PAGINA);
     protected readonly cargando = signal(true);
     protected readonly errorCarga = signal<string | null>(null);
     private carga?: Subscription;
 
-    protected readonly dialogo = signal<DialogoIglesia | null>(null);
     protected readonly dialogoVisible = signal(false);
     protected readonly guardando = signal(false);
     protected readonly errorDialogo = signal<string | null>(null);
+    protected readonly erroresCampo = signal<Readonly<Record<string, string>>>({});
 
     protected readonly iglesiaAdministrador = signal<Iglesia | null>(null);
     protected readonly administradorVisible = signal(false);
@@ -73,30 +78,33 @@ export class IglesiasListaComponent {
 
     constructor() {
         inject(DestroyRef).onDestroy(() => this.carga?.unsubscribe());
-        this.cargar();
+        // Cada filtro nuevo (de la URL) vuelve a la primera página.
+        effect(() => {
+            const filtro = this.filtro();
+            untracked(() => this.cargarPagina(filtro, 0));
+        });
     }
 
-    /** Carga (o reintenta) el catálogo; una petición nueva cancela la anterior. */
+    protected filtrar(filtro: FiltroIglesias): void {
+        this.router.navigate([], { relativeTo: this.ruta, queryParams: filtroIglesiasAUrl(filtro) });
+    }
+
+    /** Al cambiar cuántas se ven por página se vuelve a la primera, para no quedar en una página que ya no existe. */
+    protected cambiarPagina(pedida: PaginaPedida): void {
+        const pagina = paginaACargar(pedida, this.tamanoPagina());
+        this.tamanoPagina.set(pedida.tamano);
+        this.cargarPagina(this.filtro(), pagina);
+    }
+
+    /** Vuelve a pedir la página actual (también tras un error). */
     protected cargar(): void {
-        this.carga?.unsubscribe();
-        this.cargando.set(true);
-        this.errorCarga.set(null);
-        this.carga = this.servicio
-            .listar()
-            .pipe(finalize(() => this.cargando.set(false)))
-            .subscribe({
-                next: (iglesias) => this.iglesias.set(iglesias),
-                // La pantalla no sirve sin datos: el estado de error con «Reintentar» se muestra siempre.
-                error: () => this.errorCarga.set(MENSAJE_ERROR_CARGA)
-            });
+        this.cargarPagina(this.filtro(), this.pagina());
     }
 
     protected nueva(): void {
-        this.abrirFormulario({ modo: 'crear', iglesia: null });
-    }
-
-    protected editar(iglesia: Iglesia): void {
-        this.abrirFormulario({ modo: 'editar', iglesia });
+        this.errorDialogo.set(null);
+        this.erroresCampo.set({});
+        this.dialogoVisible.set(true);
     }
 
     protected abrirAdministrador(iglesia: Iglesia): void {
@@ -109,16 +117,17 @@ export class IglesiasListaComponent {
      * Alta en dos pasos. Si falla la iglesia, el error se muestra en el diálogo; si la iglesia se creó pero no su
      * administrador, se cierra el diálogo (reintentar duplicaría la iglesia) y se indica cómo completarla.
      */
-    protected crear({ nombre, administrador }: AltaIglesia): void {
+    protected crear({ datos, administrador }: AltaIglesia): void {
         this.guardando.set(true);
         this.errorDialogo.set(null);
-        this.servicio.crear(nombre).subscribe({
+        this.erroresCampo.set({});
+        this.servicio.crear(datos).subscribe({
             next: (iglesia) =>
                 this.administradores
                     .crear(iglesia.id, administrador)
                     .pipe(finalize(() => this.terminarAlta()))
                     .subscribe({
-                        next: () => this.avisar('success', 'Iglesia creada', `${iglesia.nombre} ya tiene a ${administrador.correo.toLowerCase()} como administrador.`),
+                        next: () => this.avisar('success', 'Iglesia creada', `${iglesia.nombreComercial} ya tiene a ${administrador.correo.toLowerCase()} como administrador.`),
                         error: (error: unknown) => {
                             const detalle = mensajeDeError(error, MENSAJE_ERROR_ADMINISTRADOR) ?? DETALLE_ERROR_INESPERADO;
                             this.avisar('warn', 'Iglesia creada sin administrador', `La iglesia se creó, pero no su administrador: ${detalle}. Usa "Crear administrador".`, true);
@@ -127,28 +136,9 @@ export class IglesiasListaComponent {
             error: (error: unknown) => {
                 this.guardando.set(false);
                 this.errorDialogo.set(mensajeDeError(error, MENSAJE_ERROR_GUARDAR));
+                this.erroresCampo.set(erroresPorCampo(error));
             }
         });
-    }
-
-    protected renombrar(nombre: string): void {
-        const iglesia = this.dialogo()?.iglesia;
-        if (!iglesia) {
-            return;
-        }
-        this.guardando.set(true);
-        this.errorDialogo.set(null);
-        this.servicio
-            .renombrar(iglesia.id, nombre)
-            .pipe(finalize(() => this.guardando.set(false)))
-            .subscribe({
-                next: (renombrada) => {
-                    this.dialogoVisible.set(false);
-                    this.iglesias.update((iglesias) => iglesias.map((actual) => (actual.id === renombrada.id ? renombrada : actual)));
-                    this.avisar('success', 'Iglesia actualizada', `Ahora se llama ${renombrada.nombre}.`);
-                },
-                error: (error: unknown) => this.errorDialogo.set(mensajeDeError(error, MENSAJE_ERROR_GUARDAR))
-            });
     }
 
     protected crearAdministrador(administrador: NuevoAdministrador): void {
@@ -194,10 +184,23 @@ export class IglesiasListaComponent {
         this.cargar();
     }
 
-    private abrirFormulario(dialogo: DialogoIglesia): void {
-        this.errorDialogo.set(null);
-        this.dialogo.set(dialogo);
-        this.dialogoVisible.set(true);
+    /** Una petición nueva cancela la anterior para que no llegue una respuesta vieja. */
+    private cargarPagina(filtro: FiltroIglesias, pagina: number): void {
+        this.carga?.unsubscribe();
+        this.pagina.set(pagina);
+        this.cargando.set(true);
+        this.errorCarga.set(null);
+        this.carga = this.servicio
+            .listar(filtro, pagina, this.tamanoPagina())
+            .pipe(finalize(() => this.cargando.set(false)))
+            .subscribe({
+                next: ({ content, page }) => {
+                    this.iglesias.set(content);
+                    this.totalRegistros.set(page.totalElements);
+                },
+                // La pantalla no sirve sin datos: el estado de error con «Reintentar» se muestra siempre.
+                error: () => this.errorCarga.set(MENSAJE_ERROR_CARGA)
+            });
     }
 
     private avisar(severity: 'success' | 'warn' | 'error', summary: string, detail: string, fijo = false): void {
@@ -206,7 +209,7 @@ export class IglesiasListaComponent {
 }
 
 /**
- * Los 400, 403, 404 y 409 traen en `detail` el motivo en español (p. ej. el nombre o el correo repetido). Los 5xx y la
+ * Los 400, 403, 404 y 409 traen en `detail` el motivo en español (p. ej. el nombre comercial o el correo repetido). Los 5xx y la
  * falta de conexión ya los avisa el toast global: la página no repite el mensaje.
  */
 function mensajeDeError(error: unknown, generico: string): string | null {

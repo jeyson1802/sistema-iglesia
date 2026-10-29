@@ -119,6 +119,16 @@ class RolIntegrationTest {
 	}
 
 	@Test
+	void soloElAdministradorDeIglesiaPersonalizaSuIglesia() {
+		String rolesCon = """
+				select array_to_string(array_agg(r.codigo order by r.codigo), ',')
+				from rol_permiso rp join rol r on r.id = rp.rol_id
+				where rp.permiso_codigo = ?""";
+
+		assertThat(jdbc.queryForObject(rolesCon, String.class, Permisos.IGLESIA_PERSONALIZAR)).isEqualTo("ADMIN_IGLESIA");
+	}
+
+	@Test
 	void unRolDeIglesiaNoPuedeMarcarLosPermisosDeIglesias() throws Exception {
 		String token = administradorDe(64L);
 

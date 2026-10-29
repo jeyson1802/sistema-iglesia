@@ -1,0 +1,69 @@
+@if (cargando()) {
+<div class="card flex flex-col gap-4" aria-busy="true">
+    <p-skeleton width="12rem" height="1.5rem" />
+    <p-skeleton height="2.5rem" />
+    <p-skeleton height="2.5rem" />
+</div>
+} @else if (errorCarga()) {
+<div class="card flex flex-col items-center gap-4 py-8 text-center" role="alert">
+    <i class="pi pi-exclamation-circle text-4xl text-muted-color" aria-hidden="true"></i>
+    <span class="font-medium text-surface-900 dark:text-surface-0">{{ errorCarga() }}</span>
+    <p-button label="Reintentar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="cargar()" />
+</div>
+} @else { @if (faltaDireccion()) {
+<p-message severity="warn" icon="pi pi-map-marker">Completa la dirección de tu iglesia: se muestra en el pie de página de todos los usuarios.</p-message>
+}
+
+<section class="card flex flex-col gap-4 mb-0!" aria-labelledby="editor-datos-titulo">
+    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+            <h2 id="editor-datos-titulo" class="font-semibold text-lg text-surface-900 dark:text-surface-0 m-0 mb-1">Datos de la iglesia</h2>
+            <p class="text-muted-color m-0">Se muestran en la barra superior, en el pie de página y en el título de la pestaña.</p>
+        </div>
+        <div class="flex flex-col gap-1">
+            <span class="text-xs text-muted-color">Así se verá en la barra superior</span>
+            <div class="flex items-center gap-2 px-3 py-2 rounded-border border border-surface bg-surface-0 dark:bg-surface-900 max-w-72">
+                <app-logo-iglesia [vistaPrevia]="vistaPrevia()" />
+            </div>
+        </div>
+    </div>
+    <div aria-live="polite">
+        @if (errorDatos()) {
+        <p-message severity="error" icon="pi pi-times-circle">{{ errorDatos() }}</p-message>
+        }
+    </div>
+    <form [formGroup]="formulario" (ngSubmit)="guardarDatos()" class="flex flex-col gap-4" novalidate>
+        <app-campos-iglesia [grupo]="formulario" idPrefijo="editor-iglesia" [erroresCampo]="erroresCampo()" />
+        <div class="flex justify-end">
+            <p-button type="submit" label="Guardar datos" icon="pi pi-check" [loading]="guardandoDatos()" [disabled]="guardandoDatos()" />
+        </div>
+    </form>
+</section>
+
+<section class="card flex flex-col gap-4 mb-0!" aria-labelledby="editor-logo-titulo">
+    <div>
+        <h2 id="editor-logo-titulo" class="font-semibold text-lg text-surface-900 dark:text-surface-0 m-0 mb-1">Logo</h2>
+        <p class="text-muted-color m-0">Aparece junto al nombre comercial y como ícono de la pestaña. Sin logo se muestran las iniciales.</p>
+    </div>
+    <app-selector-logo [urlLogo]="urlLogo()" [procesando]="procesandoLogo()" [error]="errorLogo()" (subir)="subirLogo($event)" (quitar)="quitarLogo()" />
+</section>
+
+@if (apariencia(); as elegida) {
+<section class="card flex flex-col gap-4 mb-0!" aria-labelledby="editor-apariencia-titulo">
+    <div>
+        <h2 id="editor-apariencia-titulo" class="font-semibold text-lg text-surface-900 dark:text-surface-0 m-0 mb-1">Apariencia</h2>
+        <p class="text-muted-color m-0">La ves en vivo mientras eliges. Al guardarla, la verán todos los usuarios de la iglesia; el modo oscuro lo elige cada persona.</p>
+    </div>
+    <app-selector-apariencia [apariencia]="elegida" (aparienciaChange)="apariencia.set($event)" [nombreComercial]="nombreVistaPrevia()" [deshabilitado]="guardandoApariencia()" />
+    <div aria-live="polite">
+        @if (errorApariencia()) {
+        <p-message severity="error" icon="pi pi-times-circle">{{ errorApariencia() }}</p-message>
+        }
+    </div>
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+        <p-button label="Descartar cambios" severity="secondary" [outlined]="true" [disabled]="!aparienciaCambiada() || guardandoApariencia()" (onClick)="descartarApariencia()" />
+        <p-button label="Guardar apariencia" icon="pi pi-check" [loading]="guardandoApariencia()" [disabled]="!aparienciaCambiada() || guardandoApariencia()" (onClick)="guardarApariencia()" />
+    </div>
+</section>
+} }
+<p-toast position="top-right" />

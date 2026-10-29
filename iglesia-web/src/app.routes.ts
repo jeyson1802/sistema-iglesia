@@ -35,6 +35,7 @@ export function crearRutasApp(produccion: boolean): Routes {
                 { path: 'niveles', canActivate: [iglesiaFijadaGuard], loadChildren: () => import('./app/features/niveles/niveles.routes') },
                 { path: 'grupos', canActivate: [iglesiaFijadaGuard], loadChildren: () => import('./app/features/grupos/grupos.routes') },
                 { path: 'aportes', canActivate: [iglesiaFijadaGuard], loadChildren: () => import('./app/features/aportes/aportes.routes') },
+                { path: 'mi-iglesia', canActivate: [iglesiaFijadaGuard], loadChildren: () => import('./app/features/mi-iglesia/mi-iglesia.routes') },
                 ...soloEnDesarrollo(RUTAS_DEMO_EN_LAYOUT)
             ]
         },

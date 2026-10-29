@@ -1,0 +1,70 @@
+<div class="flex flex-col gap-2">
+    <span id="apariencia-preset" class="font-medium">Estilo de los componentes</span>
+    <p-selectbutton [options]="presets" [ngModel]="apariencia().preset" (ngModelChange)="elegirPreset($event)" [allowEmpty]="false" [disabled]="deshabilitado()" ariaLabelledBy="apariencia-preset" />
+</div>
+
+<div class="flex flex-col gap-2">
+    <span id="apariencia-primario" class="font-medium">Color principal</span>
+    <div class="flex flex-wrap gap-3" role="radiogroup" aria-labelledby="apariencia-primario">
+        @for (muestra of primarias; track muestra.valor) {
+        <button
+            type="button"
+            role="radio"
+            [attr.aria-checked]="apariencia().colorPrimario === muestra.valor"
+            [attr.aria-label]="muestra.etiqueta"
+            [title]="muestra.etiqueta"
+            [disabled]="deshabilitado()"
+            (click)="elegirPrimario(muestra.valor)"
+            class="w-8 h-8 rounded-full shadow cursor-pointer outline-offset-2 focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed"
+            [class]="muestra.clase"
+            [class.outline-2]="apariencia().colorPrimario === muestra.valor"
+            [class.outline]="apariencia().colorPrimario === muestra.valor"
+            [class.outline-primary]="apariencia().colorPrimario === muestra.valor"
+        ></button>
+        }
+    </div>
+</div>
+
+<div class="flex flex-col gap-2">
+    <span id="apariencia-superficie" class="font-medium">Superficie <span class="font-normal text-muted-color">(opcional: sin elegir, la del estilo)</span></span>
+    <div class="flex flex-wrap gap-3" role="radiogroup" aria-labelledby="apariencia-superficie">
+        @for (muestra of superficies; track muestra.valor) {
+        <button
+            type="button"
+            role="radio"
+            [attr.aria-checked]="apariencia().colorSuperficie === muestra.valor"
+            [attr.aria-label]="muestra.etiqueta"
+            [title]="muestra.etiqueta"
+            [disabled]="deshabilitado()"
+            (click)="elegirSuperficie(muestra.valor)"
+            class="w-8 h-8 rounded-full shadow cursor-pointer outline-offset-2 focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed"
+            [class]="muestra.clase"
+            [class.outline-2]="apariencia().colorSuperficie === muestra.valor"
+            [class.outline]="apariencia().colorSuperficie === muestra.valor"
+            [class.outline-primary]="apariencia().colorSuperficie === muestra.valor"
+        ></button>
+        }
+    </div>
+</div>
+
+<div class="flex flex-col gap-2">
+    <span id="apariencia-tipografia" class="font-medium">Tipografía del nombre comercial</span>
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3" role="radiogroup" aria-labelledby="apariencia-tipografia">
+        @for (tipografia of tipografias; track tipografia.nombre) {
+        <button
+            type="button"
+            role="radio"
+            [attr.aria-checked]="apariencia().tipografia === tipografia.nombre"
+            [disabled]="deshabilitado()"
+            (click)="elegirTipografia(tipografia.nombre)"
+            class="flex flex-col items-start gap-1 p-4 rounded-border border text-left cursor-pointer bg-surface-0 dark:bg-surface-900 hover:bg-emphasis focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed"
+            [class.border-primary]="apariencia().tipografia === tipografia.nombre"
+            [class.border-2]="apariencia().tipografia === tipografia.nombre"
+            [class.border-surface]="apariencia().tipografia !== tipografia.nombre"
+        >
+            <span class="text-xl text-surface-900 dark:text-surface-0 truncate max-w-full" [class]="tipografia.clase">{{ nombreComercial() }}</span>
+            <span class="text-sm text-muted-color">{{ tipografia.nombre }}</span>
+        </button>
+        }
+    </div>
+</div>

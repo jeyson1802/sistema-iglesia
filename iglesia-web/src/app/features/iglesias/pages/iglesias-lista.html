@@ -2,12 +2,14 @@
     <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
             <h1 class="font-semibold text-xl text-surface-900 dark:text-surface-0 m-0 mb-2">Iglesias</h1>
-            <p class="text-muted-color m-0">Da de alta iglesias, crea sus administradores y entra a operarlas.</p>
+            <p class="text-muted-color m-0">Da de alta iglesias, edita su identidad, crea sus administradores y entra a operarlas.</p>
         </div>
         @if (puedeAdministrar()) {
         <p-button label="Nueva iglesia" icon="pi pi-plus" (onClick)="nueva()" />
         }
     </header>
+
+    <app-filtros-iglesias [filtro]="filtro()" (filtrar)="filtrar($event)" class="mb-6" />
 
     @if (errorCarga()) {
     <div class="flex flex-col items-center gap-4 py-8 text-center" role="alert">
@@ -18,18 +20,21 @@
     } @else {
     <app-tabla-iglesias
         [iglesias]="iglesias()"
+        [totalRegistros]="totalRegistros()"
+        [pagina]="pagina()"
+        [tamanoPagina]="tamanoPagina()"
         [cargando]="cargando()"
         [puedeAdministrar]="puedeAdministrar()"
         [iglesiaActualId]="iglesiaActualId()"
         [entrando]="entrando()"
+        (cambiarPagina)="cambiarPagina($event)"
         (entrar)="entrar($event)"
-        (editar)="editar($event)"
         (crearAdministrador)="abrirAdministrador($event)"
     />
     }
 </div>
 
-<app-formulario-iglesia [(visible)]="dialogoVisible" [modo]="dialogo()?.modo ?? 'crear'" [iglesia]="dialogo()?.iglesia ?? null" [guardando]="guardando()" [error]="errorDialogo()" (crear)="crear($event)" (renombrar)="renombrar($event)" />
+<app-formulario-iglesia [(visible)]="dialogoVisible" [guardando]="guardando()" [error]="errorDialogo()" [erroresCampo]="erroresCampo()" (crear)="crear($event)" />
 
 <app-formulario-administrador [(visible)]="administradorVisible" [iglesia]="iglesiaAdministrador()" [guardando]="creandoAdministrador()" [error]="errorAdministrador()" (crear)="crearAdministrador($event)" />
 

@@ -1,0 +1,5 @@
+@if (url(); as logo) {
+<img [src]="logo" alt="" class="w-10 h-10 object-contain rounded-border" />
+} @else {
+<span aria-hidden="true" class="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-contrast font-semibold text-sm">{{ monograma() }}</span>
+}

@@ -1,3 +1,4 @@
+import { almacenLocal } from '@/app/shared/utils/almacen-local';
 import { esMedioAporte, MedioAporte } from './aporte';
 
 const CLAVE = 'aportes.ultimaSeleccion';
@@ -28,13 +29,5 @@ export function recordarSeleccion(seleccion: UltimaSeleccion, almacen: Storage |
         almacen?.setItem(CLAVE, JSON.stringify(seleccion));
     } catch {
         // Recordar es solo una comodidad: si no se puede escribir, el formulario sigue igual.
-    }
-}
-
-function almacenLocal(): Storage | null {
-    try {
-        return globalThis.localStorage ?? null;
-    } catch {
-        return null;
     }
 }

@@ -10,6 +10,8 @@ public final class Permisos {
 
 	public static final String IGLESIAS_ADMINISTRAR = "iglesias.administrar";
 
+	public static final String IGLESIA_PERSONALIZAR = "iglesia.personalizar";
+
 	public static final String MIEMBROS_VER = "miembros.ver";
 
 	public static final String MIEMBROS_CREAR = "miembros.crear";
@@ -37,6 +39,8 @@ public final class Permisos {
 	public static final String PUEDE_VER_IGLESIAS = "hasAuthority('" + IGLESIAS_VER + "')";
 
 	public static final String PUEDE_ADMINISTRAR_IGLESIAS = "hasAuthority('" + IGLESIAS_ADMINISTRAR + "')";
+
+	public static final String PUEDE_PERSONALIZAR_IGLESIA = "hasAuthority('" + IGLESIA_PERSONALIZAR + "')";
 
 	public static final String PUEDE_VER_MIEMBROS = "hasAuthority('" + MIEMBROS_VER + "')";
 

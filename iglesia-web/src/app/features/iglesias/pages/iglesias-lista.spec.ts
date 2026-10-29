@@ -8,6 +8,9 @@ import { Permiso } from '@/app/core/auth/models/permiso';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
 import { Iglesia } from '@/app/core/iglesias/models/iglesia';
 import { IglesiasService } from '@/app/core/iglesias/services/iglesias.service';
+import { iglesiaPrueba } from '@/app/core/iglesias/testing/iglesia-prueba';
+import { Page } from '@/app/core/models/page';
+import { UbigeoService } from '@/app/shared/components/selector-ubigeo/ubigeo.service';
 import { UsuarioAdmin } from '@/app/features/usuarios/models/usuario-admin';
 import { AdministradoresIglesiaService } from '../services/administradores-iglesia.service';
 import { IglesiasListaComponent } from './iglesias-lista';
@@ -19,17 +22,27 @@ describe('IglesiasListaComponent', () => {
     let permisos: Set<Permiso>;
     let fixture: ComponentFixture<IglesiasListaComponent>;
 
-    const CENTRAL: Iglesia = { id: 1, nombre: 'Iglesia Central', creadaEn: new Date(2026, 0, 1) };
-    const NORTE: Iglesia = { id: 2, nombre: 'Iglesia del Norte', creadaEn: new Date(2026, 9, 1) };
+    const CENTRAL = iglesiaPrueba({ id: 1, nombreComercial: 'Iglesia Central' });
+    const NORTE = iglesiaPrueba({ id: 2, nombreComercial: 'Iglesia del Norte' });
+    const pagina = (iglesias: Iglesia[], total = iglesias.length): Page<Iglesia> => ({ content: iglesias, page: { size: 10, number: 0, totalElements: total, totalPages: 1 } });
     const ADMINISTRADOR: UsuarioAdmin = { id: 30, correo: 'pastor@norte.org', miembroId: null, activo: true, debeCambiarContrasena: true, roles: [], creadoEn: new Date(2026, 9, 1) };
-    const ALTA = { nombre: 'Iglesia del Norte', administrador: { correo: 'Pastor@norte.org', contrasenaTemporal: 'Temporal123' } };
+    const ALTA = {
+        datos: { nombreComercial: 'Iglesia del Norte', denominacion: 'Iglesia Evangélica del Norte', direccion: 'Av. 1', distritoCodigo: '150132', telefono: null, correo: null, sitioWeb: null },
+        administrador: { correo: 'Pastor@norte.org', contrasenaTemporal: 'Temporal123' }
+    };
 
     const conError = (status: number, detail?: string): HttpErrorResponse => new HttpErrorResponse({ status, error: detail ? { detail } : null });
 
     const crear = async (): Promise<void> => {
         await TestBed.configureTestingModule({
             imports: [IglesiasListaComponent],
-            providers: [provideRouter([]), { provide: IglesiasService, useValue: servicio }, { provide: AdministradoresIglesiaService, useValue: administradores }, { provide: SesionService, useValue: sesion }]
+            providers: [
+                provideRouter([]),
+                { provide: IglesiasService, useValue: servicio },
+                { provide: AdministradoresIglesiaService, useValue: administradores },
+                { provide: SesionService, useValue: sesion },
+                { provide: UbigeoService, useValue: { departamentos: () => of([]), provincias: () => of([]), distritos: () => of([]) } }
+            ]
         }).compileComponents();
         fixture = TestBed.createComponent(IglesiasListaComponent);
         await fixture.whenStable();
@@ -37,8 +50,8 @@ describe('IglesiasListaComponent', () => {
 
     beforeEach(() => {
         permisos = new Set<Permiso>(['iglesias.ver', 'iglesias.administrar']);
-        servicio = jasmine.createSpyObj<IglesiasService>('IglesiasService', ['listar', 'crear', 'renombrar']);
-        servicio.listar.and.returnValue(of([CENTRAL, NORTE]));
+        servicio = jasmine.createSpyObj<IglesiasService>('IglesiasService', ['listar', 'crear', 'logo']);
+        servicio.listar.and.returnValue(of(pagina([CENTRAL, NORTE])));
         administradores = jasmine.createSpyObj<AdministradoresIglesiaService>('AdministradoresIglesiaService', ['crear']);
         sesion = {
             tienePermiso: (permiso: Permiso) => permisos.has(permiso),
@@ -54,16 +67,38 @@ describe('IglesiasListaComponent', () => {
     const componente = () => fixture.componentInstance;
     const toast = (): MessageService => fixture.debugElement.injector.get(MessageService);
 
-    it('carga el catálogo de iglesias', async () => {
+    it('carga la primera página del catálogo sin filtros', async () => {
         await crear();
 
-        expect(servicio.listar).toHaveBeenCalledTimes(1);
+        expect(servicio.listar).toHaveBeenCalledOnceWith({ q: null, ubigeo: null, activa: null }, 0, 10);
         expect(filas().length).toBe(2);
         expect(html().textContent).toContain('Iglesia del Norte');
     });
 
+    it('filtrar escribe el filtro en la URL y vuelve a pedir la primera página con él', async () => {
+        await crear();
+        const navegar = spyOn(TestBed.inject(Router), 'navigate').and.callThrough();
+
+        componente()['filtrar']({ q: 'norte', ubigeo: '15', activa: true });
+        await fixture.whenStable();
+
+        expect(navegar).toHaveBeenCalledWith([], jasmine.objectContaining({ queryParams: { q: 'norte', ubigeo: '15', activa: 'true' } }));
+        expect(servicio.listar).toHaveBeenCalledWith({ q: 'norte', ubigeo: '15', activa: true }, 0, 10);
+    });
+
+    it('pide al servidor la página elegida y, al cambiar el tamaño, vuelve a la primera', async () => {
+        servicio.listar.and.returnValue(of(pagina([CENTRAL], 45)));
+        await crear();
+
+        componente()['cambiarPagina']({ pagina: 2, tamano: 10 });
+        expect(servicio.listar).toHaveBeenCalledWith({ q: null, ubigeo: null, activa: null }, 2, 10);
+
+        componente()['cambiarPagina']({ pagina: 2, tamano: 20 });
+        expect(servicio.listar).toHaveBeenCalledWith({ q: null, ubigeo: null, activa: null }, 0, 20);
+    });
+
     it('mientras carga muestra el esqueleto', async () => {
-        servicio.listar.and.returnValue(new Subject<Iglesia[]>());
+        servicio.listar.and.returnValue(new Subject<Page<Iglesia>>());
         await crear();
 
         expect(html().querySelectorAll('tbody p-skeleton').length).toBeGreaterThan(0);
@@ -72,7 +107,7 @@ describe('IglesiasListaComponent', () => {
     it('si falla la carga muestra el error y permite reintentar', async () => {
         servicio.listar.and.returnValues(
             throwError(() => conError(500)),
-            of([CENTRAL])
+            of(pagina([CENTRAL]))
         );
         await crear();
 
@@ -113,7 +148,7 @@ describe('IglesiasListaComponent', () => {
             componente()['crear'](ALTA);
             await fixture.whenStable();
 
-            expect(servicio.crear).toHaveBeenCalledOnceWith('Iglesia del Norte');
+            expect(servicio.crear).toHaveBeenCalledOnceWith(ALTA.datos);
             expect(administradores.crear).toHaveBeenCalledOnceWith(2, ALTA.administrador);
             expect(componente()['dialogoVisible']()).toBeFalse();
             expect(componente()['guardando']()).toBeFalse();
@@ -153,15 +188,17 @@ describe('IglesiasListaComponent', () => {
             expect(avisar).toHaveBeenCalledWith(jasmine.objectContaining({ detail: 'La iglesia se creó, pero no su administrador: ocurrió un error inesperado. Usa "Crear administrador".' }));
         });
 
-        it('un nombre repetido muestra el 409 dentro del diálogo, que sigue abierto, y no crea el administrador', async () => {
+        it('un nombre comercial repetido muestra el 409 dentro del diálogo y junto al campo, y no crea el administrador', async () => {
             await crear();
-            servicio.crear.and.returnValue(throwError(() => conError(409, 'Ya existe una iglesia con ese nombre')));
+            const repetido = new HttpErrorResponse({ status: 409, error: { detail: 'Ya existe una iglesia con ese nombre comercial', errores: { nombreComercial: 'Ya existe una iglesia con ese nombre comercial' } } });
+            servicio.crear.and.returnValue(throwError(() => repetido));
             componente()['nueva']();
 
             componente()['crear'](ALTA);
             await fixture.whenStable();
 
-            expect(componente()['errorDialogo']()).toBe('Ya existe una iglesia con ese nombre');
+            expect(componente()['errorDialogo']()).toBe('Ya existe una iglesia con ese nombre comercial');
+            expect(componente()['erroresCampo']()).toEqual({ nombreComercial: 'Ya existe una iglesia con ese nombre comercial' });
             expect(componente()['dialogoVisible']()).toBeTrue();
             expect(componente()['guardando']()).toBeFalse();
             expect(administradores.crear).not.toHaveBeenCalled();
@@ -175,34 +212,6 @@ describe('IglesiasListaComponent', () => {
             componente()['crear'](ALTA);
 
             expect(componente()['errorDialogo']()).toBeNull();
-        });
-    });
-
-    describe('renombrar', () => {
-        it('renombra la iglesia, actualiza la fila y avisa', async () => {
-            await crear();
-            servicio.renombrar.and.returnValue(of({ ...CENTRAL, nombre: 'Iglesia Central de Lima' }));
-            const avisar = spyOn(toast(), 'add');
-            boton('Editar nombre de Iglesia Central')!.click();
-
-            componente()['renombrar']('Iglesia Central de Lima');
-            await fixture.whenStable();
-
-            expect(servicio.renombrar).toHaveBeenCalledOnceWith(1, 'Iglesia Central de Lima');
-            expect(componente()['dialogoVisible']()).toBeFalse();
-            expect(filas()[0].textContent).toContain('Iglesia Central de Lima');
-            expect(avisar).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'success' }));
-        });
-
-        it('un nombre repetido muestra el 409 en el diálogo', async () => {
-            await crear();
-            servicio.renombrar.and.returnValue(throwError(() => conError(409, 'Ya existe una iglesia con ese nombre')));
-            componente()['editar'](CENTRAL);
-
-            componente()['renombrar']('Iglesia del Norte');
-
-            expect(componente()['errorDialogo']()).toBe('Ya existe una iglesia con ese nombre');
-            expect(componente()['dialogoVisible']()).toBeTrue();
         });
     });
 

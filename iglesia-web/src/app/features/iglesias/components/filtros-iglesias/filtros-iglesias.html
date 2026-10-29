@@ -1,0 +1,26 @@
+<form [formGroup]="formulario" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4 items-end" role="search" aria-label="Filtrar iglesias" (submit)="$event.preventDefault()">
+    <div class="flex flex-col gap-2 sm:col-span-2 xl:col-span-5">
+        <label for="filtro-iglesia-nombre" class="font-medium">Nombre</label>
+        <p-iconfield>
+            <p-inputicon styleClass="pi pi-search" />
+            <input pInputText id="filtro-iglesia-nombre" type="search" formControlName="q" autocomplete="off" placeholder="Buscar por nombre comercial o denominación" [fluid]="true" />
+        </p-iconfield>
+    </div>
+    <div class="flex flex-col gap-2">
+        <label for="filtro-iglesia-estado" class="font-medium">Estado</label>
+        <p-select inputId="filtro-iglesia-estado" formControlName="activa" [options]="opcionesEstado" optionLabel="etiqueta" optionValue="valor" placeholder="Todas" [fluid]="true" />
+    </div>
+    <fieldset class="sm:col-span-2 xl:col-span-6 m-0 p-0 border-0 min-w-0">
+        <legend class="sr-only">Ubicación</legend>
+        <app-selector-ubigeo idBase="filtro-iglesia" formControlName="ubigeo" [parcial]="true" />
+    </fieldset>
+</form>
+
+@if (chips().length > 0) {
+<div class="flex flex-wrap items-center gap-2" aria-label="Filtros activos">
+    @for (chip of chips(); track chip.clave) {
+    <p-chip [label]="chip.etiqueta" [removable]="true" (onRemove)="quitar(chip)" removeIcon="pi pi-times" />
+    }
+    <p-button label="Limpiar filtros" icon="pi pi-filter-slash" [text]="true" size="small" severity="secondary" (onClick)="limpiar()" />
+</div>
+}

@@ -26,6 +26,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 import com.iglesia.api.common.error.component.FabricaProblemDetail;
 import com.iglesia.api.common.error.exception.ConflictoException;
+import com.iglesia.api.common.error.exception.ContenidoDemasiadoGrandeException;
 import com.iglesia.api.common.error.exception.RecursoNoEncontradoException;
 import com.iglesia.api.common.error.exception.ReglaNegocioException;
 import com.iglesia.api.common.seguridad.exception.CambioContrasenaPendienteException;
@@ -65,6 +66,12 @@ class ManejadorGlobalErrores extends ResponseEntityExceptionHandler {
 		ProblemDetail problema = fabrica.crear(HttpStatus.BAD_REQUEST, "Regla de negocio incumplida", ex.getMessage());
 		ex.campo().ifPresent(campo -> problema.setProperty(PROPIEDAD_ERRORES, Map.of(campo, ex.getMessage())));
 		return registrar(peticion, problema, ex);
+	}
+
+	@ExceptionHandler(ContenidoDemasiadoGrandeException.class)
+	ProblemDetail contenidoDemasiadoGrande(ContenidoDemasiadoGrandeException ex, HttpServletRequest peticion) {
+		return registrar(peticion,
+				fabrica.crear(HttpStatus.CONTENT_TOO_LARGE, "Archivo demasiado grande", ex.getMessage()), ex);
 	}
 
 	@ExceptionHandler(PropertyReferenceException.class)

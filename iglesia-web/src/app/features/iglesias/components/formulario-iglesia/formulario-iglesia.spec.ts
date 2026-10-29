@@ -1,29 +1,23 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Iglesia } from '@/app/core/iglesias/models/iglesia';
+import { of } from 'rxjs';
+import { UbigeoService } from '@/app/shared/components/selector-ubigeo/ubigeo.service';
 import { AltaIglesia } from '../../models/administrador-iglesia';
 import { FormularioIglesiaComponent } from './formulario-iglesia';
 
 describe('FormularioIglesiaComponent', () => {
     let fixture: ComponentFixture<FormularioIglesiaComponent>;
     let altas: AltaIglesia[];
-    let nombres: string[];
-
-    const CENTRAL: Iglesia = { id: 1, nombre: 'Iglesia Central', creadaEn: new Date(2026, 0, 1) };
-
-    const abrir = async (modo: 'crear' | 'editar' = 'crear', iglesia: Iglesia | null = null): Promise<void> => {
-        fixture.componentRef.setInput('modo', modo);
-        fixture.componentRef.setInput('iglesia', iglesia);
-        fixture.componentInstance.visible.set(true);
-        await fixture.whenStable();
-    };
 
     beforeEach(async () => {
-        await TestBed.configureTestingModule({ imports: [FormularioIglesiaComponent] }).compileComponents();
+        const ubigeo = jasmine.createSpyObj<UbigeoService>('UbigeoService', ['departamentos', 'provincias', 'distritos']);
+        ubigeo.departamentos.and.returnValue(of([]));
+        ubigeo.provincias.and.returnValue(of([]));
+        ubigeo.distritos.and.returnValue(of([]));
+        await TestBed.configureTestingModule({ imports: [FormularioIglesiaComponent], providers: [{ provide: UbigeoService, useValue: ubigeo }] }).compileComponents();
         fixture = TestBed.createComponent(FormularioIglesiaComponent);
         altas = [];
-        nombres = [];
         fixture.componentInstance.crear.subscribe((alta) => altas.push(alta));
-        fixture.componentInstance.renombrar.subscribe((nombre) => nombres.push(nombre));
+        fixture.componentInstance.visible.set(true);
         await fixture.whenStable();
     });
 
@@ -33,7 +27,6 @@ describe('FormularioIglesiaComponent', () => {
     const dialogo = (): HTMLElement => document.querySelector('.p-dialog') as HTMLElement;
     const campo = (id: string): HTMLInputElement | null => document.getElementById(id) as HTMLInputElement | null;
     const guardar = (): HTMLButtonElement => dialogo().querySelector('button[type="submit"]') as HTMLButtonElement;
-    const cancelar = (): HTMLButtonElement => Array.from(dialogo().querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Cancelar')!;
 
     const escribir = async (id: string, valor: string): Promise<void> => {
         const input = campo(id)!;
@@ -43,92 +36,62 @@ describe('FormularioIglesiaComponent', () => {
         await fixture.whenStable();
     };
 
-    const llenarAlta = async (nombre = 'Iglesia del Norte'): Promise<void> => {
-        await escribir('iglesia-nombre', nombre);
+    const llenarAlta = async (): Promise<void> => {
+        await escribir('alta-iglesia-nombre-comercial', '  Sion Norte ');
+        await escribir('alta-iglesia-denominacion', 'Iglesia Evangélica Sion');
+        await escribir('alta-iglesia-direccion', 'Av. Los Próceres 123');
+        fixture.componentInstance['formulario'].controls.iglesia.controls.distritoCodigo.setValue('150132');
         await escribir('iglesia-administrador-correo', 'pastor@norte.org');
         await escribir('iglesia-administrador-contrasena', 'Temporal123');
     };
 
-    it('al crear pide el nombre y el correo y la contraseña temporal del primer administrador', async () => {
-        await abrir();
-
+    it('pide la identidad de la iglesia y el primer administrador', () => {
         expect(dialogo().textContent).toContain('Nueva iglesia');
+        expect(dialogo().textContent).toContain('Datos de la iglesia');
         expect(dialogo().textContent).toContain('Primer administrador');
-        expect(campo('iglesia-nombre')).not.toBeNull();
-        expect(campo('iglesia-administrador-correo')).not.toBeNull();
+        expect(campo('alta-iglesia-nombre-comercial')).not.toBeNull();
+        expect(campo('alta-iglesia-denominacion')).not.toBeNull();
         expect(campo('iglesia-administrador-contrasena')!.getAttribute('autocomplete')).toBe('new-password');
     });
 
-    it('«Guardar» se habilita solo con todos los datos válidos', async () => {
-        await abrir();
+    it('«Guardar» se habilita solo con todos los datos obligatorios válidos', async () => {
         expect(guardar().disabled).toBeTrue();
 
-        await escribir('iglesia-nombre', '   ');
-        expect(dialogo().textContent).toContain('Escribe el nombre de la iglesia');
-
-        await llenarAlta('a'.repeat(151));
-        expect(dialogo().textContent).toContain('El nombre no puede superar 150 caracteres');
-        expect(guardar().disabled).toBeTrue();
-
-        await escribir('iglesia-nombre', 'Iglesia del Norte');
-        expect(guardar().disabled).toBeFalse();
-    });
-
-    it('emite el alta con el nombre y el correo sin espacios sobrantes', async () => {
-        await abrir();
-        await llenarAlta('  Iglesia del Norte  ');
-
-        guardar().click();
-        await fixture.whenStable();
-
-        expect(altas).toEqual([{ nombre: 'Iglesia del Norte', administrador: { correo: 'pastor@norte.org', contrasenaTemporal: 'Temporal123' } }]);
-    });
-
-    it('al editar solo muestra el nombre, precargado, y emite el nuevo', async () => {
-        await abrir('editar', CENTRAL);
-
-        expect(dialogo().textContent).toContain('Editar «Iglesia Central»');
-        expect(campo('iglesia-administrador-correo')).toBeNull();
-        expect(campo('iglesia-nombre')!.value).toBe('Iglesia Central');
-        expect(guardar().disabled).toBeFalse();
-
-        await escribir('iglesia-nombre', 'Iglesia Central de Lima');
-        guardar().click();
-        await fixture.whenStable();
-
-        expect(nombres).toEqual(['Iglesia Central de Lima']);
-        expect(altas).toEqual([]);
-    });
-
-    it('al volver a abrirse para crear empieza vacío', async () => {
-        await abrir();
         await llenarAlta();
+
+        expect(guardar().disabled).toBeFalse();
+    });
+
+    it('emite el alta con los textos sin espacios sobrantes y el contacto vacío como null', async () => {
+        await llenarAlta();
+
+        guardar().click();
+        await fixture.whenStable();
+
+        expect(altas).toEqual([
+            {
+                datos: { nombreComercial: 'Sion Norte', denominacion: 'Iglesia Evangélica Sion', direccion: 'Av. Los Próceres 123', distritoCodigo: '150132', telefono: null, correo: null, sitioWeb: null },
+                administrador: { correo: 'pastor@norte.org', contrasenaTemporal: 'Temporal123' }
+            }
+        ]);
+    });
+
+    it('muestra el error del backend en el diálogo y junto al campo', async () => {
+        fixture.componentRef.setInput('error', 'Revisa los datos');
+        fixture.componentRef.setInput('erroresCampo', { nombreComercial: 'Ya existe una iglesia con ese nombre comercial' });
+        await fixture.whenStable();
+
+        expect(dialogo().textContent).toContain('Revisa los datos');
+        expect(dialogo().textContent).toContain('Ya existe una iglesia con ese nombre comercial');
+    });
+
+    it('al volver a abrir empieza vacío', async () => {
+        await escribir('alta-iglesia-nombre-comercial', 'Sion');
         fixture.componentInstance.visible.set(false);
         await fixture.whenStable();
-
-        await abrir();
-
-        expect(campo('iglesia-nombre')!.value).toBe('');
-        expect(campo('iglesia-administrador-contrasena')!.value).toBe('');
-        expect(guardar().disabled).toBeTrue();
-    });
-
-    it('muestra el error del contenedor y deshabilita las acciones mientras guarda', async () => {
-        fixture.componentRef.setInput('error', 'Ya existe una iglesia con ese nombre');
-        fixture.componentRef.setInput('guardando', true);
-        await abrir();
-
-        expect(dialogo().textContent).toContain('Ya existe una iglesia con ese nombre');
-        expect(cancelar().disabled).toBeTrue();
-        expect(guardar().disabled).toBeTrue();
-    });
-
-    it('«Cancelar» cierra el diálogo', async () => {
-        await abrir();
-
-        cancelar().click();
+        fixture.componentInstance.visible.set(true);
         await fixture.whenStable();
 
-        expect(fixture.componentInstance.visible()).toBeFalse();
+        expect(campo('alta-iglesia-nombre-comercial')!.value).toBe('');
     });
 });

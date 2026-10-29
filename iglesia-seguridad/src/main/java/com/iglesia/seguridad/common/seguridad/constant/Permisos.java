@@ -24,6 +24,8 @@ public final class Permisos {
 
 	public static final String APORTES_CONFIGURAR = "aportes.configurar";
 
+	public static final String IGLESIA_PERSONALIZAR = "iglesia.personalizar";
+
 	public static final String USUARIOS_VER = "usuarios.ver";
 
 	public static final String USUARIOS_ADMINISTRAR = "usuarios.administrar";

@@ -94,7 +94,8 @@ class IglesiaActuandoIntegrationTest {
 		assertThat(dentro.getClaimAsStringList(ClaimsJwt.PERMISOS)).containsExactlyInAnyOrder("iglesias.administrar",
 				"iglesias.ver", "miembros.crear", "miembros.desactivar", "miembros.editar", "miembros.ver",
 				"niveles.administrar", "grupos.ver", "grupos.administrar", "aportes.ver", "aportes.registrar",
-				"aportes.editar", "aportes.anular", "aportes.configurar", "roles.administrar", "roles.ver",
+				"aportes.editar", "aportes.anular", "aportes.configurar", "iglesia.personalizar", "roles.administrar",
+				"roles.ver",
 				"usuarios.administrar", "usuarios.ver");
 
 		MvcResult refrescado = refrescar(cookieDe(entrada));

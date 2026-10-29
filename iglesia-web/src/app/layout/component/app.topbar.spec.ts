@@ -1,10 +1,10 @@
-import { computed, CUSTOM_ELEMENTS_SCHEMA, signal } from '@angular/core';
+import { computed, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
-import { IglesiasService } from '@/app/core/iglesias/services/iglesias.service';
+import { PreferenciaModoOscuroService } from '@/app/core/apariencia/services/preferencia-modo-oscuro.service';
+import { IdentidadIglesiaService } from '@/app/core/iglesias/services/identidad-iglesia.service';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
-import { AppConfigurator } from './app.configurator';
 import { AppTopbar } from './app.topbar';
 import { perfilBase, perfilPersonalizado } from '@/app/core/auth/testing/perfiles-prueba';
 import { Perfil } from '@/app/core/auth/models/perfil';
@@ -14,7 +14,8 @@ describe('AppTopbar', () => {
     const perfilActivo = signal<Perfil | null>(null);
     const actuandoEnIglesia = signal(false);
     const iglesiaId = signal<number | null>(1);
-    let iglesias: jasmine.SpyObj<IglesiasService>;
+    const nombreComercial = signal<string | null>(null);
+    let modoOscuro: jasmine.SpyObj<PreferenciaModoOscuroService>;
     let sesion: jasmine.SpyObj<SesionService>;
     let navegar: jasmine.Spy;
     let fixture: ComponentFixture<AppTopbar>;
@@ -39,15 +40,13 @@ describe('AppTopbar', () => {
             actuandoEnIglesia
         });
         sesion.cerrarSesion.and.returnValue(of(undefined));
-        iglesias = jasmine.createSpyObj<IglesiasService>('IglesiasService', ['obtener']);
-        iglesias.obtener.and.returnValue(of({ id: 5, nombre: 'Iglesia del Norte', creadaEn: new Date(2026, 0, 1) }));
+        nombreComercial.set(null);
+        modoOscuro = jasmine.createSpyObj<PreferenciaModoOscuroService>('PreferenciaModoOscuroService', ['alternar']);
+        const identidad = { nombreComercial: computed(() => nombreComercial()), urlLogo: signal(null), cargando: signal(false) };
         await TestBed.configureTestingModule({
             imports: [AppTopbar],
-            providers: [provideRouter([]), { provide: SesionService, useValue: sesion }, { provide: IglesiasService, useValue: iglesias }]
-        })
-            // El configurador de colores de Sakai no es parte de lo que se prueba.
-            .overrideComponent(AppTopbar, { remove: { imports: [AppConfigurator] }, add: { schemas: [CUSTOM_ELEMENTS_SCHEMA] } })
-            .compileComponents();
+            providers: [provideRouter([]), { provide: SesionService, useValue: sesion }, { provide: IdentidadIglesiaService, useValue: identidad }, { provide: PreferenciaModoOscuroService, useValue: modoOscuro }]
+        }).compileComponents();
         navegar = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
         fixture = TestBed.createComponent(AppTopbar);
         await fixture.whenStable();
@@ -65,6 +64,23 @@ describe('AppTopbar', () => {
     it('muestra el logo de la iglesia en lugar del logo de Sakai', () => {
         expect(html().querySelector('.layout-topbar-logo app-logo-iglesia')).not.toBeNull();
         expect(html().querySelector('svg[viewBox="0 0 54 40"]')).toBeNull();
+    });
+
+    it('ya no ofrece el configurador de colores: solo el modo oscuro, que recuerda cada persona', () => {
+        expect(html().querySelector('.pi-palette')).toBeNull();
+        expect(html().querySelector('app-configurator')).toBeNull();
+
+        html().querySelector<HTMLButtonElement>('button[aria-label="Usar modo oscuro"]')!.click();
+
+        expect(modoOscuro.alternar).toHaveBeenCalledTimes(1);
+    });
+
+    it('el enlace al inicio lleva el nombre comercial, que en el móvil no se ve', async () => {
+        nombreComercial.set('MMM Lima Centro');
+        await fixture.whenStable();
+
+        expect(html().querySelector('.layout-topbar-logo')?.getAttribute('aria-label')).toBe('MMM Lima Centro: ir a la página de inicio');
+        expect(html().querySelector('.layout-topbar-logo')?.textContent).toContain('MMM Lima Centro');
     });
 
     it('muestra el correo y el nombre del perfil activo', () => {
@@ -119,23 +135,20 @@ describe('AppTopbar', () => {
         };
         const botonSalir = (): HTMLButtonElement | null => html().querySelector('button[aria-label^="Salir de la iglesia"]');
 
-        it('fuera de una iglesia no muestra el indicador ni pide su nombre', () => {
+        it('fuera de una iglesia no muestra el indicador', () => {
             expect(html().textContent).not.toContain('Operando en');
             expect(botonSalir()).toBeNull();
-            expect(iglesias.obtener).not.toHaveBeenCalled();
         });
 
-        it('muestra «Operando en: <nombre>» con el nombre de la iglesia y el botón para salir', async () => {
+        it('muestra «Operando en: <nombre comercial>» y el botón para salir', async () => {
+            nombreComercial.set('Iglesia del Norte');
             await entrarA(5);
 
-            expect(iglesias.obtener).toHaveBeenCalledOnceWith(5);
             expect(html().textContent).toContain('Operando en: Iglesia del Norte');
             expect(botonSalir()?.textContent).toContain('Salir de la iglesia');
         });
 
-        it('si no puede obtener el nombre muestra el número de la iglesia', async () => {
-            iglesias.obtener.and.returnValue(throwError(() => new Error('sin red')));
-
+        it('mientras no tiene el nombre comercial muestra el número de la iglesia', async () => {
             await entrarA(5);
 
             expect(html().textContent).toContain('Operando en: Iglesia 5');
