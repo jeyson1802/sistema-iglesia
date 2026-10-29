@@ -7,7 +7,8 @@ import { DialogModule } from 'primeng/dialog';
 import { MessageModule } from 'primeng/message';
 import { PasswordModule } from 'primeng/password';
 import { MensajeErrorCampoComponent, MensajesError } from '@/app/shared/components/mensaje-error-campo/mensaje-error-campo';
-import { CONTRASENA_TEMPORAL_MAX, CONTRASENA_TEMPORAL_MIN, UsuarioAdmin } from '../../models/usuario-admin';
+import { CONTRASENA_TEMPORAL_MAX, CONTRASENA_TEMPORAL_MIN } from '@/app/shared/utils/limites-usuario';
+import { UsuarioAdmin } from '../../models/usuario-admin';
 
 /**
  * Diálogo para restablecer la contraseña de otro usuario con una temporal (presentacional). Emite la contraseña

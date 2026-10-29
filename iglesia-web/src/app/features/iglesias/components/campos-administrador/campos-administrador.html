@@ -1,0 +1,13 @@
+<div class="flex flex-col gap-2">
+    <label [for]="idPrefijo() + '-correo'" class="font-medium">Correo del administrador</label>
+    <input pInputText [id]="idPrefijo() + '-correo'" type="email" [formControl]="grupo().controls.correo" autocomplete="off" [maxlength]="correoMax" placeholder="pastor@iglesia.org" [fluid]="true" />
+    <small class="text-muted-color">Con este correo iniciará sesión.</small>
+    <app-mensaje-error-campo [control]="grupo().controls.correo" [mensajes]="mensajesCorreo" />
+</div>
+
+<div class="flex flex-col gap-2">
+    <label [for]="idPrefijo() + '-contrasena'" class="font-medium">Contraseña temporal</label>
+    <p-password [inputId]="idPrefijo() + '-contrasena'" [formControl]="grupo().controls.contrasenaTemporal" autocomplete="new-password" [maxlength]="contrasenaMax" [toggleMask]="true" [feedback]="false" [fluid]="true" />
+    <small class="text-muted-color">{{ ayudaContrasena }}</small>
+    <app-mensaje-error-campo [control]="grupo().controls.contrasenaTemporal" [mensajes]="mensajesContrasena" />
+</div>

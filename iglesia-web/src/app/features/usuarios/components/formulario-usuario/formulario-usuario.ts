@@ -13,7 +13,8 @@ import { PasswordModule } from 'primeng/password';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { MensajeErrorCampoComponent, MensajesError } from '@/app/shared/components/mensaje-error-campo/mensaje-error-campo';
 import { RolAcceso } from '@/app/features/roles/models/rol-acceso';
-import { CONTRASENA_TEMPORAL_MAX, CONTRASENA_TEMPORAL_MIN, CORREO_MAX, CrearUsuario, EditarUsuario, UsuarioAdmin } from '../../models/usuario-admin';
+import { CONTRASENA_TEMPORAL_MAX, CONTRASENA_TEMPORAL_MIN, CORREO_MAX } from '@/app/shared/utils/limites-usuario';
+import { CrearUsuario, EditarUsuario, UsuarioAdmin } from '../../models/usuario-admin';
 
 export type ModoFormularioUsuario = 'crear' | 'editar';
 
