@@ -25,9 +25,13 @@ import com.iglesia.seguridad.jwt.model.TokenAcceso;
 import com.iglesia.seguridad.rol.entity.Rol;
 import com.iglesia.seguridad.rol.entity.RolesPrueba;
 import com.iglesia.seguridad.rol.model.RolBase;
+import com.iglesia.seguridad.rol.service.RolService;
 import com.iglesia.seguridad.usuario.entity.Usuario;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.mock;
 
 class GeneradorTokenAccesoTest {
 
@@ -39,13 +43,16 @@ class GeneradorTokenAccesoTest {
 
 	private GeneradorTokenAcceso generador;
 
+	private RolService servicioRoles;
+
 	@BeforeEach
 	void configurar() throws Exception {
 		clave = new RSAKeyGenerator(2048).keyID("clave-prueba").generate();
 		JwtProperties propiedades = new JwtProperties("http://emisor", List.of("iglesia-api", "iglesia-seguridad"),
 				"iglesia-seguridad", DURACION, Duration.ofDays(7), null, null);
+		servicioRoles = mock(RolService.class);
 		generador = new GeneradorTokenAcceso(new NimbusJwtEncoder(new ImmutableJWKSet<>(new JWKSet(clave))),
-				propiedades, clave, Clock.fixed(AHORA, ZoneOffset.UTC));
+				propiedades, clave, Clock.fixed(AHORA, ZoneOffset.UTC), servicioRoles);
 	}
 
 	@Test
@@ -53,7 +60,7 @@ class GeneradorTokenAccesoTest {
 		Usuario usuario = Usuario.nuevo("l@i.com", "h", 3L, 9L, RolesPrueba.bases(RolBase.MIEMBRO, RolBase.LIDER), false);
 		ReflectionTestUtils.setField(usuario, "id", 42L);
 
-		TokenAcceso token = generador.generar(usuario);
+		TokenAcceso token = generador.generar(usuario, null);
 		Jwt jwt = NimbusJwtDecoder.withPublicKey(clave.toRSAPublicKey()).build().decode(token.valor());
 
 		assertThat(jwt.getSubject()).isEqualTo("42");
@@ -77,7 +84,7 @@ class GeneradorTokenAccesoTest {
 		Usuario usuario = Usuario.nuevo("s@i.com", "h", 3L, 9L, Set.of(secretaria, consejo, tesoreria), false);
 		ReflectionTestUtils.setField(usuario, "id", 43L);
 
-		Jwt jwt = decodificar(generador.generar(usuario));
+		Jwt jwt = decodificar(generador.generar(usuario, null));
 
 		assertThat(jwt.getClaimAsStringList(ClaimsJwt.ROLES)).containsExactly("ADMIN_IGLESIA");
 		assertThat(jwt.getClaimAsStringList(ClaimsJwt.PERMISOS)).containsExactly("miembros.crear", "miembros.ver",
@@ -89,7 +96,7 @@ class GeneradorTokenAccesoTest {
 		Usuario miembro = Usuario.nuevo("m@i.com", "h", 3L, 9L, RolesPrueba.bases(RolBase.MIEMBRO), false);
 		ReflectionTestUtils.setField(miembro, "id", 44L);
 
-		assertThat(decodificar(generador.generar(miembro)).getClaimAsStringList(ClaimsJwt.PERMISOS)).isEmpty();
+		assertThat(decodificar(generador.generar(miembro, null)).getClaimAsStringList(ClaimsJwt.PERMISOS)).isEmpty();
 	}
 
 	@Test
@@ -99,10 +106,30 @@ class GeneradorTokenAccesoTest {
 
 		Jwt jwt = NimbusJwtDecoder.withPublicKey(clave.toRSAPublicKey())
 			.build()
-			.decode(generador.generar(admin).valor());
+			.decode(generador.generar(admin, null).valor());
 
 		assertThat(jwt.hasClaim(ClaimsJwt.IGLESIA_ID)).isFalse();
 		assertThat(jwt.hasClaim(ClaimsJwt.MIEMBRO_ID)).isFalse();
+		assertThat(jwt.hasClaim(ClaimsJwt.ACTUANDO_EN_IGLESIA)).isFalse();
+		then(servicioRoles).shouldHaveNoInteractions();
+	}
+
+	@Test
+	void dentroDeUnaIglesiaLlevaEsaIglesiaYSumaLosPermisosDeUnAdministradorDeIglesia() throws Exception {
+		Usuario admin = Usuario.nuevo("a@i.com", "h", null, null,
+				Set.of(RolesPrueba.base(RolBase.ADMIN_SISTEMA, "iglesias.ver", "iglesias.administrar", "usuarios.ver")),
+				false);
+		ReflectionTestUtils.setField(admin, "id", 1L);
+		given(servicioRoles.permisosDeRolBase(RolBase.ADMIN_IGLESIA))
+			.willReturn(Set.of("usuarios.ver", "roles.administrar"));
+
+		Jwt jwt = decodificar(generador.generar(admin, 7L));
+
+		assertThat(jwt.<Long>getClaim(ClaimsJwt.IGLESIA_ID)).isEqualTo(7L);
+		assertThat(jwt.<Object>getClaim(ClaimsJwt.ACTUANDO_EN_IGLESIA)).isEqualTo(true);
+		assertThat(jwt.getClaimAsStringList(ClaimsJwt.ROLES)).containsExactly("ADMIN_SISTEMA");
+		assertThat(jwt.getClaimAsStringList(ClaimsJwt.PERMISOS)).containsExactly("iglesias.administrar",
+				"iglesias.ver", "roles.administrar", "usuarios.ver");
 	}
 
 	@Test
@@ -112,9 +139,9 @@ class GeneradorTokenAccesoTest {
 		ReflectionTestUtils.setField(temporal, "id", 45L);
 		ReflectionTestUtils.setField(definitiva, "id", 46L);
 
-		assertThat(decodificar(generador.generar(temporal)).<Object>getClaim(ClaimsJwt.CAMBIO_CONTRASENA))
+		assertThat(decodificar(generador.generar(temporal, null)).<Object>getClaim(ClaimsJwt.CAMBIO_CONTRASENA))
 			.isEqualTo(true);
-		assertThat(decodificar(generador.generar(definitiva)).<Object>getClaim(ClaimsJwt.CAMBIO_CONTRASENA))
+		assertThat(decodificar(generador.generar(definitiva, null)).<Object>getClaim(ClaimsJwt.CAMBIO_CONTRASENA))
 			.isEqualTo(false);
 	}
 

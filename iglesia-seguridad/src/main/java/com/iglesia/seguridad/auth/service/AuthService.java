@@ -17,7 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.iglesia.seguridad.auth.dto.LoginRequest;
 import com.iglesia.seguridad.auth.dto.TokenAccesoResponse;
 import com.iglesia.seguridad.auth.exception.TokenRefrescoInvalidoException;
+import com.iglesia.seguridad.auth.model.RefrescoConsumido;
 import com.iglesia.seguridad.auth.model.SesionEmitida;
+import com.iglesia.seguridad.common.seguridad.constant.Permisos;
 import com.iglesia.seguridad.jwt.model.TokenAcceso;
 import com.iglesia.seguridad.jwt.service.GeneradorTokenAcceso;
 import com.iglesia.seguridad.usuario.entity.Usuario;
@@ -58,15 +60,21 @@ public class AuthService {
 		Authentication autenticacion = autenticar(Correo.normalizar(solicitud.correo()), solicitud.contrasena(), ip);
 		Usuario usuario = usuarios.findByCorreo(autenticacion.getName())
 			.orElseThrow(() -> new BadCredentialsException("Credenciales inválidas"));
-		SesionEmitida sesion = emitirTokens(usuario);
+		SesionEmitida sesion = emitirTokens(usuario, null);
 		LOG.info("Inicio de sesión exitoso usuarioId={}", usuario.getId());
 		return sesion;
 	}
 
+	/**
+	 * Rota el token de refresco y conserva la iglesia en la que operaba el administrador del sistema, salvo que
+	 * ya no pueda entrar a iglesias (perdió {@code iglesias.administrar}): entonces vuelve a la vista global.
+	 */
 	@Transactional(noRollbackFor = TokenRefrescoInvalidoException.class)
 	public SesionEmitida refrescar(String tokenRefresco) {
-		Usuario usuario = tokensRefresco.consumir(tokenRefresco);
-		SesionEmitida sesion = emitirTokens(usuario);
+		RefrescoConsumido consumido = tokensRefresco.consumir(tokenRefresco);
+		Usuario usuario = consumido.usuario();
+		Long iglesiaActuandoId = puedeEntrarAIglesias(usuario) ? consumido.iglesiaActuandoId() : null;
+		SesionEmitida sesion = emitirTokens(usuario, iglesiaActuandoId);
 		LOG.info("Token renovado usuarioId={}", usuario.getId());
 		return sesion;
 	}
@@ -95,11 +103,15 @@ public class AuthService {
 		return usuarios.findByCorreo(correo).map(usuario -> usuario.getId().toString()).orElse(USUARIO_INEXISTENTE);
 	}
 
-	private SesionEmitida emitirTokens(Usuario usuario) {
-		TokenAcceso acceso = generadorTokenAcceso.generar(usuario);
+	private static boolean puedeEntrarAIglesias(Usuario usuario) {
+		return usuario.getPermisosActivos().contains(Permisos.IGLESIAS_ADMINISTRAR);
+	}
+
+	private SesionEmitida emitirTokens(Usuario usuario, Long iglesiaActuandoId) {
+		TokenAcceso acceso = generadorTokenAcceso.generar(usuario, iglesiaActuandoId);
 		long segundos = Duration.between(reloj.instant(), acceso.expiraEn()).toSeconds();
 		return new SesionEmitida(new TokenAccesoResponse(acceso.valor(), TokenAccesoResponse.TIPO_BEARER, segundos),
-				tokensRefresco.emitir(usuario));
+				tokensRefresco.emitir(usuario, iglesiaActuandoId));
 	}
 
 }

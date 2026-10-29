@@ -149,6 +149,14 @@ public class RolService {
 		return encontrados;
 	}
 
+	/** Códigos de los permisos de un rol base. Flyway siembra los 4, así que nunca falta ninguno. */
+	@Transactional(readOnly = true)
+	public Set<String> permisosDeRolBase(RolBase codigo) {
+		return roles.findConPermisosByCodigo(codigo)
+			.map(rol -> rol.getPermisos().stream().map(Permiso::getCodigo).collect(Collectors.toUnmodifiableSet()))
+			.orElseThrow(() -> new IllegalStateException("Falta el rol base sembrado por Flyway: " + codigo));
+	}
+
 	/**
 	 * Roles que se pueden asignar a un usuario de esa iglesia: roles base o roles personalizados activos de la
 	 * misma iglesia. Un rol de otra iglesia se trata como inexistente para no revelar su existencia.

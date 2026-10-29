@@ -18,6 +18,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.iglesia.seguridad.auth.entity.TokenRefresco;
 import com.iglesia.seguridad.auth.exception.TokenRefrescoInvalidoException;
+import com.iglesia.seguridad.auth.model.RefrescoConsumido;
 import com.iglesia.seguridad.auth.repository.TokenRefrescoRepository;
 import com.iglesia.seguridad.jwt.config.JwtProperties;
 import com.iglesia.seguridad.rol.entity.RolesPrueba;
@@ -56,7 +57,7 @@ class TokenRefrescoServiceTest {
 
 	@Test
 	void emiteUnValorAleatorioYGuardaSoloSuHash() {
-		String valor = servicio.emitir(usuario);
+		String valor = servicio.emitir(usuario, null);
 
 		ArgumentCaptor<TokenRefresco> guardado = ArgumentCaptor.forClass(TokenRefresco.class);
 		then(tokens).should().save(guardado.capture());
@@ -64,21 +65,33 @@ class TokenRefrescoServiceTest {
 		assertThat(valor).hasSizeGreaterThanOrEqualTo(43);
 		assertThat(hash).hasSize(64).isNotEqualTo(valor);
 		assertThat(ReflectionTestUtils.getField(guardado.getValue(), "expiraEn")).isEqualTo(AHORA.plus(VIGENCIA));
-		assertThat(servicio.emitir(usuario)).isNotEqualTo(valor);
+		assertThat(servicio.emitir(usuario, null)).isNotEqualTo(valor);
 	}
 
 	@Test
 	void consumirRevocaElTokenYDevuelveElUsuario() {
-		TokenRefresco token = new TokenRefresco(usuario, "h", AHORA, AHORA.plus(VIGENCIA));
+		TokenRefresco token = new TokenRefresco(usuario, "h", AHORA, AHORA.plus(VIGENCIA), null);
 		given(tokens.findByHashToken(anyString())).willReturn(Optional.of(token));
 
-		assertThat(servicio.consumir("valor")).isSameAs(usuario);
+		assertThat(servicio.consumir("valor")).isEqualTo(new RefrescoConsumido(usuario, null));
 		assertThat(token.estaRevocado()).isTrue();
 	}
 
 	@Test
+	void guardaYDevuelveLaIglesiaEnLaQueOperaElAdministradorDelSistema() {
+		servicio.emitir(usuario, 7L);
+		ArgumentCaptor<TokenRefresco> guardado = ArgumentCaptor.forClass(TokenRefresco.class);
+		then(tokens).should().save(guardado.capture());
+		assertThat(guardado.getValue().getIglesiaActuandoId()).isEqualTo(7L);
+
+		given(tokens.findByHashToken(anyString())).willReturn(Optional.of(guardado.getValue()));
+
+		assertThat(servicio.consumir("valor").iglesiaActuandoId()).isEqualTo(7L);
+	}
+
+	@Test
 	void reutilizarUnTokenRevocadoRevocaTodasLasSesiones() {
-		TokenRefresco token = new TokenRefresco(usuario, "h", AHORA, AHORA.plus(VIGENCIA));
+		TokenRefresco token = new TokenRefresco(usuario, "h", AHORA, AHORA.plus(VIGENCIA), null);
 		token.revocar(AHORA);
 		given(tokens.findByHashToken(anyString())).willReturn(Optional.of(token));
 
@@ -91,12 +104,12 @@ class TokenRefrescoServiceTest {
 		given(tokens.findByHashToken(anyString())).willReturn(Optional.empty());
 		assertThatThrownBy(() -> servicio.consumir("x")).isInstanceOf(TokenRefrescoInvalidoException.class);
 
-		TokenRefresco expirado = new TokenRefresco(usuario, "h", AHORA.minus(VIGENCIA), AHORA);
+		TokenRefresco expirado = new TokenRefresco(usuario, "h", AHORA.minus(VIGENCIA), AHORA, null);
 		given(tokens.findByHashToken(anyString())).willReturn(Optional.of(expirado));
 		assertThatThrownBy(() -> servicio.consumir("x")).isInstanceOf(TokenRefrescoInvalidoException.class);
 
 		usuario.actualizar(RolesPrueba.bases(RolBase.ADMIN_IGLESIA), null, false);
-		TokenRefresco deInactivo = new TokenRefresco(usuario, "h", AHORA, AHORA.plus(VIGENCIA));
+		TokenRefresco deInactivo = new TokenRefresco(usuario, "h", AHORA, AHORA.plus(VIGENCIA), null);
 		given(tokens.findByHashToken(anyString())).willReturn(Optional.of(deInactivo));
 		assertThatThrownBy(() -> servicio.consumir("x")).isInstanceOf(TokenRefrescoInvalidoException.class);
 	}

@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.iglesia.seguridad.auth.entity.TokenRefresco;
 import com.iglesia.seguridad.auth.exception.TokenRefrescoInvalidoException;
+import com.iglesia.seguridad.auth.model.RefrescoConsumido;
 import com.iglesia.seguridad.auth.repository.TokenRefrescoRepository;
 import com.iglesia.seguridad.jwt.config.JwtProperties;
 import com.iglesia.seguridad.usuario.entity.Usuario;
@@ -47,24 +48,28 @@ public class TokenRefrescoService {
 		this.reloj = reloj;
 	}
 
-	/** Emite un token nuevo y devuelve su valor en claro (la única vez que existe). */
+	/**
+	 * Emite un token nuevo y devuelve su valor en claro (la única vez que existe).
+	 * @param iglesiaActuandoId iglesia en la que opera el administrador del sistema; {@code null} = vista global
+	 */
 	@Transactional
-	public String emitir(Usuario usuario) {
+	public String emitir(Usuario usuario, Long iglesiaActuandoId) {
 		byte[] bytes = new byte[BYTES_TOKEN];
 		aleatorio.nextBytes(bytes);
 		String valor = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
 		Instant ahora = reloj.instant();
-		tokens.save(new TokenRefresco(usuario, hash(valor), ahora, ahora.plus(propiedades.duracionTokenRefresco())));
+		tokens.save(new TokenRefresco(usuario, hash(valor), ahora, ahora.plus(propiedades.duracionTokenRefresco()),
+				iglesiaActuandoId));
 		return valor;
 	}
 
 	/**
 	 * Valida y consume el token (queda revocado).
-	 * @return el usuario dueño del token
+	 * @return el usuario dueño del token y la iglesia en la que operaba
 	 * @throws TokenRefrescoInvalidoException si no es utilizable
 	 */
 	@Transactional(noRollbackFor = TokenRefrescoInvalidoException.class)
-	public Usuario consumir(String valor) {
+	public RefrescoConsumido consumir(String valor) {
 		Instant ahora = reloj.instant();
 		TokenRefresco token = tokens.findByHashToken(hash(valor)).orElseThrow(TokenRefrescoInvalidoException::new);
 		Usuario usuario = token.getUsuario();
@@ -78,7 +83,7 @@ public class TokenRefrescoService {
 			throw new TokenRefrescoInvalidoException();
 		}
 		token.revocar(ahora);
-		return usuario;
+		return new RefrescoConsumido(usuario, token.getIglesiaActuandoId());
 	}
 
 	/** Revoca el token si existe. Es idempotente para que cerrar sesión nunca falle. */

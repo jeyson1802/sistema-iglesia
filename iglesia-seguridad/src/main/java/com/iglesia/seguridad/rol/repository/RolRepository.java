@@ -27,6 +27,9 @@ public interface RolRepository extends JpaRepository<Rol, Long> {
 	@EntityGraph(attributePaths = { "rolBase", "rolBase.permisos", "permisos" })
 	Optional<Rol> findConPermisosById(Long id);
 
+	@EntityGraph(attributePaths = "permisos")
+	Optional<Rol> findConPermisosByCodigo(RolBase codigo);
+
 	/** Roles base más los personalizados de la iglesia; sin iglesia (nulo), solo los base. */
 	@EntityGraph(attributePaths = { "rolBase", "permisos" })
 	List<Rol> findByIglesiaIdIsNullOrIglesiaId(Long iglesiaId);

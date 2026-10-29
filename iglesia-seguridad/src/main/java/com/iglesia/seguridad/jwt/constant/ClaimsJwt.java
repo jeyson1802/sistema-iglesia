@@ -14,6 +14,12 @@ public final class ClaimsJwt {
 	/** {@code true} mientras el usuario tenga una contraseña temporal que debe cambiar. Se emite siempre. */
 	public static final String CAMBIO_CONTRASENA = "cambio_contrasena";
 
+	/**
+	 * {@code true} cuando el administrador del sistema opera dentro de la iglesia de {@link #IGLESIA_ID}. Solo se
+	 * emite en ese caso; su rol sigue siendo {@code ADMIN_SISTEMA}.
+	 */
+	public static final String ACTUANDO_EN_IGLESIA = "actuando_en_iglesia";
+
 	private ClaimsJwt() {
 	}
 

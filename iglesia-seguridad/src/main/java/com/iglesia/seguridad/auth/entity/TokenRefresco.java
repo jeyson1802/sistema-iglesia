@@ -43,14 +43,20 @@ public class TokenRefresco {
 	@Column(name = "revocado_en")
 	private Instant revocadoEn;
 
+	/** Iglesia en la que opera el administrador del sistema con esta sesión; {@code null} = vista global. */
+	@Column(name = "iglesia_actuando_id", updatable = false)
+	private Long iglesiaActuandoId;
+
 	protected TokenRefresco() {
 	}
 
-	public TokenRefresco(Usuario usuario, String hashToken, Instant emitidoEn, Instant expiraEn) {
+	public TokenRefresco(Usuario usuario, String hashToken, Instant emitidoEn, Instant expiraEn,
+			Long iglesiaActuandoId) {
 		this.usuario = usuario;
 		this.hashToken = hashToken;
 		this.emitidoEn = emitidoEn;
 		this.expiraEn = expiraEn;
+		this.iglesiaActuandoId = iglesiaActuandoId;
 	}
 
 	public boolean estaRevocado() {
@@ -69,6 +75,10 @@ public class TokenRefresco {
 
 	public Usuario getUsuario() {
 		return usuario;
+	}
+
+	public Long getIglesiaActuandoId() {
+		return iglesiaActuandoId;
 	}
 
 }
