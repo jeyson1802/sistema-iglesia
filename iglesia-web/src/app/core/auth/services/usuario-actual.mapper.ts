@@ -23,6 +23,7 @@ export function aUsuarioActual(respuesta: UsuarioResponse): UsuarioActual {
         iglesiaId: respuesta.iglesiaId,
         miembroId: respuesta.miembroId,
         debeCambiarContrasena: respuesta.debeCambiarContrasena,
+        actuandoEnIglesia: respuesta.actuandoEnIglesia,
         perfiles: respuesta.perfiles
             .map(aPerfil)
             .filter((perfil): perfil is Perfil => perfil !== null)

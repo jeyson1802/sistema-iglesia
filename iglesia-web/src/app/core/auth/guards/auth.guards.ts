@@ -1,5 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateChildFn, CanActivateFn, RedirectFunction, Router } from '@angular/router';
+import { RUTA_IGLESIAS } from '@/app/core/iglesias/models/rutas-iglesias';
 import { Permiso } from '../models/permiso';
 import { Rol } from '../models/rol';
 import { RUTAS_AUTH } from '../models/rutas-auth';
@@ -33,6 +34,18 @@ export const permisoGuard =
     (permiso: Permiso): CanActivateFn =>
     () =>
         inject(SesionService).tienePermiso(permiso) || inject(Router).parseUrl(RUTAS_AUTH.accesoDenegado);
+
+/**
+ * Las páginas de datos de una iglesia (usuarios, roles, miembros) exigen operar en una. El administrador del sistema en
+ * su vista global va al catálogo de iglesias para elegir una; cualquier otro usuario sin iglesia, a acceso denegado.
+ */
+export const iglesiaFijadaGuard: CanActivateFn = () => {
+    const sesion = inject(SesionService);
+    if (sesion.operaEnIglesia()) {
+        return true;
+    }
+    return inject(Router).parseUrl(sesion.tienePermiso('iglesias.ver') ? RUTA_IGLESIAS : RUTAS_AUTH.accesoDenegado);
+};
 
 /**
  * Con una contraseña temporal, cualquier página del layout distinta del cambio de contraseña redirige a él. El

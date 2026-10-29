@@ -3,10 +3,13 @@ import { Permiso, PERMISOS } from '../models/permiso';
 import { ETIQUETA_ROL, Rol, ROLES } from '../models/rol';
 import { UsuarioActual } from '../models/usuario-actual';
 
+/** Permisos del catálogo de iglesias: solo los tiene el administrador del sistema. */
+const PERMISOS_IGLESIAS: readonly Permiso[] = ['iglesias.ver', 'iglesias.administrar'];
+
 /** Permisos que siembra Flyway para cada rol base. */
 const PERMISOS_ROL_BASE: Record<Rol, readonly Permiso[]> = {
-    ADMIN_SISTEMA: ['usuarios.ver', 'usuarios.administrar', 'roles.ver'],
-    ADMIN_IGLESIA: PERMISOS,
+    ADMIN_SISTEMA: ['usuarios.ver', 'usuarios.administrar', 'roles.ver', ...PERMISOS_IGLESIAS],
+    ADMIN_IGLESIA: PERMISOS.filter((permiso) => !PERMISOS_IGLESIAS.includes(permiso)),
     LIDER: [],
     MIEMBRO: []
 };
@@ -33,5 +36,6 @@ export const usuarioCon = (...perfiles: (Rol | Perfil)[]): UsuarioActual => ({
     iglesiaId: 1,
     miembroId: 2,
     debeCambiarContrasena: false,
+    actuandoEnIglesia: false,
     perfiles: perfiles.map((perfil) => (typeof perfil === 'string' ? perfilBase(perfil) : perfil))
 });

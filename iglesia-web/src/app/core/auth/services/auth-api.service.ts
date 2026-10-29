@@ -27,6 +27,16 @@ export class AuthApiService {
         return this.http.post<TokenAcceso>(`${this.authUrl}/refresh`, null, this.conCookie);
     }
 
+    /** El administrador del sistema pasa a operar dentro de la iglesia; rota la cookie de refresco. */
+    entrarAIglesia(iglesiaId: number): Observable<TokenAcceso> {
+        return this.http.post<TokenAcceso>(`${this.authUrl}/iglesia-actuando`, { iglesiaId }, this.conCookie);
+    }
+
+    /** El administrador del sistema vuelve a la vista global; rota la cookie de refresco. */
+    salirDeIglesia(): Observable<TokenAcceso> {
+        return this.http.delete<TokenAcceso>(`${this.authUrl}/iglesia-actuando`, this.conCookie);
+    }
+
     cerrarSesion(): Observable<void> {
         return this.http.post<void>(`${this.authUrl}/logout`, null, this.conCookie);
     }

@@ -18,7 +18,7 @@ describe('SesionService', () => {
 
     beforeEach(() => {
         sessionStorage.clear();
-        api = jasmine.createSpyObj<AuthApiService>('AuthApiService', ['login', 'refrescar', 'cerrarSesion', 'obtenerUsuarioActual', 'cambiarContrasena']);
+        api = jasmine.createSpyObj<AuthApiService>('AuthApiService', ['login', 'refrescar', 'entrarAIglesia', 'salirDeIglesia', 'cerrarSesion', 'obtenerUsuarioActual', 'cambiarContrasena']);
         api.cerrarSesion.and.returnValue(of(undefined));
         TestBed.configureTestingModule({ providers: [{ provide: AuthApiService, useValue: api }] });
         sesion = TestBed.inject(SesionService);
@@ -336,6 +336,61 @@ describe('SesionService', () => {
 
             expect(api.cerrarSesion).not.toHaveBeenCalled();
             expect(sesion.autenticado()).toBeTrue();
+        });
+    });
+    describe('entrar y salir de una iglesia', () => {
+        const sistema = perfilBase('ADMIN_SISTEMA');
+        const sistemaDentro = { ...sistema, permisos: [...sistema.permisos, 'roles.administrar' as const] };
+        const global: UsuarioActual = { ...usuarioCon(sistema), iglesiaId: null };
+        const dentroDe5: UsuarioActual = { ...usuarioCon(sistemaDentro), iglesiaId: 5, actuandoEnIglesia: true };
+
+        it('al entrar guarda el token nuevo, recarga el usuario y conserva el perfil con los permisos de la iglesia', async () => {
+            await iniciarSesionCon(global);
+            expect(sesion.operaEnIglesia()).toBeFalse();
+            expect(sesion.actuandoEnIglesia()).toBeFalse();
+            api.entrarAIglesia.and.returnValue(of(token('dentro')));
+            api.obtenerUsuarioActual.and.returnValue(of(dentroDe5));
+
+            await firstValueFrom(sesion.entrarAIglesia(5), { defaultValue: undefined });
+
+            expect(api.entrarAIglesia).toHaveBeenCalledOnceWith(5);
+            expect(sesion.tokenAcceso()).toBe('dentro');
+            expect(sesion.operaEnIglesia()).toBeTrue();
+            expect(sesion.actuandoEnIglesia()).toBeTrue();
+            expect(sesion.perfilActivo()).toEqual(sistemaDentro);
+            expect(sesion.tienePermiso('roles.administrar')).toBeTrue();
+        });
+
+        it('al salir vuelve a la vista global con sus propios permisos', async () => {
+            await iniciarSesionCon(dentroDe5);
+            api.salirDeIglesia.and.returnValue(of(token('global')));
+            api.obtenerUsuarioActual.and.returnValue(of(global));
+
+            await firstValueFrom(sesion.salirDeIglesia(), { defaultValue: undefined });
+
+            expect(sesion.tokenAcceso()).toBe('global');
+            expect(sesion.operaEnIglesia()).toBeFalse();
+            expect(sesion.actuandoEnIglesia()).toBeFalse();
+            expect(sesion.perfilActivo()).toEqual(sistema);
+            expect(sesion.tienePermiso('roles.administrar')).toBeFalse();
+        });
+
+        it('si falla la entrada propaga el error y conserva la sesión', async () => {
+            await iniciarSesionCon(global);
+            const prohibido = new HttpErrorResponse({ status: 403 });
+            api.entrarAIglesia.and.returnValue(throwError(() => prohibido));
+
+            await expectAsync(firstValueFrom(sesion.entrarAIglesia(5))).toBeRejectedWith(prohibido);
+
+            expect(sesion.tokenAcceso()).toBe('acceso');
+            expect(sesion.operaEnIglesia()).toBeFalse();
+        });
+
+        it('un usuario de una iglesia opera en ella sin estar actuando', async () => {
+            await iniciarSesionCon(usuarioCon('ADMIN_IGLESIA'));
+
+            expect(sesion.operaEnIglesia()).toBeTrue();
+            expect(sesion.actuandoEnIglesia()).toBeFalse();
         });
     });
 });

@@ -61,6 +61,31 @@ describe('AuthApiService', () => {
         expect(completado).toBeTrue();
     });
 
+    it('entra a una iglesia enviando su id con cookies habilitadas', () => {
+        let respuesta: TokenAcceso | undefined;
+
+        servicio.entrarAIglesia(5).subscribe((r) => (respuesta = r));
+
+        const peticion = http.expectOne(`${authUrl}/iglesia-actuando`);
+        expect(peticion.request.method).toBe('POST');
+        expect(peticion.request.body).toEqual({ iglesiaId: 5 });
+        expect(peticion.request.withCredentials).toBeTrue();
+        peticion.flush(token);
+        expect(respuesta).toEqual(token);
+    });
+
+    it('sale de la iglesia con cookies habilitadas', () => {
+        let respuesta: TokenAcceso | undefined;
+
+        servicio.salirDeIglesia().subscribe((r) => (respuesta = r));
+
+        const peticion = http.expectOne(`${authUrl}/iglesia-actuando`);
+        expect(peticion.request.method).toBe('DELETE');
+        expect(peticion.request.withCredentials).toBeTrue();
+        peticion.flush(token);
+        expect(respuesta).toEqual(token);
+    });
+
     it('obtiene el usuario actual adaptado al modelo de la UI', () => {
         let usuario: UsuarioActual | undefined;
 
@@ -75,6 +100,7 @@ describe('AuthApiService', () => {
             iglesiaId: 1,
             miembroId: 9,
             debeCambiarContrasena: false,
+            actuandoEnIglesia: false,
             perfiles: [
                 { id: 4, nombre: 'Miembro', rolBase: 'MIEMBRO', permisos: [] },
                 { id: 3, nombre: 'Líder', rolBase: 'LIDER', permisos: [] }
@@ -86,6 +112,7 @@ describe('AuthApiService', () => {
             iglesiaId: 1,
             miembroId: 9,
             debeCambiarContrasena: false,
+            actuandoEnIglesia: false,
             perfiles: [
                 { id: 3, nombre: 'Líder', rolBase: 'LIDER', permisos: [] },
                 { id: 4, nombre: 'Miembro', rolBase: 'MIEMBRO', permisos: [] }

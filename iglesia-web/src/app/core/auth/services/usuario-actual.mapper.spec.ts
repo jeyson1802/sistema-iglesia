@@ -4,7 +4,7 @@ import { aUsuarioActual } from './usuario-actual.mapper';
 describe('aUsuarioActual', () => {
     const miembro: PerfilResponse = { id: 4, nombre: 'Miembro', rolBase: 'MIEMBRO', permisos: [] };
     const secretaria: PerfilResponse = { id: 7, nombre: 'Secretaría', rolBase: 'ADMIN_IGLESIA', permisos: ['miembros.ver', 'miembros.crear'] };
-    const respuesta: UsuarioResponse = { id: 7, correo: 'secretaria@iglesia.test', iglesiaId: 1, miembroId: 20, debeCambiarContrasena: false, perfiles: [miembro, secretaria] };
+    const respuesta: UsuarioResponse = { id: 7, correo: 'secretaria@iglesia.test', iglesiaId: 1, miembroId: 20, debeCambiarContrasena: false, actuandoEnIglesia: false, perfiles: [miembro, secretaria] };
 
     it('copia los datos del usuario y sus perfiles', () => {
         const usuario = aUsuarioActual(respuesta);
@@ -15,6 +15,7 @@ describe('aUsuarioActual', () => {
             iglesiaId: 1,
             miembroId: 20,
             debeCambiarContrasena: false,
+            actuandoEnIglesia: false,
             perfiles: [
                 { id: 7, nombre: 'Secretaría', rolBase: 'ADMIN_IGLESIA', permisos: ['miembros.ver', 'miembros.crear'] },
                 { id: 4, nombre: 'Miembro', rolBase: 'MIEMBRO', permisos: [] }
@@ -46,6 +47,10 @@ describe('aUsuarioActual', () => {
         const usuario = aUsuarioActual({ ...respuesta, perfiles: [desconocido, miembro] });
 
         expect(usuario.perfiles.map((perfil) => perfil.id)).toEqual([4]);
+    });
+
+    it('copia si el administrador del sistema opera dentro de una iglesia', () => {
+        expect(aUsuarioActual({ ...respuesta, actuandoEnIglesia: true }).actuandoEnIglesia).toBeTrue();
     });
 
     it('copia si la contraseña es temporal', () => {

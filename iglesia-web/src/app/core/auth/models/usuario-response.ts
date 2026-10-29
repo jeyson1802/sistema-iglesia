@@ -13,5 +13,6 @@ export interface UsuarioResponse {
     readonly iglesiaId: number | null;
     readonly miembroId: number | null;
     readonly debeCambiarContrasena: boolean;
+    readonly actuandoEnIglesia: boolean;
     readonly perfiles: readonly PerfilResponse[];
 }

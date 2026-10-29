@@ -6,6 +6,7 @@ import { Perfil } from '../models/perfil';
 import { Permiso } from '../models/permiso';
 import { RUTA_INICIO_POR_ROL } from '../models/rol';
 import { RUTAS_AUTH } from '../models/rutas-auth';
+import { TokenAcceso } from '../models/token-acceso';
 import { UsuarioActual } from '../models/usuario-actual';
 import { AuthApiService } from './auth-api.service';
 
@@ -36,6 +37,10 @@ export class SesionService {
     readonly tieneVariosPerfiles = computed(() => (this.usuario()?.perfiles.length ?? 0) > 1);
     /** Con una contraseña temporal, el backend rechaza todo salvo consultar el usuario y cambiarla. */
     readonly debeCambiarContrasena = computed(() => this.usuario()?.debeCambiarContrasena ?? false);
+    /** Hay una iglesia en la que operar: la del usuario o la que eligió el administrador del sistema. */
+    readonly operaEnIglesia = computed(() => this.usuario()?.iglesiaId != null);
+    /** El administrador del sistema está dentro de una iglesia (no en su vista global). */
+    readonly actuandoEnIglesia = computed(() => this.usuario()?.actuandoEnIglesia ?? false);
 
     /** Con un solo perfil, queda seleccionado; con varios, el usuario debe elegirlo. */
     iniciarSesion(credenciales: Credenciales): Observable<void> {
@@ -88,6 +93,19 @@ export class SesionService {
     }
 
     /**
+     * El administrador del sistema entra a una iglesia: guarda el token que la lleva y recarga el usuario, cuyo perfil
+     * trae ahora los permisos de esa iglesia. Conserva el perfil activo.
+     */
+    entrarAIglesia(iglesiaId: number): Observable<void> {
+        return this.cambiarDeIglesia(this.authApi.entrarAIglesia(iglesiaId));
+    }
+
+    /** El administrador del sistema vuelve a su vista global. */
+    salirDeIglesia(): Observable<void> {
+        return this.cambiarDeIglesia(this.authApi.salirDeIglesia());
+    }
+
+    /**
      * Limpia la sesión local de inmediato y pide al backend revocar el token de refresco. Si el backend no
      * responde, la sesión local ya está cerrada y el token caduca solo, así que la operación siempre completa.
      */
@@ -110,6 +128,13 @@ export class SesionService {
             return RUTAS_AUTH.login;
         }
         return perfil ? RUTA_INICIO_POR_ROL[perfil.rolBase] : RUTAS_AUTH.seleccionarPerfil;
+    }
+
+    private cambiarDeIglesia(nuevoToken: Observable<TokenAcceso>): Observable<void> {
+        return nuevoToken.pipe(
+            tap(({ tokenAcceso }) => this.token.set(tokenAcceso)),
+            switchMap(() => this.cargarUsuario(this.perfil()?.id ?? null))
+        );
     }
 
     private cargarUsuario(perfilPreferido: number | null): Observable<void> {
