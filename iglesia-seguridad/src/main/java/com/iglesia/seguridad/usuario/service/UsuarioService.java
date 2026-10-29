@@ -148,7 +148,7 @@ public class UsuarioService {
 
 	@Transactional(readOnly = true)
 	public MiUsuarioResponse obtenerActual() {
-		return mapper.aMiUsuario(buscarActual());
+		return mapper.aMiUsuario(buscarActual(), proveedorUsuario.actual());
 	}
 
 	@Transactional

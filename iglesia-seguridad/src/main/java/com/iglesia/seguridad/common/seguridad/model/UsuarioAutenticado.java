@@ -9,7 +9,10 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import com.iglesia.seguridad.jwt.constant.ClaimsJwt;
 import com.iglesia.seguridad.rol.model.RolBase;
 
-/** Datos del usuario que hace la petición, tomados del JWT ya validado. */
+/**
+ * Datos del usuario que hace la petición, tomados del JWT ya validado. {@code iglesiaId} es la iglesia en la que
+ * opera: la suya o, para el administrador del sistema, la iglesia a la que entró.
+ */
 public record UsuarioAutenticado(Long usuarioId, Long iglesiaId, Long miembroId, Set<RolBase> roles,
 		Set<String> permisos) {
 
@@ -31,6 +34,19 @@ public record UsuarioAutenticado(Long usuarioId, Long iglesiaId, Long miembroId,
 
 	public boolean tieneRol(RolBase rol) {
 		return roles.contains(rol);
+	}
+
+	/**
+	 * Administrador del sistema en la vista global: actúa sobre todas las iglesias. Dentro de una iglesia ya no es
+	 * global y tiene el mismo ámbito que el administrador de esa iglesia. Es la única regla que da ámbito global.
+	 */
+	public boolean esGlobal() {
+		return tieneRol(RolBase.ADMIN_SISTEMA) && iglesiaId == null;
+	}
+
+	/** Administrador del sistema que entró a una iglesia (no pertenece a ninguna, así que la iglesia es la elegida). */
+	public boolean actuandoEnIglesia() {
+		return tieneRol(RolBase.ADMIN_SISTEMA) && iglesiaId != null;
 	}
 
 	private static Set<String> comoConjunto(Collection<String> valores) {

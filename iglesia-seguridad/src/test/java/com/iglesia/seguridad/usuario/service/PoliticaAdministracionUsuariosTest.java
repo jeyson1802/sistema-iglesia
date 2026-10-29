@@ -25,12 +25,26 @@ class PoliticaAdministracionUsuariosTest {
 	private static final UsuarioAutenticado SIN_IGLESIA = new UsuarioAutenticado(4L, null, null,
 			Set.of(RolBase.ADMIN_IGLESIA), Set.of());
 
+	private static final UsuarioAutenticado ADMIN_SISTEMA_EN_IGLESIA_1 = new UsuarioAutenticado(5L, 1L, null,
+			Set.of(RolBase.ADMIN_SISTEMA), Set.of());
+
 	private final PoliticaAdministracionUsuarios politica = new PoliticaAdministracionUsuarios();
 
 	@Test
 	void elAdministradorDelSistemaAdministraCualquierIglesia() {
 		assertThat(politica.puedeAdministrar(ADMIN_SISTEMA, 99L, Set.of(RolBase.ADMIN_IGLESIA))).isTrue();
 		assertThat(politica.puedeAdministrar(ADMIN_SISTEMA, null, Set.of(RolBase.ADMIN_SISTEMA))).isTrue();
+	}
+
+	@Test
+	void dentroDeUnaIglesiaElAdministradorDelSistemaSoloAdministraEsaIglesia() {
+		assertThat(politica.puedeAdministrar(ADMIN_SISTEMA_EN_IGLESIA_1, 1L, Set.of(RolBase.ADMIN_IGLESIA))).isTrue();
+		assertThat(politica.puedeAdministrar(ADMIN_SISTEMA_EN_IGLESIA_1, 2L, Set.of(RolBase.ADMIN_IGLESIA))).isFalse();
+		assertThat(politica.puedeAdministrar(ADMIN_SISTEMA_EN_IGLESIA_1, null, Set.of(RolBase.ADMIN_SISTEMA)))
+			.isFalse();
+		assertThat(politica.puedeAdministrar(ADMIN_SISTEMA_EN_IGLESIA_1, 1L, Set.of(RolBase.ADMIN_SISTEMA))).isFalse();
+		assertThat(politica.iglesiaParaListado(ADMIN_SISTEMA_EN_IGLESIA_1, 2L)).isEqualTo(1L);
+		assertThat(politica.iglesiaParaListado(ADMIN_SISTEMA_EN_IGLESIA_1, null)).isEqualTo(1L);
 	}
 
 	@Test

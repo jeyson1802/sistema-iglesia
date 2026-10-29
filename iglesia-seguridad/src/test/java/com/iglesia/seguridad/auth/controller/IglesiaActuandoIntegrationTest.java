@@ -29,8 +29,14 @@ import com.iglesia.seguridad.jwt.constant.ClaimsJwt;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -146,6 +152,74 @@ class IglesiaActuandoIntegrationTest {
 	}
 
 	@Test
+	void dentroDeUnaIglesiaSoloSeVeYAdministraEsaIglesia() throws Exception {
+		long adminIglesia = semilla.crearUsuario("admin@iglesia78.test", 78L, null, semilla.idRolBase("ADMIN_IGLESIA"));
+		long deOtraIglesia = semilla.crearUsuario("admin@iglesia79.test", 79L, null, semilla.idRolBase("ADMIN_IGLESIA"));
+		long otroSistema = semilla.crearUsuario("otro@actuando7.test", null, null, semilla.idRolBase("ADMIN_SISTEMA"));
+		semilla.crearUsuario("sistema@actuando7.test", null, null, semilla.idRolBase("ADMIN_SISTEMA"));
+		MvcResult login = iniciarSesion("sistema@actuando7.test");
+		String dentro = tokenDe(entrar(tokenDe(login), cookieDe(login), "{\"iglesiaId\":78}").andReturn());
+
+		mvc.perform(get("/api/usuarios").param("iglesiaId", "79").header(HttpHeaders.AUTHORIZATION, bearer(dentro)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.content[*].iglesiaId", everyItem(is(78))))
+			.andExpect(jsonPath("$.content[*].id", hasItem((int) adminIglesia)));
+		mvc.perform(get("/api/usuarios/{id}", deOtraIglesia).header(HttpHeaders.AUTHORIZATION, bearer(dentro)))
+			.andExpect(status().isNotFound());
+		mvc.perform(get("/api/usuarios/{id}", otroSistema).header(HttpHeaders.AUTHORIZATION, bearer(dentro)))
+			.andExpect(status().isNotFound());
+		mvc.perform(put("/api/usuarios/{id}", otroSistema).header(HttpHeaders.AUTHORIZATION, bearer(dentro))
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"correo\":\"otro@actuando7.test\",\"rolIds\":[%d],\"activo\":false}"
+				.formatted(semilla.idRolBase("ADMIN_SISTEMA"))))
+			.andExpect(status().isNotFound());
+
+		mvc.perform(get("/api/usuarios/me").header(HttpHeaders.AUTHORIZATION, bearer(dentro)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.iglesiaId").value(78))
+			.andExpect(jsonPath("$.actuandoEnIglesia").value(true))
+			.andExpect(jsonPath("$.perfiles[0].rolBase").value("ADMIN_SISTEMA"))
+			.andExpect(jsonPath("$.perfiles[0].permisos", hasItems("iglesias.administrar", "roles.administrar")));
+
+		String rol = mvc.perform(post("/api/roles").header(HttpHeaders.AUTHORIZATION, bearer(dentro))
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"nombre\":\"Secretaría\",\"rolBaseId\":%d,\"permisos\":[\"miembros.ver\"]}"
+				.formatted(semilla.idRolBase("ADMIN_IGLESIA"))))
+			.andExpect(status().isCreated())
+			.andReturn()
+			.getResponse()
+			.getContentAsString();
+		long rolId = ((Number) JsonPath.read(rol, "$.id")).longValue();
+		assertThat(jdbc.queryForObject("select iglesia_id from rol where id = ?", Long.class, rolId)).isEqualTo(78L);
+
+		mvc.perform(post("/api/usuarios").header(HttpHeaders.AUTHORIZATION, bearer(dentro))
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"correo\":\"secretaria@iglesia78.test\",\"contrasena\":\"Temporal123\",\"iglesiaId\":78,"
+					+ "\"rolIds\":[%d]}".formatted(rolId)))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.iglesiaId").value(78));
+		mvc.perform(post("/api/usuarios").header(HttpHeaders.AUTHORIZATION, bearer(dentro))
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"correo\":\"intruso@iglesia79.test\",\"contrasena\":\"Temporal123\",\"iglesiaId\":79,"
+					+ "\"rolIds\":[%d]}".formatted(semilla.idRolBase("ADMIN_IGLESIA"))))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
+	void dentroDeUnaIglesiaElAdministradorDelSistemaNoCuentaComoSuAdministrador() throws Exception {
+		long unico = semilla.crearUsuario("admin@iglesia80.test", 80L, null, semilla.idRolBase("ADMIN_IGLESIA"));
+		semilla.crearUsuario("sistema@actuando8.test", null, null, semilla.idRolBase("ADMIN_SISTEMA"));
+		MvcResult login = iniciarSesion("sistema@actuando8.test");
+		String dentro = tokenDe(entrar(tokenDe(login), cookieDe(login), "{\"iglesiaId\":80}").andReturn());
+
+		mvc.perform(put("/api/usuarios/{id}", unico).header(HttpHeaders.AUTHORIZATION, bearer(dentro))
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"correo\":\"admin@iglesia80.test\",\"rolIds\":[%d],\"activo\":false}"
+				.formatted(semilla.idRolBase("ADMIN_IGLESIA"))))
+			.andExpect(status().isConflict());
+	}
+
+	@Test
 	void elRefrescoConservaLaIglesiaEnLaQueOperaElAdministradorDelSistema() throws Exception {
 		long usuarioId = semilla.crearUsuario("sistema@actuando1.test", null, null, semilla.idRolBase("ADMIN_SISTEMA"));
 		String refresco = cookieDe(iniciarSesion("sistema@actuando1.test"));
@@ -217,6 +291,10 @@ class IglesiaActuandoIntegrationTest {
 
 	private static String cookieDe(MvcResult resultado) {
 		return resultado.getResponse().getCookie(COOKIE_REFRESCO).getValue();
+	}
+
+	private static String bearer(String token) {
+		return "Bearer " + token;
 	}
 
 	private static String tokenDe(MvcResult resultado) throws Exception {

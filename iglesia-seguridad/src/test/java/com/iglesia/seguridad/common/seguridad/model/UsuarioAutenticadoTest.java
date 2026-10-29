@@ -34,6 +34,28 @@ class UsuarioAutenticadoTest {
 		assertThat(UsuarioAutenticado.desde(jwt).permisos()).isEmpty();
 	}
 
+	@Test
+	void elAdministradorDelSistemaEsGlobalSoloFueraDeUnaIglesia() {
+		UsuarioAutenticado global = UsuarioAutenticado.desde(jwtBase().claim(ClaimsJwt.ROLES, List.of("ADMIN_SISTEMA"))
+			.build());
+		UsuarioAutenticado dentro = UsuarioAutenticado.desde(jwtBase().claim(ClaimsJwt.ROLES, List.of("ADMIN_SISTEMA"))
+			.claim(ClaimsJwt.IGLESIA_ID, 7L)
+			.claim(ClaimsJwt.ACTUANDO_EN_IGLESIA, true)
+			.build());
+		UsuarioAutenticado adminIglesia = UsuarioAutenticado.desde(jwtBase()
+			.claim(ClaimsJwt.ROLES, List.of("ADMIN_IGLESIA"))
+			.claim(ClaimsJwt.IGLESIA_ID, 7L)
+			.build());
+
+		assertThat(global.esGlobal()).isTrue();
+		assertThat(global.actuandoEnIglesia()).isFalse();
+		assertThat(dentro.esGlobal()).isFalse();
+		assertThat(dentro.actuandoEnIglesia()).isTrue();
+		assertThat(dentro.iglesiaId()).isEqualTo(7L);
+		assertThat(adminIglesia.esGlobal()).isFalse();
+		assertThat(adminIglesia.actuandoEnIglesia()).isFalse();
+	}
+
 	private static Jwt.Builder jwtBase() {
 		return Jwt.withTokenValue("token").header("alg", "RS256").subject("42");
 	}

@@ -11,15 +11,16 @@ import com.iglesia.seguridad.rol.model.RolBase;
 import com.iglesia.seguridad.usuario.entity.Usuario;
 
 /**
- * Sobre quién se actúa: el administrador del sistema, sobre todos; el resto, solo sobre usuarios de su
- * propia iglesia y sin otorgar el rol base de administrador del sistema. Qué acción se puede hacer no
+ * Sobre quién se actúa: el administrador del sistema en la vista global, sobre todos; el resto (incluido el
+ * administrador del sistema dentro de una iglesia), solo sobre usuarios de la iglesia en la que opera y sin otorgar
+ * el rol base de administrador del sistema. Qué acción se puede hacer no
  * lo decide esta política sino el permiso exigido en cada endpoint.
  */
 @Component
 class PoliticaAdministracionUsuarios {
 
 	boolean puedeAdministrar(UsuarioAutenticado actor, Long iglesiaId, Set<RolBase> rolesBase) {
-		if (actor.tieneRol(RolBase.ADMIN_SISTEMA)) {
+		if (actor.esGlobal()) {
 			return true;
 		}
 		return iglesiaId != null && Objects.equals(actor.iglesiaId(), iglesiaId)
@@ -37,11 +38,11 @@ class PoliticaAdministracionUsuarios {
 	}
 
 	/**
-	 * Iglesia por la que se filtra un listado. Quien pertenece a una iglesia siempre ve la suya, sin
-	 * importar el filtro enviado; el administrador del sistema usa el filtro (nulo = todas).
+	 * Iglesia por la que se filtra un listado. Quien opera en una iglesia siempre ve esa, sin importar el
+	 * filtro enviado; el administrador del sistema en la vista global usa el filtro (nulo = todas).
 	 */
 	Long iglesiaParaListado(UsuarioAutenticado actor, Long iglesiaSolicitada) {
-		if (actor.tieneRol(RolBase.ADMIN_SISTEMA)) {
+		if (actor.esGlobal()) {
 			return iglesiaSolicitada;
 		}
 		if (actor.iglesiaId() != null) {

@@ -65,7 +65,8 @@ class RolController {
 			los base y luego los personalizados, por jerarquía de su rol base y por nombre. Requiere el permiso \
 			`roles.ver` o `usuarios.administrar` (quien asigna roles a usuarios necesita verlos, aunque no pueda \
 			editarlos). `requiereMiembro` indica los roles que solo se asignan a usuarios vinculados con un \
-			miembro. `ADMIN_SISTEMA`, que no pertenece a ninguna iglesia, solo ve los roles base.""")
+			miembro. `ADMIN_SISTEMA` en la vista global, sin iglesia, solo ve los roles base; dentro de una \
+			iglesia ve y administra los de esa iglesia.""")
 	@ApiResponse(responseCode = "200", description = "Roles visibles para quien consulta.")
 	@ApiResponse(responseCode = "401", description = RespuestasOpenApi.NO_AUTENTICADO,
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,

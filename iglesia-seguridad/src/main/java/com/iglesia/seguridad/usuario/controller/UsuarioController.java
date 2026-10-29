@@ -46,9 +46,10 @@ import com.iglesia.seguridad.usuario.service.UsuarioService;
 @RequestMapping("/api/usuarios")
 @Tag(name = "Usuarios", description = """
 		Administración de los usuarios que acceden al sistema y gestión de la cuenta propia. Consultar exige el \
-		permiso `usuarios.ver` y crear o editar, `usuarios.administrar`. `ADMIN_SISTEMA` actúa sobre usuarios de \
-		todas las iglesias; el resto, solo sobre los de su iglesia y sin poder otorgar `ADMIN_SISTEMA`. Los \
-		usuarios fuera de su alcance se responden como inexistentes (404).""")
+		permiso `usuarios.ver` y crear o editar, `usuarios.administrar`. `ADMIN_SISTEMA` en la vista global actúa \
+		sobre usuarios de todas las iglesias; el resto, incluido `ADMIN_SISTEMA` dentro de una iglesia \
+		(`POST /api/auth/iglesia-actuando`), solo sobre los de la iglesia en la que opera y sin poder otorgar \
+		`ADMIN_SISTEMA`. Los usuarios fuera de su alcance se responden como inexistentes (404).""")
 class UsuarioController {
 
 	private static final String DESCRIPCION_ID = "Identificador del usuario.";
@@ -69,8 +70,8 @@ class UsuarioController {
 			Reglas: el correo es único en todo el sistema; cada rol es un rol base o un rol personalizado activo \
 			de la iglesia del usuario; `ADMIN_SISTEMA` no pertenece a ninguna iglesia y el resto de roles sí; \
 			`LIDER`, `MIEMBRO` y los roles que heredan de ellos exigen un miembro vinculado, y un miembro solo \
-			puede tener un usuario. Quien no es `ADMIN_SISTEMA` solo crea usuarios de su iglesia y nunca le \
-			otorga `ADMIN_SISTEMA`.""")
+			puede tener un usuario. Quien no es `ADMIN_SISTEMA` en la vista global solo crea usuarios de la \
+			iglesia en la que opera y nunca le otorga `ADMIN_SISTEMA`.""")
 	@ApiResponse(responseCode = "201", description = "Usuario creado.",
 			headers = @Header(name = HttpHeaders.LOCATION, description = "URL del usuario creado."))
 	@ApiResponse(responseCode = "400", description = RespuestasOpenApi.DATOS_INVALIDOS
@@ -103,8 +104,9 @@ class UsuarioController {
 			Lista paginada de usuarios, ordenada por id por defecto (máximo 100 por página). Requiere el \
 			permiso `usuarios.ver`.
 
-			`ADMIN_SISTEMA` puede filtrar por `iglesiaId` (sin filtro ve todas las iglesias). El resto siempre \
-			ve solo su iglesia, aunque envíe otro `iglesiaId`.
+			`ADMIN_SISTEMA` en la vista global puede filtrar por `iglesiaId` (sin filtro ve todas las iglesias). \
+			El resto, incluido `ADMIN_SISTEMA` dentro de una iglesia, siempre ve solo la iglesia en la que opera, \
+			aunque envíe otro `iglesiaId`.
 
 			Los filtros `correo` (contiene, sin distinguir mayúsculas), `activo` y `rolId` son opcionales y se \
 			combinan entre sí y con la paginación.""")
@@ -131,7 +133,7 @@ class UsuarioController {
 	@PreAuthorize(Permisos.PUEDE_VER_USUARIOS)
 	@Operation(summary = "Obtener un usuario", description = """
 			Datos de un usuario con sus roles. Requiere el permiso `usuarios.ver`; quien no es `ADMIN_SISTEMA` \
-			solo ve los de su iglesia.""")
+			en la vista global solo ve los de la iglesia en la que opera.""")
 	@ApiResponse(responseCode = "200", description = "Usuario encontrado.")
 	@ApiResponse(responseCode = "401", description = RespuestasOpenApi.NO_AUTENTICADO,
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,

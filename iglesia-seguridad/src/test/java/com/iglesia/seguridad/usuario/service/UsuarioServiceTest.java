@@ -159,6 +159,23 @@ class UsuarioServiceTest {
 	}
 
 	@Test
+	void dentroDeUnaIglesiaMiUsuarioDevuelveEsaIglesiaYElPerfilDelSistemaConLosPermisosDelToken() {
+		UsuarioAutenticado sistemaEnIglesia7 = new UsuarioAutenticado(1L, 7L, null, Set.of(RolBase.ADMIN_SISTEMA),
+				Set.of("iglesias.ver", "roles.administrar"));
+		given(proveedorUsuario.actual()).willReturn(sistemaEnIglesia7);
+		Rol sistema = RolesPrueba.base(RolBase.ADMIN_SISTEMA, "iglesias.ver");
+		Usuario propio = Usuario.nuevo("a@s.com", "h", null, null, Set.of(sistema), false);
+		given(usuarios.findConRolesById(1L)).willReturn(Optional.of(propio));
+
+		MiUsuarioResponse yo = servicio.obtenerActual();
+
+		assertThat(yo.iglesiaId()).isEqualTo(7L);
+		assertThat(yo.actuandoEnIglesia()).isTrue();
+		assertThat(yo.perfiles()).containsExactly(new PerfilResponse(sistema.getId(), sistema.getNombre(),
+				RolBase.ADMIN_SISTEMA, List.of("iglesias.ver", "roles.administrar")));
+	}
+
+	@Test
 	void rechazaCorreoDuplicado() {
 		given(usuarios.existsByCorreo("a@b.com")).willReturn(true);
 
