@@ -9,6 +9,22 @@
     </div>
 
     <div class="layout-topbar-actions">
+        @if (actuandoEnIglesia()) {
+            <div class="flex items-center gap-2">
+                <p-tag severity="warn" icon="pi pi-building" styleClass="hidden md:inline-flex" [value]="'Operando en: ' + (nombreIglesia() ?? '…')" role="status" />
+                <p-button
+                    label="Salir de la iglesia"
+                    icon="pi pi-sign-out"
+                    size="small"
+                    severity="secondary"
+                    [outlined]="true"
+                    [ariaLabel]="'Salir de la iglesia ' + (nombreIglesia() ?? '')"
+                    [loading]="saliendo()"
+                    [disabled]="saliendo()"
+                    (onClick)="salirDeIglesia()"
+                />
+            </div>
+        }
         <div class="layout-config-menu">
             <button type="button" class="layout-topbar-action" [attr.aria-label]="layoutService.isDarkTheme() ? 'Usar modo claro' : 'Usar modo oscuro'" (click)="toggleDarkMode()">
                 <i class="pi" [class.pi-moon]="layoutService.isDarkTheme()" [class.pi-sun]="!layoutService.isDarkTheme()" aria-hidden="true"></i>

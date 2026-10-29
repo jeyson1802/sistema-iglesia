@@ -1,7 +1,8 @@
-import { CUSTOM_ELEMENTS_SCHEMA, signal } from '@angular/core';
+import { computed, CUSTOM_ELEMENTS_SCHEMA, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
+import { IglesiasService } from '@/app/core/iglesias/services/iglesias.service';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
 import { AppConfigurator } from './app.configurator';
 import { AppTopbar } from './app.topbar';
@@ -11,6 +12,9 @@ import { Perfil } from '@/app/core/auth/models/perfil';
 describe('AppTopbar', () => {
     const tieneVariosPerfiles = signal(false);
     const perfilActivo = signal<Perfil | null>(null);
+    const actuandoEnIglesia = signal(false);
+    const iglesiaId = signal<number | null>(1);
+    let iglesias: jasmine.SpyObj<IglesiasService>;
     let sesion: jasmine.SpyObj<SesionService>;
     let navegar: jasmine.Spy;
     let fixture: ComponentFixture<AppTopbar>;
@@ -18,13 +22,29 @@ describe('AppTopbar', () => {
     beforeEach(async () => {
         tieneVariosPerfiles.set(false);
         perfilActivo.set(perfilBase('LIDER'));
-        sesion = jasmine.createSpyObj<SesionService>('SesionService', ['cerrarSesion'], {
-            usuarioActual: signal({ id: 1, correo: 'lider@iglesia.test', iglesiaId: 1, miembroId: 2, debeCambiarContrasena: false, actuandoEnIglesia: false, perfiles: [perfilBase('LIDER'), perfilBase('MIEMBRO')] }),
+        actuandoEnIglesia.set(false);
+        iglesiaId.set(1);
+        sesion = jasmine.createSpyObj<SesionService>('SesionService', ['cerrarSesion', 'salirDeIglesia'], {
+            usuarioActual: computed(() => ({
+                id: 1,
+                correo: 'lider@iglesia.test',
+                iglesiaId: iglesiaId(),
+                miembroId: 2,
+                debeCambiarContrasena: false,
+                actuandoEnIglesia: actuandoEnIglesia(),
+                perfiles: [perfilBase('LIDER'), perfilBase('MIEMBRO')]
+            })),
             perfilActivo,
-            tieneVariosPerfiles
+            tieneVariosPerfiles,
+            actuandoEnIglesia
         });
         sesion.cerrarSesion.and.returnValue(of(undefined));
-        await TestBed.configureTestingModule({ imports: [AppTopbar], providers: [provideRouter([]), { provide: SesionService, useValue: sesion }] })
+        iglesias = jasmine.createSpyObj<IglesiasService>('IglesiasService', ['obtener']);
+        iglesias.obtener.and.returnValue(of({ id: 5, nombre: 'Iglesia del Norte', creadaEn: new Date(2026, 0, 1) }));
+        await TestBed.configureTestingModule({
+            imports: [AppTopbar],
+            providers: [provideRouter([]), { provide: SesionService, useValue: sesion }, { provide: IglesiasService, useValue: iglesias }]
+        })
             // El configurador de colores de Sakai no es parte de lo que se prueba.
             .overrideComponent(AppTopbar, { remove: { imports: [AppConfigurator] }, add: { schemas: [CUSTOM_ELEMENTS_SCHEMA] } })
             .compileComponents();
@@ -89,5 +109,62 @@ describe('AppTopbar', () => {
 
         expect(sesion.cerrarSesion).toHaveBeenCalledTimes(1);
         expect(navegar).toHaveBeenCalledOnceWith('/auth/login', { replaceUrl: true });
+    });
+
+    describe('administrador del sistema dentro de una iglesia', () => {
+        const entrarA = async (id: number): Promise<void> => {
+            iglesiaId.set(id);
+            actuandoEnIglesia.set(true);
+            await fixture.whenStable();
+        };
+        const botonSalir = (): HTMLButtonElement | null => html().querySelector('button[aria-label^="Salir de la iglesia"]');
+
+        it('fuera de una iglesia no muestra el indicador ni pide su nombre', () => {
+            expect(html().textContent).not.toContain('Operando en');
+            expect(botonSalir()).toBeNull();
+            expect(iglesias.obtener).not.toHaveBeenCalled();
+        });
+
+        it('muestra «Operando en: <nombre>» con el nombre de la iglesia y el botón para salir', async () => {
+            await entrarA(5);
+
+            expect(iglesias.obtener).toHaveBeenCalledOnceWith(5);
+            expect(html().textContent).toContain('Operando en: Iglesia del Norte');
+            expect(botonSalir()?.textContent).toContain('Salir de la iglesia');
+        });
+
+        it('si no puede obtener el nombre muestra el número de la iglesia', async () => {
+            iglesias.obtener.and.returnValue(throwError(() => new Error('sin red')));
+
+            await entrarA(5);
+
+            expect(html().textContent).toContain('Operando en: Iglesia 5');
+        });
+
+        it('«Salir de la iglesia» vuelve a la vista global y navega al catálogo de iglesias', async () => {
+            await entrarA(5);
+            sesion.salirDeIglesia.and.callFake(() => {
+                actuandoEnIglesia.set(false);
+                return of(undefined);
+            });
+
+            botonSalir()!.click();
+            await fixture.whenStable();
+
+            expect(sesion.salirDeIglesia).toHaveBeenCalledTimes(1);
+            expect(navegar).toHaveBeenCalledOnceWith('/iglesias');
+            expect(html().textContent).not.toContain('Operando en');
+        });
+
+        it('si falla la salida se queda en la iglesia y vuelve a habilitar el botón', async () => {
+            await entrarA(5);
+            sesion.salirDeIglesia.and.returnValue(throwError(() => new Error('fallo')));
+
+            botonSalir()!.click();
+            await fixture.whenStable();
+
+            expect(navegar).not.toHaveBeenCalled();
+            expect(botonSalir()!.disabled).toBeFalse();
+        });
     });
 });
