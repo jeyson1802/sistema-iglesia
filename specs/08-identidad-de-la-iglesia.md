@@ -1,6 +1,6 @@
 # SPEC 08 — Identidad y apariencia de la iglesia
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 02 (permisos y roles), SPEC 03 (OpenAPI y trazabilidad), SPEC 05 (acceso global del administrador del sistema), SPEC 06 (ubigeo y selector de ubigeo), SPEC 07 (regla de grillas paginadas)
 > **Fecha:** 2026-10-29
 > **Objetivo:** Que cada iglesia tenga su propia identidad en el sistema: denominación completa, nombre comercial con una tipografía cuidada, logo, dirección y datos de contacto, y una apariencia (preset, color primario y superficie) que define su administrador y que ven todos sus usuarios. El modo oscuro queda como preferencia de cada usuario, el catálogo de iglesias se puede filtrar y el menú muestra solo las opciones del sistema.
