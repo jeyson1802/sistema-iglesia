@@ -1,6 +1,6 @@
 # SPEC 10 — Consolidación de nuevos y seguimiento pastoral
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 02 (permisos y perfiles personalizados), SPEC 03 (OpenAPI y trazabilidad), SPEC 06 (miembros, condición «Nuevo» y jerarquía), SPEC 07 (regla de grillas paginadas), SPEC 09 (asistencia y alertas de seguimiento)
 > **Fecha:** 2026-10-30
 > **Objetivo:** Que la iglesia organice la consolidación por **rondas**: arma un lote de personas (nuevos o miembros que se están alejando), lo reparte entre un equipo de consolidadores, y cada consolidador registra desde su celular cada llamada o visita y el resultado. Así se sabe, por persona, cuántas veces se la contactó, por qué medio, qué pasó en cada iteración y si volvió a asistir.
