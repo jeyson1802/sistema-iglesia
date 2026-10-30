@@ -1,0 +1,48 @@
+<article class="border border-surface rounded-border p-4 flex flex-col gap-3 bg-surface-0 dark:bg-surface-900" [attr.aria-labelledby]="'caso-nombre-' + caso().id">
+    <div class="flex items-start gap-3">
+        <span class="flex items-center justify-center shrink-0 w-11 h-11 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-400/20 dark:text-primary-300 font-semibold" aria-hidden="true">{{ iniciales() }}</span>
+        <div class="flex-1 min-w-0 flex flex-col gap-1">
+            <button
+                type="button"
+                [id]="'caso-nombre-' + caso().id"
+                class="self-start text-left font-semibold text-lg text-surface-900 dark:text-surface-0 bg-transparent border-0 p-0 cursor-pointer hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary rounded-border"
+                (click)="ver.emit()"
+            >
+                {{ caso().persona.nombreCompleto }}
+            </button>
+            <div class="flex flex-wrap gap-1">
+                @if (proximo(); as proximo) {
+                <p-tag [value]="proximo.texto" [severity]="proximo.vencido ? 'warn' : 'secondary'" icon="pi pi-calendar" />
+                } @if (esNuevo()) {
+                <p-tag [value]="etiquetaNuevo" severity="info" />
+                } @if (iteracion(); as iteracion) {
+                <p-tag [value]="iteracion" severity="contrast" />
+                }
+            </div>
+            @if (contexto(); as contexto) {
+            <p class="text-sm text-muted-color m-0">{{ contexto }}</p>
+            }
+        </div>
+    </div>
+
+    @if (pendiente(); as pendiente) {
+    <div class="flex items-center gap-2 rounded-border px-3 py-2 bg-surface-100 dark:bg-surface-800 text-sm" role="status">
+        <i class="pi pi-exclamation-circle text-primary" aria-hidden="true"></i>
+        <span class="flex-1">{{ pendiente }}</span>
+        <p-button label="Descartar" size="small" [text]="true" severity="secondary" (onClick)="descartar.emit()" />
+    </div>
+    }
+
+    <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+        <app-botones-contacto class="flex-1" [telefono]="caso().persona.telefono" [nombre]="caso().persona.nombreCompleto" [anchos]="true" (contactar)="contactar.emit($event)" />
+        <p-button
+            [id]="'registrar-' + caso().id"
+            label="Registrar"
+            icon="pi pi-pencil"
+            [outlined]="!pendiente()"
+            [ariaLabel]="'Registrar contacto con ' + caso().persona.nombreCompleto"
+            (onClick)="registrar.emit()"
+            styleClass="w-full sm:w-auto min-h-11"
+        />
+    </div>
+</article>

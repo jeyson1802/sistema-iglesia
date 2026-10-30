@@ -1,0 +1,52 @@
+<div class="flex flex-col gap-6">
+    <div class="card mb-0">
+        <p-button [label]="volver().etiqueta" icon="pi pi-arrow-left" [text]="true" severity="secondary" [routerLink]="volver().ruta" styleClass="mb-4 -ml-3" />
+        <header class="flex flex-col gap-1">
+            <h1 class="font-semibold text-2xl text-surface-900 dark:text-surface-0 m-0">Historial de consolidación</h1>
+            @if (nombre(); as nombre) {
+            <p class="text-muted-color text-lg m-0">{{ nombre }}</p>
+            } @if (lineaResumen(); as linea) {
+            <p class="m-0 mt-2">{{ linea }}</p>
+            } @if (resumen()?.casoAbierto; as caso) {
+            <p-button label="Ver el caso abierto" icon="pi pi-arrow-right" iconPos="right" size="small" [text]="true" [routerLink]="['/consolidacion', 'casos', caso.casoId]" styleClass="self-start -ml-3" />
+            }
+        </header>
+    </div>
+
+    @if (semanas().length > 0) {
+    <section class="card mb-0" aria-labelledby="titulo-asistencia-contactos">
+        <h2 id="titulo-asistencia-contactos" class="font-semibold text-lg m-0 mb-1">Asistencia y contactos</h2>
+        <p class="text-sm text-muted-color m-0 mb-4">Últimas 12 semanas. <i class="pi pi-phone text-primary" aria-hidden="true"></i> marca las semanas en que hubo contacto.</p>
+        <app-semanas-asistencia [semanas]="semanas()" [marcas]="resumen()?.fechasContactoRecientes ?? []" />
+    </section>
+    }
+
+    <section class="card mb-0" aria-labelledby="titulo-iteraciones" aria-live="polite" [attr.aria-busy]="cargando()">
+        <h2 id="titulo-iteraciones" class="font-semibold text-lg m-0 mb-4">Iteraciones</h2>
+        @if (error(); as error) {
+        <div class="flex flex-col items-center gap-4 py-8 text-center" role="alert">
+            <i class="pi pi-exclamation-circle text-4xl text-muted-color" aria-hidden="true"></i>
+            <span class="font-medium text-surface-900 dark:text-surface-0">{{ error }}</span>
+            <p-button label="Reintentar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="cargar()" />
+        </div>
+        } @else if (cargando() && iteraciones().length === 0) { @for (fila of [1, 2, 3]; track fila) {
+        <p-skeleton height="3rem" styleClass="mb-2" />
+        } } @else if (iteraciones().length === 0) {
+        <p class="text-muted-color m-0">Aún no ha tenido seguimiento de consolidación.</p>
+        } @else {
+        <app-iteraciones-anteriores [iteraciones]="iteraciones()" />
+        }
+        <p-paginator
+            [first]="primerRegistro()"
+            [rows]="tamanoPagina()"
+            [totalRecords]="total()"
+            [rowsPerPageOptions]="opcionesPorPagina"
+            [showCurrentPageReport]="true"
+            [currentPageReportTemplate]="plantillaReporte"
+            [alwaysShow]="true"
+            appendTo="body"
+            (onPageChange)="alPaginar($event)"
+            styleClass="mt-3"
+        />
+    </section>
+</div>

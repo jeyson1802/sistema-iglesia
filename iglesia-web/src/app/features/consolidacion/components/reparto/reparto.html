@@ -1,0 +1,238 @@
+<div class="flex flex-col gap-6">
+    @if (activos().length === 0) {
+    <div class="flex flex-col items-center gap-2 py-6 text-center">
+        <i class="pi pi-users text-3xl text-muted-color" aria-hidden="true"></i>
+        <p class="text-muted-color m-0">Tu equipo de consolidación aún no tiene integrantes. Agrégalos desde la pestaña «Equipo» o deja las personas sin asignar por ahora.</p>
+    </div>
+    } @else {
+    <section class="flex flex-col gap-3" aria-labelledby="reparto-equipo">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+            <div>
+                <h3 id="reparto-equipo" class="text-lg font-semibold m-0">¿Entre quiénes repartes?</h3>
+                <p class="m-0 text-sm text-muted-color" aria-live="polite">{{ elegidos().size }} de {{ activos().length }} consolidadores elegidos</p>
+            </div>
+            <p-iconfield class="sm:w-72">
+                <p-inputicon styleClass="pi pi-search" />
+                <input pInputText type="search" [ngModel]="buscarEquipo()" (ngModelChange)="buscarEquipo.set($event)" placeholder="Buscar consolidador" aria-label="Buscar consolidador" autocomplete="off" [fluid]="true" />
+            </p-iconfield>
+        </div>
+        <p-table
+            [value]="filasEquipo()"
+            dataKey="miembroId"
+            [paginator]="true"
+            [rows]="filasPorPagina"
+            [rowsPerPageOptions]="opcionesPorPagina"
+            [showCurrentPageReport]="true"
+            [currentPageReportTemplate]="plantillaReporte"
+            [alwaysShowPaginator]="true"
+            [rowHover]="true"
+            [scrollable]="true"
+            size="small"
+            tableStyleClass="md:min-w-140"
+        >
+            <ng-template #header>
+                <tr>
+                    <th scope="col" class="w-12">
+                        <p-checkbox [binary]="true" [ngModel]="todosElegidos()" (ngModelChange)="alternarVisibles($event)" ariaLabel="Elegir a todos los consolidadores que se ven" />
+                    </th>
+                    <th scope="col">Consolidador</th>
+                    <th scope="col" class="text-right">Ya tiene</th>
+                    <th scope="col" class="text-right">Recibe</th>
+                    <th scope="col" class="w-48 hidden md:table-cell">Quedará con</th>
+                </tr>
+            </ng-template>
+            <ng-template #body let-fila>
+                <tr [class.opacity-60]="!fila.elegido">
+                    <td>
+                        <p-checkbox [inputId]="'reparto-' + fila.miembroId" [binary]="true" [ngModel]="fila.elegido" (ngModelChange)="alternar(fila.miembroId, $event)" />
+                    </td>
+                    <td>
+                        <label [for]="'reparto-' + fila.miembroId" class="font-medium cursor-pointer">{{ fila.nombre }}</label>
+                    </td>
+                    <td class="text-right tabular-nums">{{ fila.cargaActual }}</td>
+                    <td class="text-right tabular-nums">
+                        @if (fila.recibe === null) {
+                        <span class="text-muted-color">—</span>
+                        } @else {
+                        <span class="font-semibold text-primary">+{{ fila.recibe }}</span>
+                        }
+                    </td>
+                    <td class="hidden md:table-cell">
+                        <div class="flex items-center gap-2">
+                            <p-progressbar [value]="proporcion(fila.quedaCon)" [showValue]="false" styleClass="flex-1 h-2" [attr.aria-label]="fila.nombre + ' quedará con ' + fila.quedaCon + ' casos'" />
+                            <span class="w-8 text-right tabular-nums text-sm">{{ fila.quedaCon }}</span>
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+                <tr>
+                    <td colspan="5" class="text-center text-muted-color py-6">Ningún consolidador coincide con «{{ buscarEquipo() }}».</td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </section>
+
+    <section aria-live="polite" aria-labelledby="reparto-propuesta" class="flex flex-col gap-3">
+        <h3 id="reparto-propuesta" class="text-lg font-semibold m-0">Propuesta</h3>
+        @if (error()) {
+        <div class="flex items-center gap-3" role="alert">
+            <span class="text-muted-color flex-1">No se pudo calcular la propuesta.</span>
+            <p-button label="Reintentar" icon="pi pi-refresh" size="small" severity="secondary" [outlined]="true" (onClick)="reintentar()" />
+        </div>
+        } @else if (elegidos().size === 0) {
+        <p class="text-muted-color m-0">Elige al menos un consolidador para ver la propuesta.</p>
+        } @else if (cargando() && !propuesta()) {
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" role="status" aria-label="Calculando la propuesta">
+            <p-skeleton height="5rem" />
+            <p-skeleton height="5rem" />
+            <p-skeleton height="5rem" />
+        </div>
+        } @else if (total() === 0) {
+        <p class="text-muted-color m-0">No hay personas por repartir: todas ya tienen consolidador.</p>
+        } @else { @if (equilibrio(); as equilibrio) {
+        <dl class="grid grid-cols-1 sm:grid-cols-3 gap-3 m-0" [class.opacity-60]="cargando()">
+            <div class="rounded-border border border-surface p-4">
+                <dt class="text-sm text-muted-color">Personas por repartir</dt>
+                <dd class="m-0 text-2xl font-semibold tabular-nums">{{ total() }}</dd>
+            </div>
+            <div class="rounded-border border border-surface p-4">
+                <dt class="text-sm text-muted-color">Para cada consolidador</dt>
+                <dd class="m-0 text-2xl font-semibold tabular-nums">
+                    @if (equilibrio.minimo === equilibrio.maximo) { {{ equilibrio.minimo }} } @else { {{ equilibrio.minimo }}–{{ equilibrio.maximo }} }
+                    <span class="text-sm font-normal text-muted-color">entre {{ equilibrio.consolidadores }}</span>
+                </dd>
+            </div>
+            <div class="rounded-border border border-surface p-4">
+                <dt class="text-sm text-muted-color">Ajustes a mano</dt>
+                <dd class="m-0 text-2xl font-semibold tabular-nums">{{ movidas() }}</dd>
+            </div>
+        </dl>
+        <p class="m-0 text-sm text-muted-color">Se reparte primero a quien tiene menos casos abiertos, para equilibrar la carga. Puedes revisar y mover personas abajo.</p>
+        }
+
+        <p-panel [toggleable]="true" [collapsed]="true" toggler="header" styleClass="cursor-default">
+            <ng-template #header>
+                <span class="flex flex-wrap items-center gap-2 font-medium">
+                    Revisar persona por persona
+                    <span class="text-sm font-normal text-muted-color">(opcional)</span>
+                    @if (movidas() > 0) {
+                    <p-tag [value]="movidas() + (movidas() === 1 ? ' movida' : ' movidas')" severity="info" />
+                    }
+                </span>
+            </ng-template>
+            <div class="flex flex-col gap-3">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <p-iconfield>
+                        <p-inputicon styleClass="pi pi-search" />
+                        <input pInputText type="search" [ngModel]="buscarPersona()" (ngModelChange)="buscarPersona.set($event)" placeholder="Buscar persona" aria-label="Buscar persona en la propuesta" autocomplete="off" [fluid]="true" />
+                    </p-iconfield>
+                    <p-select
+                        [options]="opcionesFiltro()"
+                        optionLabel="nombre"
+                        optionValue="id"
+                        [ngModel]="filtroConsolidador()"
+                        (ngModelChange)="filtroConsolidador.set($event)"
+                        [filter]="true"
+                        filterBy="nombre"
+                        ariaLabel="Ver las personas asignadas a"
+                        appendTo="body"
+                        [fluid]="true"
+                    />
+                </div>
+
+                @if (seleccionPersonas().size > 0) {
+                <div class="flex flex-col sm:flex-row sm:items-center gap-2 rounded-border px-3 py-2 bg-primary-50 dark:bg-primary-400/10" role="region" aria-label="Acciones con las personas seleccionadas">
+                    <span class="font-medium sm:mr-auto">{{ seleccionPersonas().size }} {{ seleccionPersonas().size === 1 ? 'seleccionada' : 'seleccionadas' }}</span>
+                    <p-select
+                        [options]="opcionesMover()"
+                        optionLabel="nombre"
+                        optionValue="id"
+                        [ngModel]="destinoBloque()"
+                        (ngModelChange)="destinoBloque.set($event)"
+                        [filter]="true"
+                        filterBy="nombre"
+                        placeholder="Mover a…"
+                        ariaLabel="Mover las seleccionadas a"
+                        appendTo="body"
+                        styleClass="w-full sm:w-64"
+                    />
+                    <p-button label="Mover" icon="pi pi-arrow-right" size="small" [disabled]="destinoBloque() === null" (onClick)="moverSeleccionadas()" />
+                    <p-button label="Quitar selección" size="small" [text]="true" severity="secondary" (onClick)="alternarPersonasVisibles(false)" />
+                </div>
+                }
+
+                <p-table
+                    [value]="filasPersonas()"
+                    dataKey="casoId"
+                    [paginator]="true"
+                    [rows]="filasPorPagina"
+                    [rowsPerPageOptions]="opcionesPorPagina"
+                    [showCurrentPageReport]="true"
+                    [currentPageReportTemplate]="plantillaReporte"
+                    [alwaysShowPaginator]="true"
+                    [rowHover]="true"
+                    [scrollable]="true"
+                    size="small"
+                    tableStyleClass="md:min-w-140"
+                >
+                    <ng-template #header>
+                        <tr>
+                            <th scope="col" class="w-12">
+                                <p-checkbox [binary]="true" [ngModel]="todasLasVisiblesElegidas()" (ngModelChange)="alternarPersonasVisibles($event)" ariaLabel="Seleccionar a todas las personas que se ven" />
+                            </th>
+                            <th scope="col">Persona</th>
+                            <th scope="col" class="md:w-72">Asignada a</th>
+                            <th scope="col" class="md:w-32"><span class="sr-only">Estado del ajuste</span></th>
+                        </tr>
+                    </ng-template>
+                    <ng-template #body let-fila>
+                        <tr>
+                            <td>
+                                <p-checkbox [binary]="true" [ngModel]="seleccionPersonas().has(fila.casoId)" (ngModelChange)="alternarPersona(fila.casoId, $event)" [ariaLabel]="'Seleccionar a ' + fila.nombre" />
+                            </td>
+                            <td>
+                                <span class="flex items-center gap-2">
+                                    <span class="flex items-center justify-center shrink-0 w-7 h-7 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-400/20 dark:text-primary-300 text-xs font-semibold" aria-hidden="true"
+                                        >{{ iniciales(fila.nombre) }}</span
+                                    >
+                                    <span class="break-words">{{ fila.nombre }}</span>
+                                </span>
+                            </td>
+                            <td>
+                                <p-select
+                                    [options]="opcionesMover()"
+                                    optionLabel="nombre"
+                                    optionValue="id"
+                                    [ngModel]="fila.consolidadorId"
+                                    (ngModelChange)="mover(fila.casoId, $event)"
+                                    [filter]="opcionesMover().length > 8"
+                                    filterBy="nombre"
+                                    [ariaLabel]="'Consolidador de ' + fila.nombre"
+                                    appendTo="body"
+                                    size="small"
+                                    [fluid]="true"
+                                />
+                            </td>
+                            <td>
+                                @if (fila.movida) {
+                                <span class="flex items-center gap-1">
+                                    <p-tag value="Movida" severity="info" />
+                                    <p-button icon="pi pi-undo" [rounded]="true" [text]="true" size="small" severity="secondary" [ariaLabel]="'Devolver a ' + fila.nombre + ' a la propuesta'" (onClick)="deshacerMovimiento(fila.casoId)" />
+                                </span>
+                                }
+                            </td>
+                        </tr>
+                    </ng-template>
+                    <ng-template #emptymessage>
+                        <tr>
+                            <td colspan="4" class="text-center text-muted-color py-6">No hay personas con esos filtros.</td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+            </div>
+        </p-panel>
+        }
+    </section>
+    }
+</div>

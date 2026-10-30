@@ -25,4 +25,12 @@ describe('SemanasAsistenciaComponent', () => {
         expect(parcial.className).toContain('bg-primary/60');
         expect(completa.className).toContain('bg-primary');
     });
+
+    it('marca las semanas con contacto y lo dice en su texto', () => {
+        fixture.componentRef.setInput('marcas', ['2026-10-21']);
+        fixture.detectChanges();
+        const casillas = Array.from(fixture.nativeElement.querySelectorAll('li')).map((li) => (li as HTMLElement).getAttribute('aria-label'));
+        expect(casillas[1]).toBe('Semana del 19 oct: 1 de 2 · hubo contacto');
+        expect(fixture.nativeElement.querySelectorAll('.pi-phone').length).toBe(1);
+    });
 });

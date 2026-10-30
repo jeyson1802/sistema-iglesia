@@ -1,0 +1,42 @@
+@if (entradas().length === 0) {
+<div class="flex flex-col items-center gap-2 py-6 text-center">
+    <i class="pi pi-comments text-3xl text-muted-color" aria-hidden="true"></i>
+    <p class="text-muted-color m-0">{{ mensajeVacio() }}</p>
+</div>
+} @else {
+<p-timeline [value]="entradas()" styleClass="[&_.p-timeline-event-opposite]:hidden" aria-label="Línea de tiempo">
+    <ng-template #marker let-entrada>
+        @if (entrada.tipo === 'contacto') {
+        <span class="flex items-center justify-center w-8 h-8 rounded-full" [class]="marca(entrada.contacto)" aria-hidden="true"><i [class]="icono(entrada.contacto) + ' text-sm'"></i></span>
+        } @else {
+        <span class="flex items-center justify-center w-8 h-8 rounded-full border border-surface bg-surface-0 dark:bg-surface-900 text-muted-color" aria-hidden="true"><i class="pi pi-check text-xs"></i></span>
+        }
+    </ng-template>
+    <ng-template #content let-entrada>
+        @if (entrada.tipo === 'contacto') { @let contacto = entrada.contacto;
+        <div class="flex flex-col gap-1 pb-5">
+            <span class="font-medium text-surface-900 dark:text-surface-0">{{ titulo(contacto) }}</span>
+            <time class="text-sm text-muted-color" [attr.datetime]="contacto.fechaHora" [title]="completa(contacto.fechaHora)">{{ hace(contacto.fechaHora) }}<span class="sr-only"> ({{ completa(contacto.fechaHora) }})</span></time>
+            @if (contacto.observaciones) {
+            <p class="m-0 mt-1 whitespace-pre-line">{{ contacto.observaciones }}</p>
+            } @if (contacto.proximoContacto) {
+            <span class="text-sm text-muted-color" [title]="diaCompleto(contacto.proximoContacto)"><i class="pi pi-calendar mr-1" aria-hidden="true"></i>Próximo contacto: {{ proximo(contacto.proximoContacto) }}</span>
+            } @if (contacto.editable) {
+            <div class="flex flex-wrap items-center gap-1 mt-1">
+                <p-button label="Corregir" icon="pi pi-pencil" size="small" [text]="true" [ariaLabel]="'Corregir el contacto: ' + titulo(contacto)" (onClick)="corregir.emit(contacto)" />
+                <p-button label="Borrar" icon="pi pi-trash" size="small" [text]="true" severity="danger" [ariaLabel]="'Borrar el contacto: ' + titulo(contacto)" (onClick)="borrar.emit(contacto)" />
+                @if (restante(contacto); as restante) {
+                <span class="text-xs text-muted-color">Editable por {{ restante }} más</span>
+                }
+            </div>
+            }
+        </div>
+        } @else {
+        <div class="flex flex-col pb-5 text-muted-color">
+            <span>Asistió a {{ entrada.reunion.nombre }} <span class="text-xs">({{ tipoReunion(entrada.reunion) }})</span></span>
+            <span class="text-sm first-letter:uppercase">{{ conDia(entrada.reunion.fecha) }}</span>
+        </div>
+        }
+    </ng-template>
+</p-timeline>
+}

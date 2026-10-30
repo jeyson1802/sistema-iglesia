@@ -1,0 +1,23 @@
+<p-dialog [(visible)]="visible" [header]="titulo()" [modal]="true" [draggable]="false" [dismissableMask]="!guardando()" [closable]="!guardando()" styleClass="w-full max-w-md mx-4">
+    <div aria-live="polite">
+        @if (error()) {
+        <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-4">{{ error() }}</p-message>
+        }
+    </div>
+
+    <form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-2" novalidate>
+        <div class="flex flex-col gap-2">
+            <label for="resultado-nombre" class="font-medium">Nombre</label>
+            <input pInputText id="resultado-nombre" formControlName="nombre" autocomplete="off" [maxlength]="nombreMax" placeholder="Ej.: Volverá a asistir" [fluid]="true" />
+            @if (!resultado()) {
+            <small class="text-muted-color">Se agrega al final del orden; después puedes subirlo.</small>
+            }
+            <app-mensaje-error-campo [control]="formulario.controls.nombre" [mensajes]="mensajesNombre" />
+        </div>
+
+        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-4">
+            <p-button label="Cancelar" severity="secondary" [outlined]="true" [disabled]="guardando()" (onClick)="cerrar()" />
+            <p-button type="submit" label="Guardar" icon="pi pi-check" [loading]="guardando()" [disabled]="!valido() || guardando()" />
+        </div>
+    </form>
+</p-dialog>

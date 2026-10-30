@@ -1,0 +1,83 @@
+<div class="grid grid-cols-12 gap-6">
+    <section class="col-span-12 lg:col-span-7 flex flex-col gap-4" aria-labelledby="avance-embudo">
+        <h3 id="avance-embudo" class="font-semibold text-lg m-0">Embudo</h3>
+        <ol class="flex flex-col gap-3 list-none p-0 m-0">
+            @for (etapa of etapas(); track etapa.etiqueta) {
+            <li class="flex flex-col gap-1">
+                <div class="flex items-baseline justify-between gap-2">
+                    <span class="font-medium">{{ etapa.etiqueta }}</span>
+                    <span class="tabular-nums">
+                        <strong class="text-lg">{{ etapa.cantidad }}</strong>
+                        @if (etapa.deLaAnterior !== null) {
+                        <span class="text-sm text-muted-color"> · {{ etapa.deLaAnterior }} % de la etapa anterior</span>
+                        }
+                    </span>
+                </div>
+                <p-progressbar [value]="etapa.delTotal" [showValue]="false" styleClass="h-3" [attr.aria-label]="etapa.etiqueta + ': ' + etapa.delTotal + ' % del total'" />
+            </li>
+            }
+        </ol>
+        <p class="text-sm text-muted-color m-0">«Volvieron a asistir»: personas con alguna asistencia en las 4 semanas siguientes a la primera vez que se habló con ellas.</p>
+    </section>
+
+    <section class="col-span-12 lg:col-span-5 flex flex-col gap-4">
+        <div class="rounded-border border border-surface p-4 flex items-center gap-4">
+            <span class="flex items-center justify-center w-12 h-12 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-400/20 dark:text-primary-300" aria-hidden="true"><i class="pi pi-stopwatch text-xl"></i></span>
+            <div>
+                <span class="block text-sm text-muted-color">Tiempo medio hasta el primer contacto</span>
+                <span class="block text-2xl font-semibold tabular-nums">{{ tiempoPrimerContacto() ?? '—' }}</span>
+            </div>
+        </div>
+        <div class="flex flex-col gap-3" aria-labelledby="avance-resultados">
+            <h3 id="avance-resultados" class="font-semibold text-lg m-0">Resultados de la iteración</h3>
+            @if (resultados().length === 0) {
+            <p class="text-muted-color m-0">Aún no hay casos cerrados.</p>
+            } @else {
+            <ul class="flex flex-col gap-3 list-none p-0 m-0">
+                @for (resultado of resultados(); track resultado.nombre) {
+                <li class="flex flex-col gap-1">
+                    <div class="flex justify-between gap-2 text-sm">
+                        <span>{{ resultado.nombre }}</span>
+                        <span class="tabular-nums font-medium">{{ resultado.cantidad }} ({{ resultado.porcentaje }} %)</span>
+                    </div>
+                    <p-progressbar [value]="resultado.porcentaje" [showValue]="false" styleClass="h-2" [attr.aria-label]="resultado.nombre + ': ' + resultado.porcentaje + ' %'" />
+                </li>
+                }
+            </ul>
+            }
+        </div>
+    </section>
+
+    <section class="col-span-12 flex flex-col gap-3" aria-labelledby="avance-consolidadores">
+        <h3 id="avance-consolidadores" class="font-semibold text-lg m-0">Por consolidador</h3>
+        @if (consolidadores().length === 0) {
+        <p class="text-muted-color m-0">Aún no se repartió a nadie.</p>
+        } @else {
+        <p-table [value]="consolidadores()" [scrollable]="true" tableStyleClass="min-w-160">
+            <ng-template #header>
+                <tr>
+                    <th scope="col">Consolidador</th>
+                    <th scope="col" class="text-right">Asignados</th>
+                    <th scope="col" class="text-right">Contactados</th>
+                    <th scope="col" class="text-right">Cerrados</th>
+                    <th scope="col" class="w-56">Avance</th>
+                </tr>
+            </ng-template>
+            <ng-template #body let-fila>
+                <tr>
+                    <td class="font-medium">{{ fila.nombre }}</td>
+                    <td class="text-right tabular-nums">{{ fila.asignados }}</td>
+                    <td class="text-right tabular-nums">{{ fila.contactados }}</td>
+                    <td class="text-right tabular-nums">{{ fila.cerrados }}</td>
+                    <td>
+                        <div class="flex items-center gap-2">
+                            <p-progressbar class="flex-1" [value]="fila.avance" [showValue]="false" styleClass="h-2" [attr.aria-label]="'Contactados: ' + fila.avance + ' %'" />
+                            <span class="text-sm tabular-nums w-10 text-right">{{ fila.avance }} %</span>
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
+        }
+    </section>
+</div>

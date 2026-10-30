@@ -1,0 +1,45 @@
+@if (visible()) {
+<section aria-labelledby="titulo-consolidacion-miembro" aria-live="polite" [attr.aria-busy]="cargando()">
+    <header class="flex items-center justify-between gap-3 mb-4">
+        <h2 id="titulo-consolidacion-miembro" class="font-semibold text-lg m-0">Consolidación</h2>
+        @if (resumen()?.iteraciones) {
+        <p-button label="Ver historial" icon="pi pi-history" size="small" [text]="true" styleClass="whitespace-nowrap" [routerLink]="['/miembros', miembroId(), 'consolidacion']" />
+        }
+    </header>
+
+    @if (cargando()) {
+    <p-skeleton width="70%" height="1.25rem" styleClass="mb-2" />
+    <p-skeleton width="50%" height="1rem" />
+    } @else if (error()) {
+    <div class="flex flex-col items-start gap-2" role="alert">
+        <span class="text-muted-color">No se pudo cargar la consolidación.</span>
+        <p-button label="Reintentar" icon="pi pi-refresh" size="small" severity="secondary" [outlined]="true" (onClick)="cargar()" />
+    </div>
+    } @else if (resumen(); as resumen) {
+    <div class="flex flex-col gap-3">
+        @if (linea(); as linea) {
+        <p class="m-0">{{ linea }}</p>
+        @if (resumen.ultimoResultado) {
+        <p class="m-0 text-sm">
+            Último resultado: <strong>{{ resumen.ultimoResultado.nombre }}</strong>
+            @if (resumen.ultimoResultadoEn) {
+            <span class="text-muted-color" [title]="completa(resumen.ultimoResultadoEn)"> ({{ mes(resumen.ultimoResultadoEn) }})</span>
+            }
+        </p>
+        } } @else {
+        <p class="m-0 text-muted-color">Aún no ha tenido seguimiento de consolidación.</p>
+        } @if (resumen.casoAbierto; as caso) {
+        <div class="flex flex-col gap-2 rounded-border p-3 bg-surface-100 dark:bg-surface-800">
+            <p-tag class="self-start" [value]="etiquetaEstado[caso.estado]" [severity]="severidadEstado[caso.estado]" />
+            <span class="text-sm">{{ caso.consolidador?.nombre ?? 'Sin consolidador' }} · {{ caso.ronda?.nombre ?? 'Seguimiento individual' }}</span>
+            <p-button label="Ver caso" icon="pi pi-arrow-right" iconPos="right" size="small" [text]="true" [routerLink]="[rutaConsolidacion, 'casos', caso.casoId]" styleClass="self-start -ml-3" />
+        </div>
+        } @else if (resumen.puedeIniciar) {
+        <p-button label="Iniciar seguimiento" icon="pi pi-heart" size="small" severity="secondary" [outlined]="true" [loading]="iniciando()" [disabled]="iniciando()" (onClick)="iniciar()" styleClass="self-start" />
+        } @if (errorInicio()) {
+        <p-message severity="error" size="small" icon="pi pi-times-circle">{{ errorInicio() }}</p-message>
+        }
+    </div>
+    }
+</section>
+}

@@ -1,0 +1,135 @@
+<div class="flex flex-col gap-5">
+    <p-selectbutton [options]="modos" [ngModel]="modo()" (ngModelChange)="cambiarModo($event)" optionLabel="label" optionValue="value" [allowEmpty]="false" ariaLabelledBy="lote-modo" />
+    <span id="lote-modo" class="sr-only">Cómo elegir a las personas</span>
+
+    @if (modo() === 'filtros') {
+    <div class="flex flex-col gap-2">
+        <span id="lote-chips" class="font-medium">¿A quiénes quieres consolidar?</span>
+        <div class="flex flex-wrap gap-2" role="group" aria-labelledby="lote-chips">
+            @for (chip of chips; track chip.valor) {
+            <button
+                type="button"
+                [attr.aria-pressed]="activos().has(chip.valor)"
+                (click)="alternar(chip.valor)"
+                class="inline-flex items-center gap-2 rounded-full border px-3 min-h-10 text-sm cursor-pointer transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                [class.border-primary]="activos().has(chip.valor)"
+                [class.bg-primary]="activos().has(chip.valor)"
+                [class.text-primary-contrast]="activos().has(chip.valor)"
+                [class.border-surface]="!activos().has(chip.valor)"
+                [class.bg-transparent]="!activos().has(chip.valor)"
+                [class.text-surface-900]="!activos().has(chip.valor)"
+                [class.dark:text-surface-0]="!activos().has(chip.valor)"
+            >
+                <i [class]="activos().has(chip.valor) ? 'pi pi-check' : chip.icono" aria-hidden="true"></i>{{ chip.etiqueta }}
+            </button>
+            }
+        </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        @if (grupos().length > 0) {
+        <div class="flex flex-col gap-2">
+            <label for="lote-grupo" class="font-medium">{{ etiquetaGrupo() }}</label>
+            <p-select
+                inputId="lote-grupo"
+                [options]="opcionesGrupos()"
+                optionLabel="nombre"
+                optionValue="id"
+                [ngModel]="filtro().grupoId"
+                (ngModelChange)="elegirGrupo($event)"
+                placeholder="Cualquiera"
+                [showClear]="true"
+                [filter]="true"
+                filterBy="nombre"
+                appendTo="body"
+                [fluid]="true"
+            />
+        </div>
+        }
+        <div class="flex flex-col gap-2">
+            <label for="lote-ingreso" class="font-medium">Ingresaron entre</label>
+            <p-datepicker
+                inputId="lote-ingreso"
+                selectionMode="range"
+                [ngModel]="rango()"
+                (ngModelChange)="rango.set($event)"
+                dateFormat="dd/mm/yy"
+                [showIcon]="true"
+                [showClear]="true"
+                [readonlyInput]="true"
+                placeholder="Cualquier fecha"
+                appendTo="body"
+                [fluid]="true"
+            />
+        </div>
+    </div>
+    } @else {
+    <div class="flex flex-col gap-2">
+        <label for="lote-persona" class="font-medium">Agrega personas</label>
+        <app-selector-miembro inputId="lote-persona" [ngModel]="buscado()" (ngModelChange)="agregarPersona($event)" placeholder="Busca por nombre y elige" />
+        @if (elegidos().length > 0) {
+        <ul class="flex flex-wrap gap-2 list-none p-0 m-0 mt-2" aria-label="Personas elegidas">
+            @for (elegido of elegidos(); track elegido.id) {
+            <li class="inline-flex items-center gap-1 rounded-full bg-surface-100 dark:bg-surface-800 pl-3 pr-1 py-1 text-sm">
+                {{ elegido.nombre }}
+                <p-button icon="pi pi-times" [rounded]="true" [text]="true" size="small" severity="secondary" [ariaLabel]="'Quitar a ' + elegido.nombre" (onClick)="quitarPersona(elegido.id)" />
+            </li>
+            }
+        </ul>
+        }
+    </div>
+    }
+
+    <section class="rounded-border border border-surface p-4 bg-surface-50 dark:bg-surface-950" aria-live="polite" aria-labelledby="lote-vista-titulo">
+        <h3 id="lote-vista-titulo" class="sr-only">Vista previa</h3>
+        @if (error()) {
+        <div class="flex items-center gap-3" role="alert">
+            <span class="text-muted-color flex-1">No se pudo calcular la vista previa.</span>
+            <p-button label="Reintentar" icon="pi pi-refresh" size="small" severity="secondary" [outlined]="true" (onClick)="reintentar()" />
+        </div>
+        } @else if (cargando() && !vistaPrevia()) {
+        <div class="flex flex-col gap-3" role="status" aria-label="Calculando">
+            <p-skeleton width="50%" height="1.5rem" />
+            @for (fila of filasCarga; track fila) {
+            <p-skeleton height="2.5rem" />
+            }
+        </div>
+        } @else if (vistaPrevia(); as vista) {
+        <div class="flex flex-col gap-3" [class.opacity-60]="cargando()">
+            <p class="m-0 text-lg">
+                @if (sinCriterio()) { Sin filtros entrarían <strong class="text-2xl tabular-nums">{{ vista.entrarian }}</strong> personas: elige al menos un filtro para enfocar la ronda. } @else { Entrarían
+                <strong class="text-2xl tabular-nums">{{ vista.entrarian }}</strong> {{ vista.entrarian === 1 ? 'persona' : 'personas' }} }
+            </p>
+            @if (vista.personas.length > 0) {
+            <div class="@container flex flex-col gap-2">
+                <p id="lote-personas" class="m-0 font-medium">{{ vista.personas.length === 1 ? 'Se agregará a:' : 'Se agregarán:' }}</p>
+                <ul class="list-none p-0 m-0 grid grid-cols-1 @xl:grid-cols-2 gap-2" aria-labelledby="lote-personas">
+                    @for (persona of personasPagina(); track persona.miembroId) {
+                    <li class="flex items-center gap-3 rounded-border px-3 py-2 bg-surface-0 dark:bg-surface-900 border border-surface">
+                        <span class="flex items-center justify-center shrink-0 w-8 h-8 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-400/20 dark:text-primary-300 text-xs font-semibold" aria-hidden="true"
+                            >{{ iniciales(persona.nombreCompleto) }}</span
+                        >
+                        <span class="min-w-0 break-words">{{ persona.nombreCompleto }}</span>
+                    </li>
+                    }
+                </ul>
+                <p-paginator
+                    [first]="primeraFila()"
+                    [rows]="filasPorPagina()"
+                    [totalRecords]="vista.personas.length"
+                    [rowsPerPageOptions]="opcionesFilas"
+                    [showCurrentPageReport]="true"
+                    [currentPageReportTemplate]="plantillaReporte"
+                    [alwaysShow]="true"
+                    appendTo="body"
+                    (onPageChange)="paginarPersonas($event)"
+                />
+            </div>
+            } @if (vista.conCasoAbierto > 0) {
+            <p class="m-0 text-sm text-muted-color"><i class="pi pi-info-circle mr-1" aria-hidden="true"></i>{{ vista.conCasoAbierto }} ya {{ vista.conCasoAbierto === 1 ? 'tiene' : 'tienen' }} un seguimiento abierto (no se agregan).</p>
+            } @if (excedeMaximo()) {
+            <p class="m-0 text-sm text-red-600 dark:text-red-400" role="alert">Una ronda admite hasta {{ loteMax }} personas por vez: agrega un filtro más.</p>
+            }
+        </div>
+        }
+    </section>
+</div>

@@ -1,0 +1,9 @@
+<div role="img" [attr.aria-label]="descripcion()">
+    @if (compacto()) {
+    <p-metergroup [value]="valores()" styleClass="gap-0" aria-hidden="true">
+        <ng-template #label></ng-template>
+    </p-metergroup>
+    } @else {
+    <p-metergroup [value]="valores()" labelPosition="end" styleClass="gap-2 text-sm" aria-hidden="true" />
+    }
+</div>

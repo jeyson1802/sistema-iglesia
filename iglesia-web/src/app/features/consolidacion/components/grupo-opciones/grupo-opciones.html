@@ -1,0 +1,34 @@
+<div role="radiogroup" [attr.aria-label]="etiqueta()" class="grid gap-2" [class]="columnas()" (focusout)="alTocar()">
+    @for (opcion of opciones(); track opcion.valor; let indice = $index) {
+    <button
+        type="button"
+        role="radio"
+        [attr.aria-checked]="opcion.valor === valor()"
+        [tabindex]="indice === enfocable() ? 0 : -1"
+        [disabled]="deshabilitado()"
+        (click)="elegir(opcion.valor)"
+        (keydown)="mover($event, indice)"
+        class="flex items-center justify-center gap-2 rounded-border border-2 px-3 cursor-pointer transition-colors text-surface-900 dark:text-surface-0 disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        [class.flex-col]="!compacto()"
+        [class.py-3]="!compacto()"
+        [class.min-h-20]="!compacto()"
+        [class.py-2]="compacto()"
+        [class.min-h-11]="compacto()"
+        [class.border-primary]="opcion.valor === valor()"
+        [class.bg-primary-50]="opcion.valor === valor()"
+        [class.dark:bg-primary-400/10]="opcion.valor === valor()"
+        [class.border-surface]="opcion.valor !== valor()"
+        [class.bg-surface-0]="opcion.valor !== valor()"
+        [class.dark:bg-surface-900]="opcion.valor !== valor()"
+        [class.hover:border-primary]="opcion.valor !== valor()"
+    >
+        @if (opcion.icono) {
+        <i [class]="opcion.icono + ' text-xl ' + colorIcono(opcion)" aria-hidden="true"></i>
+        }
+        <span class="font-medium text-sm text-center">{{ opcion.etiqueta }}</span>
+        @if (opcion.valor === valor()) {
+        <i class="pi pi-check-circle text-primary text-sm" aria-hidden="true"></i>
+        }
+    </button>
+    }
+</div>

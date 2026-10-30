@@ -112,6 +112,11 @@ public class SeguimientoAsistenciaService {
 	@Transactional(readOnly = true)
 	public AsistenciaMiembroResponse delMiembro(Long miembroId) {
 		verificarMiembroVisible(miembroId);
+		return resumenDe(miembroId);
+	}
+
+	/** Resumen de la ficha sin verificar el ámbito de asistencia: quien lo pide ya decidió que puede verlo. */
+	AsistenciaMiembroResponse resumenDe(Long miembroId) {
 		Periodo periodo = periodo();
 		var evaluado = evaluados(periodo, miembroId, null, null).stream().findFirst();
 		var semanas = semanasDe(periodo, consultas.porSemana(iglesiaActual.requerida(), periodo.hoy(),
@@ -155,6 +160,14 @@ public class SeguimientoAsistenciaService {
 		int hasta = Math.min(desde + paginacion.getPageSize(), seleccion.size());
 		return new PageImpl<>(aPersonas(seleccion.subList(desde, hasta)),
 				PageRequest.of(paginacion.getPageNumber(), paginacion.getPageSize()), seleccion.size());
+	}
+
+	/** Miembros de toda la iglesia con la alerta, sin ámbito: quien lo pide ya decidió que puede verlos. */
+	Set<Long> idsConAlerta(TipoAlerta alerta) {
+		return evaluados(periodo(), null, null, null).stream()
+			.filter(evaluado -> evaluado.tiene(alerta))
+			.map(evaluado -> evaluado.indicadores().miembroId())
+			.collect(Collectors.toSet());
 	}
 
 	@Transactional(readOnly = true)

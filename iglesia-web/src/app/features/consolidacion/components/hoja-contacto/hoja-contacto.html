@@ -1,0 +1,106 @@
+<p-dialog
+    [(visible)]="visible"
+    [header]="titulo()"
+    [modal]="true"
+    [draggable]="false"
+    [dismissableMask]="!guardando()"
+    [closable]="!guardando()"
+    [position]="abajo() ? 'bottom' : 'center'"
+    [styleClass]="abajo() ? 'w-full m-0 rounded-b-none max-h-[90vh]' : 'w-full max-w-xl mx-4'"
+    [focusOnShow]="true"
+>
+    <div aria-live="polite">
+        @if (error()) {
+        <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-4">{{ error() }}</p-message>
+        }
+    </div>
+
+    <form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-6" novalidate>
+        <fieldset class="flex flex-col gap-2 border-0 p-0 m-0">
+            <legend class="font-medium mb-2">1. ¿Por qué medio?</legend>
+            <app-grupo-opciones formControlName="medio" [opciones]="opcionesMedio" etiqueta="Medio del contacto" />
+            @if (formulario.controls.medio.touched && formulario.controls.medio.invalid) {
+            <p-message severity="error" size="small" variant="simple">Elige cómo te comunicaste.</p-message>
+            }
+        </fieldset>
+
+        @if (medio()) {
+        <fieldset class="flex flex-col gap-2 border-0 p-0 m-0">
+            <legend class="font-medium mb-2">2. ¿Qué pasó?</legend>
+            <app-grupo-opciones formControlName="resultado" [opciones]="opcionesResultado()" etiqueta="Resultado del contacto" columnas="grid-cols-1 sm:grid-cols-3" />
+            @if (formulario.controls.resultado.touched && formulario.controls.resultado.invalid) {
+            <p-message severity="error" size="small" variant="simple">Elige qué pasó en el contacto.</p-message>
+            }
+            <app-mensaje-error-servidor [mensaje]="erroresCampo()['resultado']" />
+        </fieldset>
+        }
+
+        <fieldset class="flex flex-col gap-4 border-0 p-0 m-0">
+            <legend class="font-medium mb-2">3. Detalles <span class="text-muted-color font-normal">(opcional)</span></legend>
+
+            <div class="flex flex-col gap-2">
+                <label for="contacto-observaciones" class="text-sm font-medium">Observaciones</label>
+                <textarea pTextarea id="contacto-observaciones" formControlName="observaciones" rows="3" [autoResize]="true" [maxlength]="limites.observacionesMax" [fluid]="true" placeholder="Qué te contó, cómo está, qué necesita…"></textarea>
+                <small class="text-muted-color self-end tabular-nums">{{ largoObservaciones() }}/{{ limites.observacionesMax }}</small>
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <span id="contacto-proximo-etiqueta" class="text-sm font-medium">Próximo contacto</span>
+                <div class="flex flex-wrap items-center gap-2" role="group" aria-labelledby="contacto-proximo-etiqueta">
+                    @for (atajo of atajos; track atajo.dias) {
+                    <p-button
+                        [label]="atajo.etiqueta"
+                        size="small"
+                        [rounded]="true"
+                        [outlined]="!esAtajo(atajo.dias)"
+                        [severity]="esAtajo(atajo.dias) ? 'primary' : 'secondary'"
+                        [attr.aria-pressed]="esAtajo(atajo.dias)"
+                        (onClick)="aplicarAtajo(atajo.dias)"
+                    />
+                    }
+                    <p-datepicker
+                        inputId="contacto-proximo"
+                        formControlName="proximoContacto"
+                        dateFormat="dd/mm/yy"
+                        [minDate]="ahora"
+                        [showIcon]="true"
+                        [showClear]="true"
+                        [readonlyInput]="true"
+                        placeholder="Elegir fecha"
+                        ariaLabel="Elegir fecha del próximo contacto"
+                        appendTo="body"
+                        styleClass="w-44"
+                    />
+                </div>
+                <app-mensaje-error-servidor [mensaje]="erroresCampo()['proximoContacto']" />
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="flex flex-col gap-2">
+                    <label for="contacto-fecha" class="text-sm font-medium">Fecha y hora</label>
+                    <p-datepicker inputId="contacto-fecha" formControlName="fechaHora" dateFormat="dd/mm/yy" [showTime]="true" hourFormat="24" [maxDate]="ahora" [showIcon]="true" [readonlyInput]="true" [fluid]="true" appendTo="body" />
+                    <app-mensaje-error-servidor [mensaje]="erroresCampo()['fechaHora']" />
+                </div>
+                @if (consolidadores().length > 0) {
+                <div class="flex flex-col gap-2">
+                    <label for="contacto-quien" class="text-sm font-medium">¿Quién hizo el contacto?</label>
+                    <p-select inputId="contacto-quien" formControlName="consolidadorId" [options]="opcionesConsolidadores()" optionLabel="nombre" optionValue="id" [filter]="true" filterBy="nombre" appendTo="body" [fluid]="true" />
+                    <app-mensaje-error-servidor [mensaje]="erroresCampo()['consolidadorId']" />
+                </div>
+                }
+            </div>
+        </fieldset>
+
+        @if (ofrecerCierre()) {
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3 rounded-border border border-primary p-3 bg-primary-50 dark:bg-primary-400/10">
+            <span class="flex-1 text-sm"><i class="pi pi-flag mr-2 text-primary" aria-hidden="true"></i>¿Terminó el seguimiento?</span>
+            <p-button label="Guardar y cerrar caso" icon="pi pi-check-square" severity="secondary" [outlined]="true" size="small" [disabled]="guardando()" (onClick)="enviar(true)" />
+        </div>
+        }
+
+        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+            <p-button label="Cancelar" severity="secondary" [outlined]="true" [disabled]="guardando()" (onClick)="cerrar()" styleClass="w-full sm:w-auto" />
+            <p-button type="submit" [label]="contacto() ? 'Guardar cambios' : 'Guardar'" icon="pi pi-check" [loading]="guardando()" [disabled]="guardando()" styleClass="w-full sm:w-auto min-h-11" />
+        </div>
+    </form>
+</p-dialog>

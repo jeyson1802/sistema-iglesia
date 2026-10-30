@@ -1,0 +1,208 @@
+<div class="flex flex-col gap-6" [class.pb-40]="seleccion().length > 0">
+    @if (cargandoRonda() && !ronda()) {
+    <div class="card mb-0 flex flex-col gap-4" role="status" aria-label="Cargando la ronda">
+        <p-skeleton width="40%" height="2rem" />
+        <p-skeleton width="25%" height="1rem" />
+        <p-skeleton height="1rem" />
+    </div>
+    } @else if (errorRonda()) {
+    <div class="card mb-0 flex flex-col items-center gap-3 py-8 text-center" role="alert">
+        <span class="text-muted-color">No se pudo cargar la ronda.</span>
+        <p-button label="Reintentar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="cargarRonda()" />
+    </div>
+    } @else if (ronda(); as ronda) {
+    <header class="card mb-0 flex flex-col gap-4">
+        <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-3">
+                    <h1 class="font-semibold text-2xl text-surface-900 dark:text-surface-0 m-0">{{ ronda.nombre }}</h1>
+                    <p-tag [value]="etiquetaEstado[ronda.estado]" [severity]="severidadEstado[ronda.estado]" [icon]="iconoEstado[ronda.estado]" />
+                </div>
+                <p class="text-muted-color m-0 mt-1">
+                    <span class="inline-block first-letter:uppercase">{{ conDia(ronda.fechaInicio) }}</span>
+                    @if (ronda.fechaFin) { al {{ conDia(ronda.fechaFin) }} } @if (plazo(); as plazo) { · <strong>{{ plazo }}</strong> }
+                </p>
+                @if (ronda.descripcion) {
+                <p class="m-0 mt-2">{{ ronda.descripcion }}</p>
+                }
+            </div>
+            @if (puedeAdministrar()) {
+            <div class="flex gap-2 shrink-0">
+                @switch (accion()) { @case ('AGREGAR') {
+                <p-button label="Agregar personas" icon="pi pi-user-plus" [disabled]="procesando()" (onClick)="ejecutarAccion()" styleClass="min-h-11" />
+                } @case ('REPARTIR') {
+                <p-button label="Repartir" icon="pi pi-share-alt" [disabled]="procesando()" (onClick)="ejecutarAccion()" styleClass="min-h-11" />
+                } @case ('INICIAR') {
+                <p-button label="Iniciar ronda" icon="pi pi-play" [loading]="procesando()" [disabled]="procesando()" (onClick)="ejecutarAccion()" styleClass="min-h-11" />
+                } } @if (menuMas().length > 0) {
+                <p-button label="Más" icon="pi pi-ellipsis-v" severity="secondary" [outlined]="true" (onClick)="mas.toggle($event)" ariaLabel="Más acciones de la ronda" styleClass="min-h-11" />
+                <p-menu #mas [model]="menuMas()" [popup]="true" appendTo="body" />
+                }
+            </div>
+            }
+        </div>
+        @if (ronda.personas > 0) {
+        <app-medidor-ronda [avance]="ronda" />
+        } @if ((ronda.sinAsignar > 0 && editable()) || ronda.vencidos > 0) {
+        <div class="flex flex-col sm:flex-row flex-wrap gap-2">
+            @if (ronda.sinAsignar > 0 && editable()) {
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-border px-3 py-2 bg-surface-100 dark:bg-surface-800">
+                <i class="pi pi-user-plus text-primary" aria-hidden="true"></i>
+                <span>{{ ronda.sinAsignar }} {{ ronda.sinAsignar === 1 ? 'persona sin asignar' : 'personas sin asignar' }}</span>
+                <p-button label="Ver" size="small" [text]="true" (onClick)="verSinAsignar()" />
+                <p-button label="Repartir" size="small" [text]="true" (onClick)="abrirReparto()" />
+            </div>
+            } @if (ronda.vencidos > 0) {
+            <div class="flex items-center gap-3 rounded-border px-3 py-2 bg-surface-100 dark:bg-surface-800">
+                <i class="pi pi-exclamation-triangle text-orange-600 dark:text-orange-400" aria-hidden="true"></i>
+                <span>{{ ronda.vencidos }} con el próximo contacto vencido: recuérdaselo a sus consolidadores.</span>
+            </div>
+            }
+        </div>
+        }
+    </header>
+
+    <div class="empty:hidden" aria-live="polite">
+        @if (errorAccion()) {
+        <p-message severity="error" icon="pi pi-times-circle" [closable]="true" (onClose)="errorAccion.set(null)">{{ errorAccion() }}</p-message>
+        }
+    </div>
+
+    <div class="card mb-0">
+        <p-tabs [value]="pestana()" (valueChange)="cambiarPestana($event)">
+            <p-tablist>
+                <p-tab value="personas"><i class="pi pi-users mr-2" aria-hidden="true"></i>Personas</p-tab>
+                <p-tab value="avance"><i class="pi pi-chart-bar mr-2" aria-hidden="true"></i>Avance</p-tab>
+            </p-tablist>
+            <p-tabpanels styleClass="px-0">
+                <p-tabpanel value="personas">
+                    @if (ronda.personas === 0) {
+                    <div class="flex flex-col items-center gap-3 py-10 text-center">
+                        <i class="pi pi-user-plus text-4xl text-muted-color" aria-hidden="true"></i>
+                        <p class="m-0 max-w-md">Esta ronda aún no tiene personas. Elige a quiénes consolidar con filtros como «Nuevos» o «Nunca consolidados».</p>
+                        @if (editable()) {
+                        <p-button label="Agregar personas" icon="pi pi-user-plus" (onClick)="abrirLote()" />
+                        }
+                    </div>
+                    } @else {
+                    <app-filtros-casos [filtro]="filtro()" [ronda]="ronda" [consolidadores]="consolidadores()" (filtrar)="filtrar($event)" />
+                    <div class="mt-4">
+                        @if (errorCasos()) {
+                        <div class="flex flex-col items-center gap-3 py-8 text-center" role="alert">
+                            <span class="text-muted-color">No se pudieron cargar las personas.</span>
+                            <p-button label="Reintentar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="cargarCasos()" />
+                        </div>
+                        } @else {
+                        <app-tabla-casos
+                            [casos]="casos()"
+                            [totalRegistros]="total()"
+                            [pagina]="pagina()"
+                            [tamanoPagina]="tamanoPagina()"
+                            [cargando]="cargandoCasos()"
+                            [seleccionable]="editable()"
+                            [(seleccion)]="seleccion"
+                            (cambiarPagina)="cambiarPagina($event)"
+                            (ver)="verCaso($event)"
+                        />
+                        }
+                    </div>
+                    }
+                </p-tabpanel>
+                <p-tabpanel value="avance">
+                    @if (cargandoAvance() && !avance()) {
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" role="status" aria-label="Cargando el avance">
+                        <p-skeleton height="14rem" />
+                        <p-skeleton height="14rem" />
+                    </div>
+                    } @else if (errorAvance()) {
+                    <div class="flex flex-col items-center gap-3 py-8 text-center" role="alert">
+                        <span class="text-muted-color">No se pudo cargar el avance.</span>
+                        <p-button label="Reintentar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="cargarAvance()" />
+                    </div>
+                    } @else if (avance(); as avance) {
+                    <app-avance-ronda [avance]="avance" />
+                    }
+                </p-tabpanel>
+            </p-tabpanels>
+        </p-tabs>
+    </div>
+    }
+</div>
+
+@if (seleccion().length > 0) {
+<div class="fixed bottom-0 inset-x-0 z-50 p-3 flex justify-center pointer-events-none" role="region" aria-label="Acciones sobre la selección">
+    <div class="pointer-events-auto w-full max-w-5xl rounded-border shadow-lg border border-surface bg-surface-0 dark:bg-surface-900 p-3 flex flex-col lg:flex-row lg:items-center gap-3">
+        <span class="font-medium" aria-live="polite">{{ seleccion().length }} {{ seleccion().length === 1 ? 'seleccionada' : 'seleccionadas' }}</span>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2 lg:ml-auto">
+            <div class="flex gap-2">
+                <p-select
+                    [options]="activos()"
+                    optionLabel="nombre"
+                    optionValue="id"
+                    [ngModel]="asignarA()"
+                    (ngModelChange)="asignarA.set($event)"
+                    placeholder="Asignar a…"
+                    [filter]="true"
+                    filterBy="nombre"
+                    appendTo="body"
+                    ariaLabel="Consolidador al que asignar la selección"
+                    styleClass="flex-1 sm:w-52"
+                />
+                <p-button label="Asignar" icon="pi pi-check" [disabled]="asignarA() === null || procesando() || seleccionAbierta().length === 0" (onClick)="asignarSeleccion()" />
+            </div>
+            <p-button label="Repartir en partes iguales" icon="pi pi-share-alt" severity="secondary" [outlined]="true" [disabled]="procesando() || seleccionAbierta().length === 0" (onClick)="repartirSeleccion()" />
+            <p-button label="Quitar del lote" icon="pi pi-trash" severity="danger" [outlined]="true" [disabled]="procesando()" (onClick)="quitarSeleccion()" />
+            <p-button icon="pi pi-times" [text]="true" severity="secondary" ariaLabel="Quitar la selección" (onClick)="seleccion.set([])" />
+        </div>
+    </div>
+</div>
+}
+
+<p-drawer [(visible)]="loteVisible" position="right" header="Agregar personas" styleClass="w-full! md:w-[40rem]!" [closeOnEscape]="!procesando()">
+    @if (loteVisible()) {
+    <div class="flex flex-col gap-5">
+        <div aria-live="polite">
+            @if (errorPanel()) {
+            <p-message severity="error" icon="pi pi-times-circle">{{ errorPanel() }}</p-message>
+            }
+        </div>
+        <app-selector-lote [rondaId]="rondaId" [grupos]="opcionesGrupo()" [etiquetaGrupo]="nombreGrupo()" [(filtro)]="filtroLote" [(entrarian)]="entrarian" />
+        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+            <p-button label="Cancelar" severity="secondary" [outlined]="true" [disabled]="procesando()" (onClick)="loteVisible.set(false)" />
+            <p-button
+                [label]="entrarian() === 1 ? 'Agregar 1 persona' : 'Agregar ' + entrarian() + ' personas'"
+                icon="pi pi-user-plus"
+                [loading]="procesando()"
+                [disabled]="procesando() || entrarian() === 0 || entrarian() > loteMax"
+                (onClick)="agregarLote()"
+            />
+        </div>
+    </div>
+    }
+</p-drawer>
+
+<p-dialog [(visible)]="repartoVisible" header="Repartir personas sin asignar" [modal]="true" [draggable]="false" [closable]="!procesando()" styleClass="w-full max-w-5xl mx-4">
+    @if (repartoVisible()) {
+    <div class="flex flex-col gap-5">
+        <div aria-live="polite">
+            @if (errorPanel()) {
+            <p-message severity="error" icon="pi pi-times-circle">{{ errorPanel() }}</p-message>
+            }
+        </div>
+        <app-reparto [rondaId]="rondaId" [equipo]="equipo()" [(solicitud)]="solicitudReparto" />
+        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+            <p-button label="Cancelar" severity="secondary" [outlined]="true" [disabled]="procesando()" (onClick)="repartoVisible.set(false)" />
+            <p-button label="Aplicar reparto" icon="pi pi-check" [loading]="procesando()" [disabled]="procesando() || !solicitudReparto()" (onClick)="repartir()" />
+        </div>
+    </div>
+    }
+</p-dialog>
+
+<p-dialog [(visible)]="edicionVisible" header="Editar datos de la ronda" [modal]="true" [draggable]="false" [closable]="!procesando()" styleClass="w-full max-w-xl mx-4">
+    @if (edicionVisible()) {
+    <app-formulario-ronda [datos]="datos()" [guardando]="procesando()" [error]="errorPanel()" [erroresCampo]="erroresCampo()" (guardar)="guardarDatos($event)" (cancelar)="edicionVisible.set(false)" />
+    }
+</p-dialog>
+
+<p-confirmdialog styleClass="w-full max-w-md mx-4" />
+<p-toast position="bottom-center" />

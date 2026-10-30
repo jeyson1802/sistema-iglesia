@@ -8,6 +8,7 @@ import { SesionService } from '@/app/core/auth/services/sesion.service';
 import { ConfiguracionIglesiaService, NOMBRES_GRUPOS_POR_DEFECTO } from '@/app/core/configuracion/configuracion-iglesia.service';
 import { RUTA_IGLESIAS, RUTA_MI_IGLESIA } from '@/app/core/iglesias/models/rutas-iglesias';
 import { RUTA_SEGUIMIENTO } from '@/app/features/asistencia/models/rutas-asistencia';
+import { RUTA_CONSOLIDACION, RUTA_MIS_ASIGNADOS, RUTA_RESULTADOS_CONSOLIDACION } from '@/app/features/consolidacion/models/rutas-consolidacion';
 import { AppMenuitem } from './app.menuitem';
 
 /** Entrada del menú con los permisos que exige (basta uno); sin `permisos`, la ven todos. */
@@ -35,7 +36,9 @@ const entradasApp = (nombreGrupos: string, etiquetaAportes: string): EntradaMenu
             { label: nombreGrupos, icon: 'pi pi-fw pi-sitemap', routerLink: ['/grupos'], permisos: ['grupos.ver'], requiereIglesia: true },
             { label: etiquetaAportes, icon: 'pi pi-fw pi-wallet', routerLink: ['/aportes'], permisos: ['aportes.ver'], requiereIglesia: true },
             { label: 'Asistencia', icon: 'pi pi-fw pi-check-square', routerLink: ['/asistencia'], permisos: ['asistencia.registrar', 'asistencia.grupo', 'asistencia.ver'], requiereIglesia: true },
-            { label: 'Seguimiento', icon: 'pi pi-fw pi-chart-line', routerLink: [RUTA_SEGUIMIENTO], permisos: ['asistencia.ver', 'asistencia.grupo'], requiereIglesia: true }
+            { label: 'Seguimiento', icon: 'pi pi-fw pi-chart-line', routerLink: [RUTA_SEGUIMIENTO], permisos: ['asistencia.ver', 'asistencia.grupo'], requiereIglesia: true },
+            { label: 'Consolidación', icon: 'pi pi-fw pi-heart', routerLink: [RUTA_CONSOLIDACION], permisos: ['consolidacion.ver', 'consolidacion.administrar'], requiereIglesia: true },
+            { label: 'Mis asignados', icon: 'pi pi-fw pi-phone', routerLink: [RUTA_MIS_ASIGNADOS], permisos: ['consolidacion.contactar', 'consolidacion.administrar'], requiereIglesia: true }
         ]
     },
     {
@@ -46,7 +49,8 @@ const entradasApp = (nombreGrupos: string, etiquetaAportes: string): EntradaMenu
             { label: 'Roles', icon: 'pi pi-fw pi-shield', routerLink: ['/roles'], permisos: ['roles.ver'], requiereIglesia: true },
             { label: 'Niveles', icon: 'pi pi-fw pi-sort-amount-up', routerLink: ['/niveles'], permisos: ['niveles.administrar'], requiereIglesia: true },
             { label: 'Configuración de aportes', icon: 'pi pi-fw pi-cog', routerLink: ['/aportes/configuracion'], permisos: ['aportes.configurar'], requiereIglesia: true },
-            { label: 'Horarios de culto', icon: 'pi pi-fw pi-clock', routerLink: ['/asistencia/configuracion'], permisos: ['asistencia.configurar'], requiereIglesia: true }
+            { label: 'Horarios de culto', icon: 'pi pi-fw pi-clock', routerLink: ['/asistencia/configuracion'], permisos: ['asistencia.configurar'], requiereIglesia: true },
+            { label: 'Resultados de consolidación', icon: 'pi pi-fw pi-list-check', routerLink: [RUTA_RESULTADOS_CONSOLIDACION], permisos: ['consolidacion.administrar'], requiereIglesia: true }
         ]
     }
 ];

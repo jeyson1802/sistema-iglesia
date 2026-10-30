@@ -58,4 +58,12 @@ public interface ReunionRepository extends JpaRepository<Reunion, Long>, JpaSpec
 			order by r.fecha desc, r.hora desc nulls last, r.id desc""")
 	List<Reunion> ultimasAsistidas(@Param("miembroId") Long miembroId, Pageable limite);
 
+	/** Reuniones a las que asistió el miembro entre dos fechas, de la más reciente a la más antigua. */
+	@Query("""
+			select r from Reunion r join Asistencia a on a.reunionId = r.id
+			where a.miembroId = :miembroId and r.fecha between :desde and :hasta
+			order by r.fecha desc, r.hora desc nulls last, r.id desc""")
+	List<Reunion> asistidasEntre(@Param("miembroId") Long miembroId, @Param("desde") LocalDate desde,
+			@Param("hasta") LocalDate hasta, Pageable limite);
+
 }

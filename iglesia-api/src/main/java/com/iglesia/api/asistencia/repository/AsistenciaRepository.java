@@ -15,6 +15,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.iglesia.api.asistencia.entity.Asistencia;
 import com.iglesia.api.asistencia.entity.AsistenciaId;
+import com.iglesia.api.asistencia.model.FechaAsistida;
 import com.iglesia.api.asistencia.model.TotalPorReunion;
 
 /**
@@ -56,5 +57,13 @@ public interface AsistenciaRepository extends JpaRepository<Asistencia, Asistenc
 
 	@Query("select a.miembroId from Asistencia a where a.reunionId = :reunionId and a.miembroId in :miembroIds")
 	List<Long> presentesEntre(@Param("reunionId") Long reunionId, @Param("miembroIds") Collection<Long> miembroIds);
+
+	/** Fechas de las reuniones a las que asistieron los miembros desde una fecha, en una sola consulta. */
+	@Query("""
+			select new com.iglesia.api.asistencia.model.FechaAsistida(a.miembroId, r.fecha)
+			from Asistencia a join Reunion r on r.id = a.reunionId
+			where a.miembroId in :miembroIds and r.fecha >= :desde""")
+	List<FechaAsistida> fechasAsistidas(@Param("miembroIds") Collection<Long> miembroIds,
+			@Param("desde") LocalDate desde);
 
 }

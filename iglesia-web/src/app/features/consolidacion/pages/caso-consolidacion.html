@@ -1,0 +1,205 @@
+@if (cargando() && !caso()) {
+<div class="flex flex-col gap-4" role="status" aria-label="Cargando el caso">
+    <div class="card mb-0 flex items-center gap-4">
+        <p-skeleton shape="circle" size="4rem" />
+        <div class="flex-1 flex flex-col gap-2">
+            <p-skeleton width="40%" height="1.75rem" />
+            <p-skeleton width="25%" height="1rem" />
+        </div>
+    </div>
+    <div class="grid grid-cols-12 gap-4">
+        <p-skeleton styleClass="col-span-12 lg:col-span-5" height="18rem" />
+        <p-skeleton styleClass="col-span-12 lg:col-span-7" height="18rem" />
+    </div>
+</div>
+} @else if (error()) {
+<div class="card flex flex-col items-center gap-3 py-8 text-center" role="alert">
+    <i class="pi pi-exclamation-circle text-4xl text-muted-color" aria-hidden="true"></i>
+    <span>{{ error() }}</span>
+    <div class="flex gap-2">
+        <p-button label="Reintentar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="cargar()" />
+        <p-button label="Ir a mis asignados" [text]="true" [routerLink]="rutaMisAsignados" />
+    </div>
+</div>
+} @else if (caso(); as caso) {
+<div class="flex flex-col gap-4 pb-24 md:pb-0">
+    <header class="card mb-0 flex flex-col md:flex-row md:items-center gap-4">
+        <p-menu #mas [model]="menuMas()" [popup]="true" appendTo="body" />
+        <span class="flex items-center justify-center shrink-0 w-16 h-16 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-400/20 dark:text-primary-300 text-2xl font-semibold" aria-hidden="true">{{ iniciales() }}</span>
+        <div class="flex-1 min-w-0 flex flex-col gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+                <h1 class="font-semibold text-2xl text-surface-900 dark:text-surface-0 m-0">{{ caso.persona.nombreCompleto }}</h1>
+                @if (edad() !== null) {
+                <span class="text-muted-color">{{ edad() }} años</span>
+                }
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <p-tag [value]="etiquetaEstado[caso.estado]" [severity]="severidadEstado[caso.estado]" />
+                @if (condicion(); as condicion) {
+                <p-tag [value]="condicion" severity="info" />
+                }
+                <p-tag [value]="iteracion()" severity="contrast" />
+                <app-etiquetas-alerta [alertas]="caso.asistencia.alertas" [faltasSeguidas]="caso.asistencia.faltasSeguidas" />
+            </div>
+            <p class="text-sm text-muted-color m-0">
+                @if (caso.ronda) {
+                <a [routerLink]="[rutaConsolidacion, 'rondas', caso.ronda.id]" class="text-primary hover:underline">{{ caso.ronda.nombre }}</a>
+                } @else { Seguimiento individual } · {{ caso.consolidador?.nombre ?? 'Sin consolidador' }} @if (caso.proximoContacto && caso.estado !== 'CERRADO') { · Próximo contacto: {{ proximo(caso.proximoContacto) }} } @if (caso.resultado) { ·
+                Resultado:
+                <strong>{{ caso.resultado.nombre }}</strong> }
+            </p>
+        </div>
+        <div class="hidden md:flex gap-2 shrink-0">
+            @if (trabajable()) {
+            <p-button label="Registrar contacto" icon="pi pi-pencil" (onClick)="abrirHoja()" styleClass="min-h-11" />
+            <p-button label="Cerrar caso" icon="pi pi-check-square" severity="secondary" [outlined]="true" (onClick)="abrirCierre()" styleClass="min-h-11" />
+            } @if (menuMas().length > 0) {
+            <p-button icon="pi pi-ellipsis-v" severity="secondary" [text]="true" ariaLabel="Más acciones del caso" (onClick)="mas.toggle($event)" styleClass="min-h-11" />
+            }
+        </div>
+        @if (menuMas().length > 0) {
+        <p-button class="md:hidden self-start" label="Más acciones" icon="pi pi-ellipsis-v" severity="secondary" [text]="true" size="small" (onClick)="mas.toggle($event)" />
+        }
+    </header>
+
+    <div class="empty:hidden" aria-live="polite">
+        @if (errorAccion()) {
+        <p-message severity="error" icon="pi pi-times-circle" [closable]="true" (onClose)="errorAccion.set(null)">{{ errorAccion() }}</p-message>
+        }
+    </div>
+
+    <section class="card mb-0 border-l-4 border-primary" aria-labelledby="antes-de-contactar">
+        <h2 id="antes-de-contactar" class="flex items-center gap-2 font-semibold text-lg m-0 mb-2"><i class="pi pi-lightbulb text-primary" aria-hidden="true"></i>Antes de contactar</h2>
+        <p class="m-0 leading-relaxed">@for (frase of antes(); track $index) { {{ frase }} }</p>
+    </section>
+
+    <div class="grid grid-cols-12 gap-4">
+        <div class="col-span-12 lg:col-span-5 flex flex-col gap-4">
+            <section class="card mb-0 flex flex-col gap-4" aria-labelledby="datos-contacto">
+                <h2 id="datos-contacto" class="font-semibold text-lg m-0">Datos para contactar</h2>
+                @if (conTelefono()) {
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-lg tabular-nums">{{ caso.persona.telefono }}</span>
+                        <p-button [icon]="copiado() ? 'pi pi-check' : 'pi pi-copy'" [rounded]="true" [text]="true" size="small" severity="secondary" [ariaLabel]="copiado() ? 'Teléfono copiado' : 'Copiar teléfono'" (onClick)="copiarTelefono()" />
+                        <span class="sr-only" aria-live="polite">{{ copiado() ? 'Teléfono copiado' : '' }}</span>
+                    </div>
+                    <app-botones-contacto class="hidden md:block" [telefono]="caso.persona.telefono" [nombre]="caso.persona.nombreCompleto" (contactar)="contactar($event)" />
+                </div>
+                } @else {
+                <p class="flex items-center gap-2 m-0 text-muted-color"><i class="pi pi-info-circle" aria-hidden="true"></i>Sin teléfono: coordina una visita.</p>
+                }
+                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 m-0">
+                    @if (caso.persona.direccion || caso.persona.ubicacion) {
+                    <div class="sm:col-span-2">
+                        <dt class="text-sm text-muted-color">Dirección</dt>
+                        <dd class="m-0">
+                            {{ caso.persona.direccion }}@if (caso.persona.direccion && caso.persona.ubicacion) {, } {{ caso.persona.ubicacion }} @if (mapa(); as mapa) {
+                            <a [href]="mapa" target="_blank" rel="noopener" class="ml-1 text-primary hover:underline whitespace-nowrap"><i class="pi pi-map-marker mr-1" aria-hidden="true"></i>Abrir en mapas</a>
+                            }
+                        </dd>
+                    </div>
+                    } @if (caso.persona.correo) {
+                    <div class="sm:col-span-2">
+                        <dt class="text-sm text-muted-color">Correo</dt>
+                        <dd class="m-0 break-all"><a [href]="'mailto:' + caso.persona.correo" class="text-primary hover:underline">{{ caso.persona.correo }}</a></dd>
+                    </div>
+                    }
+                    <div>
+                        <dt class="text-sm text-muted-color">Invitado por</dt>
+                        <dd class="m-0">{{ caso.persona.invitadoPor ?? '—' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm text-muted-color">Líder</dt>
+                        <dd class="m-0">{{ caso.persona.lider ?? '—' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm text-muted-color">Grupo</dt>
+                        <dd class="m-0">{{ caso.persona.grupo ?? 'Sin grupo' }}</dd>
+                    </div>
+                    @if (caso.persona.fechaIngreso) {
+                    <div>
+                        <dt class="text-sm text-muted-color">Ingresó</dt>
+                        <dd class="m-0 first-letter:uppercase">{{ conDia(caso.persona.fechaIngreso) }}</dd>
+                    </div>
+                    }
+                </dl>
+                @if (caso.persona.peticion) {
+                <div class="rounded-border p-3 bg-surface-100 dark:bg-surface-800">
+                    <span class="block text-sm text-muted-color mb-1">Llegó pidiendo</span>
+                    <p class="m-0 whitespace-pre-line">{{ caso.persona.peticion }}</p>
+                </div>
+                }
+            </section>
+
+            <section class="card mb-0 flex flex-col gap-4" aria-labelledby="asistencia-caso">
+                <h2 id="asistencia-caso" class="font-semibold text-lg m-0">Asistencia</h2>
+                <app-indicadores-asistencia [indicadores]="caso.asistencia" />
+                <app-semanas-asistencia [semanas]="caso.asistencia.semanas" />
+            </section>
+        </div>
+
+        <div class="col-span-12 lg:col-span-7 flex flex-col gap-4">
+            <section class="card mb-0" aria-labelledby="linea-tiempo">
+                <h2 id="linea-tiempo" class="font-semibold text-lg m-0 mb-4">Línea de tiempo</h2>
+                <app-linea-tiempo [contactos]="caso.contactos" [asistencias]="caso.asistencias" (corregir)="corregir($event)" (borrar)="borrar($event)" />
+            </section>
+            <section class="card mb-0" aria-labelledby="iteraciones-anteriores">
+                <h2 id="iteraciones-anteriores" class="font-semibold text-lg m-0 mb-4">Iteraciones anteriores</h2>
+                <app-iteraciones-anteriores [iteraciones]="caso.anteriores" />
+            </section>
+        </div>
+    </div>
+</div>
+
+@if (trabajable()) {
+<div class="md:hidden fixed bottom-0 inset-x-0 z-40 p-3 border-t border-surface bg-surface-0 dark:bg-surface-900 flex flex-col gap-2" role="region" aria-label="Acciones del caso">
+    <app-botones-contacto [telefono]="caso.persona.telefono" [nombre]="caso.persona.nombreCompleto" [anchos]="true" (contactar)="contactar($event)" />
+    <div class="flex gap-2">
+        <p-button class="flex-1" label="Registrar" icon="pi pi-pencil" (onClick)="abrirHoja()" styleClass="w-full min-h-11" />
+        <p-button label="Cerrar caso" icon="pi pi-check-square" severity="secondary" [outlined]="true" (onClick)="abrirCierre()" styleClass="min-h-11" />
+    </div>
+</div>
+}
+
+<app-hoja-contacto
+    [(visible)]="hojaVisible"
+    [nombre]="caso.persona.nombreCompleto"
+    [medioInicial]="medioInicial()"
+    [contacto]="contactoEditado()"
+    [consolidadores]="caso.puedeReasignar ? equipo() : []"
+    [consolidadorPorDefecto]="caso.consolidador?.id ?? null"
+    [guardando]="guardando()"
+    [error]="errorHoja()"
+    [erroresCampo]="erroresCampo()"
+    [puedeCerrar]="true"
+    (guardar)="guardarContacto($event)"
+    (guardarYCerrar)="guardarContacto($event, true)"
+/>
+<app-cerrar-caso [(visible)]="cierreVisible" [nombre]="caso.persona.nombreCompleto" [resultados]="resultados()" [guardando]="cerrando()" [error]="errorCierre()" (cerrar)="cerrarCaso($event)" />
+
+<p-dialog [(visible)]="reasignarVisible" header="Reasignar caso" [modal]="true" [draggable]="false" styleClass="w-full max-w-md mx-4">
+    <div class="flex flex-col gap-4">
+        <label for="reasignar-a" class="font-medium">¿Quién seguirá a {{ caso.persona.nombreCompleto }}?</label>
+        <p-select
+            inputId="reasignar-a"
+            [options]="opcionesEquipo()"
+            optionLabel="nombre"
+            optionValue="id"
+            [ngModel]="nuevoConsolidador()"
+            (ngModelChange)="nuevoConsolidador.set($event)"
+            [filter]="true"
+            filterBy="nombre"
+            appendTo="body"
+            [fluid]="true"
+        />
+        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+            <p-button label="Cancelar" severity="secondary" [outlined]="true" (onClick)="reasignarVisible.set(false)" />
+            <p-button label="Reasignar" icon="pi pi-check" [disabled]="nuevoConsolidador() === null || nuevoConsolidador() === caso.consolidador?.id" (onClick)="reasignar()" />
+        </div>
+    </div>
+</p-dialog>
+}
+
+<p-confirmdialog styleClass="w-full max-w-md mx-4" />
+<p-toast position="bottom-center" />

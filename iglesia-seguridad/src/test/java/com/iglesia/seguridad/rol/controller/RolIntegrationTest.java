@@ -70,7 +70,7 @@ class RolIntegrationTest {
 	void listaElCatalogoDePermisosOrdenadoPorModulo() throws Exception {
 		mvc.perform(get("/api/permisos").header(HttpHeaders.AUTHORIZATION, bearer(administradorDe(51L))))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.length()").value(18))
+			.andExpect(jsonPath("$.length()").value(26))
 			.andExpect(jsonPath("$[0].codigo").value(Permisos.APORTES_VER))
 			.andExpect(jsonPath("$[0].modulo").value("Aportes"))
 			.andExpect(jsonPath("$[0].descripcion").isNotEmpty());
@@ -133,6 +133,20 @@ class RolIntegrationTest {
 	}
 
 	@Test
+	void losPermisosDeConsolidacionLosTieneElAdministradorDeIglesiaYElLiderSoloContactar() {
+		String permisosDe = """
+				select array_to_string(array_agg(rp.permiso_codigo order by rp.permiso_codigo), ',')
+				from rol_permiso rp join rol r on r.id = rp.rol_id
+				where r.codigo = ? and rp.permiso_codigo like 'consolidacion.%'""";
+
+		assertThat(jdbc.queryForObject(permisosDe, String.class, "ADMIN_IGLESIA")).isEqualTo(String.join(",",
+				Permisos.CONSOLIDACION_ADMINISTRAR, Permisos.CONSOLIDACION_CONTACTAR, Permisos.CONSOLIDACION_VER));
+		assertThat(jdbc.queryForObject(permisosDe, String.class, "LIDER")).isEqualTo(Permisos.CONSOLIDACION_CONTACTAR);
+		assertThat(jdbc.queryForObject(permisosDe, String.class, "MIEMBRO")).isNull();
+		assertThat(jdbc.queryForObject(permisosDe, String.class, "ADMIN_SISTEMA")).isNull();
+	}
+
+	@Test
 	void soloElAdministradorDeIglesiaPersonalizaSuIglesia() {
 		String rolesCon = """
 				select array_to_string(array_agg(r.codigo order by r.codigo), ',')
@@ -177,8 +191,8 @@ class RolIntegrationTest {
 		String token = administradorDe(53L);
 		long personalizado = semilla.crearRolPersonalizado(53L, "Consejo", "ADMIN_IGLESIA", true, "miembros.ver");
 
-		crear(token, "Sin permiso", "LIDER", "miembros.ver").andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.detail").value(containsString("miembros.ver")));
+		crear(token, "Sin permiso", "LIDER", "usuarios.ver").andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.detail").value(containsString("usuarios.ver")));
 		crear(token, "Sistema", "ADMIN_SISTEMA").andExpect(status().isBadRequest());
 		crearConRolBaseId(token, "Heredado", personalizado).andExpect(status().isBadRequest());
 		crearConRolBaseId(token, "Inexistente", 999_999L).andExpect(status().isBadRequest());

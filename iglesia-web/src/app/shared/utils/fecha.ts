@@ -14,3 +14,10 @@ export function fechaConDia(iso: string): string {
 export function hoyEnPalabras(ahora: Date = new Date()): string {
     return ahora.toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
 }
+
+/** Años cumplidos a una fecha `yyyy-MM-dd` (la edad no se guarda: se calcula de la fecha de nacimiento). */
+export function edadDesde(nacimiento: string, ahora: Date = new Date()): number {
+    const [anio, mes, dia] = nacimiento.split('-').map(Number);
+    const yaCumplio = ahora.getMonth() + 1 > mes || (ahora.getMonth() + 1 === mes && ahora.getDate() >= dia);
+    return ahora.getFullYear() - anio - (yaCumplio ? 0 : 1);
+}

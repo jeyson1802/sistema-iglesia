@@ -2412,7 +2412,7 @@
                   "pm.test('Responde 200', () => pm.response.to.have.status(200));",
                   "pm.test('Todos cumplen los filtros', () => pm.response.json().content.forEach(m => pm.expect(m.condicion).to.eql('NUEVO')));",
                   "pm.test('Trae el total', () => pm.expect(pm.response.json().page.totalElements).to.be.at.least(1));",
-                  "pm.test('Trae dirección y ubicación, sin grupo', () => pm.response.json().content.forEach(m => { pm.expect(m).to.have.property('ubicacion'); pm.expect(m).to.not.have.property('grupo'); }));"
+                  "pm.test('Trae dirección y ubicación, sin grupo', () => { pm.response.json().content.forEach(m => { pm.expect(m).to.have.property('ubicacion'); pm.expect(m).to.not.have.property('grupo'); }); });"
                 ]
               }
             }
@@ -4787,7 +4787,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Responde 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Todos son integrantes y nadie está presente aún', () => pm.response.json().forEach(m => { pm.expect(m.integrante).to.eql(true); pm.expect(m.presente).to.eql(false); }));"
+                  "pm.test('Todos son integrantes y nadie está presente aún', () => { pm.response.json().forEach(m => { pm.expect(m.integrante).to.eql(true); pm.expect(m.presente).to.eql(false); }); });"
                 ]
               }
             }
@@ -5788,7 +5788,1794 @@
       ]
     },
     {
-      "name": "11. Infraestructura",
+      "name": "11. Consolidación",
+      "description": "Consolidación de nuevos y seguimiento pastoral: catálogo de resultados, equipo, una ronda completa (lote, reparto, inicio, contactos, cierre), seguimiento individual e historial de la persona. Usa los miembros de «5. Grupos y configuración» y «6. Miembros». Requiere `consolidacion.administrar` (el coordinador puede hacer todo lo del consolidador).",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const hoy = new Date();",
+              "const iso = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);",
+              "const enDias = n => iso(new Date(hoy.getTime() + n * 86400000));",
+              "pm.variables.set('hoy', iso(hoy));",
+              "pm.variables.set('manana', enDias(1));",
+              "pm.variables.set('en3dias', enDias(3));",
+              "pm.variables.set('en8dias', enDias(8));",
+              "pm.variables.set('ahora', new Date(hoy.getTime() - 60000).toISOString());",
+              "if (!pm.collectionVariables.get('sufijoConsolidacion')) { pm.collectionVariables.set('sufijoConsolidacion', String(Date.now()).slice(-6)); }",
+              "pm.variables.set('sufijo', pm.collectionVariables.get('sufijoConsolidacion'));"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "name": "Listar resultados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/resultados",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "resultados"
+              ]
+            },
+            "description": "Catálogo de resultados de la iteración, en su orden. Toda iglesia nace con seis (p. ej. «Volverá a asistir»). Admite cualquier permiso de consolidación."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Trae los resultados iniciales', () => pm.expect(pm.response.json().length).to.be.at.least(6));",
+                  "pm.environment.set('resultadoConsolidacionId', pm.response.json().find(r => r.activo).id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear resultado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/resultados",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "resultados"
+              ]
+            },
+            "description": "Agrega un resultado al final del catálogo. Nombre de 2 a 60 caracteres, único sin distinguir mayúsculas. Requiere `consolidacion.administrar`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Pidió oración {{sufijo}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Indica la URL del resultado', () => pm.expect(pm.response.headers.get('Location')).to.match(/\\/api\\/consolidacion\\/resultados\\/\\d+$/));",
+                  "pm.environment.set('resultadoNuevoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear resultado repetido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/resultados",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "resultados"
+              ]
+            },
+            "description": "Mismo nombre con otras mayúsculas: 409 con el error en el campo `nombre`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"PIDIÓ ORACIÓN {{sufijo}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Señala el campo nombre', () => pm.expect(pm.response.json().errores.nombre).to.exist);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Renombrar resultado",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/resultados/{{resultadoNuevoId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "resultados",
+                "{{resultadoNuevoId}}"
+              ]
+            },
+            "description": "Cambia el nombre; los casos ya cerrados con él muestran el nombre nuevo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Pidió visita {{sufijo}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cambia el nombre', () => pm.expect(pm.response.json().nombre).to.eql('Pidió visita {sufijo}'.replace('{sufijo}', pm.variables.get('sufijo'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reordenar con una lista incompleta",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/resultados/orden",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "resultados",
+                "orden"
+              ]
+            },
+            "description": "El nuevo orden debe incluir todos los resultados de la iglesia, una sola vez: si falta alguno, 400.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\n    {{resultadoNuevoId}}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Señala el campo ids', () => pm.expect(pm.response.json().errores.ids).to.exist);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Desactivar resultado",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/resultados/{{resultadoNuevoId}}/estado",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "resultados",
+                "{{resultadoNuevoId}}",
+                "estado"
+              ]
+            },
+            "description": "Un resultado inactivo ya no se ofrece al cerrar casos; nunca se borra, para conservar el historial.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Queda inactivo', () => pm.expect(pm.response.json().activo).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Agregar consolidador",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/equipo",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "equipo"
+              ]
+            },
+            "description": "Agrega al equipo un miembro activo (el de la ficha completa de «6. Miembros»). El equipo es la lista de candidatos al repartir. Requiere `consolidacion.administrar`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"miembroId\": {{miembroId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Queda activo y sin casos', () => { pm.expect(pm.response.json().activo).to.eql(true); pm.expect(pm.response.json().casosAbiertos).to.eql(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Agregar otro consolidador",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/equipo",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "equipo"
+              ]
+            },
+            "description": "Agrega al líder del grupo de «5. Grupos y configuración».",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"miembroId\": {{liderGrupoId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Agregar un consolidador que ya está",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/equipo",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "equipo"
+              ]
+            },
+            "description": "Si ya forma parte del equipo (activo), 409.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"miembroId\": {{miembroId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar el equipo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/equipo",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "equipo"
+              ]
+            },
+            "description": "Activos primero, por nombre, con sus casos abiertos y los contactos de los últimos 30 días."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Incluye a los dos consolidadores', () => { const ids = pm.response.json().map(c => c.miembroId); pm.expect(ids).to.include(pm.environment.get('miembroId')); pm.expect(ids).to.include(pm.environment.get('liderGrupoId')); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear ronda",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/rondas",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "rondas"
+              ]
+            },
+            "description": "Crea una ronda planificada y vacía. Nombre único (409), fecha de fin igual o posterior a la de inicio (400). Requiere `consolidacion.administrar`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Consolidación {{sufijo}}\",\n  \"descripcion\": \"Nuevos del último mes\",\n  \"fechaInicio\": \"{{hoy}}\",\n  \"fechaFin\": \"{{en8dias}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Nace planificada y vacía', () => { pm.expect(pm.response.json().estado).to.eql('PLANIFICADA'); pm.expect(pm.response.json().personas).to.eql(0); });",
+                  "pm.environment.set('rondaId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear ronda con fechas invertidas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/rondas",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "rondas"
+              ]
+            },
+            "description": "La fecha de fin anterior a la de inicio responde 400 con el error en `fechaFin`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Ronda inválida {{sufijo}}\",\n  \"fechaInicio\": \"{{en8dias}}\",\n  \"fechaFin\": \"{{hoy}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Señala el campo fechaFin', () => pm.expect(pm.response.json().errores.fechaFin).to.exist);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Vista previa del lote",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/rondas/{{rondaId}}/lote/vista-previa",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "rondas",
+                "{{rondaId}}",
+                "lote",
+                "vista-previa"
+              ]
+            },
+            "description": "Cuántas personas entrarían con los filtros (aquí, una persona elegida a mano), cuántas quedan fuera por tener ya un seguimiento abierto y el nombre completo de cada persona que se agregaría. No guarda nada.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"miembroIds\": [\n    {{integranteId}}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Entraría una persona', () => { pm.expect(pm.response.json().entrarian).to.eql(1); pm.expect(pm.response.json().personas.length).to.eql(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Agregar personas a la ronda",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/rondas/{{rondaId}}/lote",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "rondas",
+                "{{rondaId}}",
+                "lote"
+              ]
+            },
+            "description": "Agrega en una sola operación a las personas del filtro (hasta 1000). Quien ya tiene un seguimiento abierto no entra.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"miembroIds\": [\n    {{integranteId}}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Agrega una persona', () => pm.expect(pm.response.json().agregadas).to.eql(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Agregar las mismas personas otra vez",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/rondas/{{rondaId}}/lote",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "rondas",
+                "{{rondaId}}",
+                "lote"
+              ]
+            },
+            "description": "Quien ya está en la ronda no se repite.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"miembroIds\": [\n    {{integranteId}}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('No agrega a nadie', () => pm.expect(pm.response.json().agregadas).to.eql(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Casos de la ronda",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/rondas/{{rondaId}}/casos?page=0&size=10",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "rondas",
+                "{{rondaId}}",
+                "casos"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Casos de la ronda en el orden del lote (por apellidos), paginados, con estado, contactos, próximo contacto e iteración."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Hay un caso pendiente sin asignar', () => { const k = pm.response.json().content[0]; pm.expect(k.estado).to.eql('PENDIENTE'); pm.expect(k.consolidador).to.eql(null); });",
+                  "pm.environment.set('casoId', pm.response.json().content[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Vista previa del reparto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/rondas/{{rondaId}}/repartir/vista-previa",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "rondas",
+                "{{rondaId}}",
+                "repartir",
+                "vista-previa"
+              ]
+            },
+            "description": "Propone quién recibe a quién, balanceando por carga (casos abiertos actuales). No guarda nada.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"consolidadorIds\": [\n    {{miembroId}},\n    {{liderGrupoId}}\n  ],\n  \"soloSinAsignar\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Propone un consolidador para el caso', () => { pm.expect(pm.response.json().asignaciones[0].consolidadorId).to.be.a(\"number\"); pm.expect(pm.response.json().cargas.length).to.eql(2); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Repartir la ronda",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/rondas/{{rondaId}}/repartir",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "rondas",
+                "{{rondaId}}",
+                "repartir"
+              ]
+            },
+            "description": "Guarda el reparto balanceado (o, con `asignaciones`, exactamente esas).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"consolidadorIds\": [\n    {{miembroId}},\n    {{liderGrupoId}}\n  ],\n  \"soloSinAsignar\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('No quedan casos sin asignar', () => pm.expect(pm.response.json().sinAsignar).to.eql(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Iniciar la ronda",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/rondas/{{rondaId}}/iniciar",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "rondas",
+                "{{rondaId}}",
+                "iniciar"
+              ]
+            },
+            "description": "Pasa a en curso: cada consolidador ve sus casos en «Mis asignados». 409 si no está planificada o está vacía."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Queda en curso', () => pm.expect(pm.response.json().estado).to.eql('EN_CURSO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar contacto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/casos/{{casoId}}/contactos",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "casos",
+                "{{casoId}}",
+                "contactos"
+              ]
+            },
+            "description": "Registra una llamada. El coordinador registra en nombre del consolidador asignado. El primer contacto pasa el caso a «en contacto». Las observaciones nunca van a los logs.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fechaHora\": \"{{ahora}}\",\n  \"medio\": \"LLAMADA\",\n  \"resultado\": \"NO_RESPONDIO\",\n  \"observaciones\": \"No contestó, volver a llamar\",\n  \"proximoContacto\": \"{{manana}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Lo puede corregir', () => pm.expect(pm.response.json().editable).to.eql(true));",
+                  "pm.environment.set('contactoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar contacto con un resultado que no aplica",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/casos/{{casoId}}/contactos",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "casos",
+                "{{casoId}}",
+                "contactos"
+              ]
+            },
+            "description": "«No estaba» solo tiene sentido en una visita: 400 con el error en `resultado`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fechaHora\": \"{{ahora}}\",\n  \"medio\": \"LLAMADA\",\n  \"resultado\": \"NO_ESTABA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Señala el campo resultado', () => pm.expect(pm.response.json().errores.resultado).to.exist);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Corregir contacto",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/contactos/{{contactoId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "contactos",
+                "{{contactoId}}"
+              ]
+            },
+            "description": "Quien lo registró puede corregirlo durante 24 horas; el coordinador, siempre.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fechaHora\": \"{{ahora}}\",\n  \"medio\": \"LLAMADA\",\n  \"resultado\": \"SE_HABLO\",\n  \"observaciones\": \"Está bien, pide oración por su trabajo\",\n  \"proximoContacto\": \"{{en3dias}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cambia el resultado', () => pm.expect(pm.response.json().resultado).to.eql('SE_HABLO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar contacto por error",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/casos/{{casoId}}/contactos",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "casos",
+                "{{casoId}}",
+                "contactos"
+              ]
+            },
+            "description": "Un contacto registrado por equivocación, para borrarlo en el paso siguiente.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fechaHora\": \"{{ahora}}\",\n  \"medio\": \"WHATSAPP\",\n  \"resultado\": \"NO_RESPONDIO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('contactoBorrarId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Borrar contacto",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/contactos/{{contactoBorrarId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "contactos",
+                "{{contactoBorrarId}}"
+              ]
+            },
+            "description": "Mismas reglas que corregir. El estado y el próximo contacto del caso se recalculan con los contactos que quedan."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detalle del caso",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/casos/{{casoId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "casos",
+                "{{casoId}}"
+              ]
+            },
+            "description": "Datos para contactar, contactos, asistencia (resumen y reuniones del período), resumen «Antes de contactar» e iteraciones anteriores."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Está en contacto y es la primera iteración', () => { pm.expect(pm.response.json().estado).to.eql('EN_CONTACTO'); pm.expect(pm.response.json().antes.iteracion).to.eql(1); pm.expect(pm.response.json().contactos.length).to.eql(1); });",
+                  "pm.test('El coordinador puede trabajarlo y reasignarlo', () => { pm.expect(pm.response.json().puedeActuar).to.eql(true); pm.expect(pm.response.json().puedeReasignar).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mis asignados para hoy",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/mis-casos?seccion=PARA_HOY&page=0&size=10",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "mis-casos"
+              ],
+              "query": [
+                {
+                  "key": "seccion",
+                  "value": "PARA_HOY"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Casos abiertos asignados al miembro del token (de rondas en curso o individuales). Secciones: `PARA_HOY`, `SIN_CONTACTAR` y `EN_CONTACTO`. Sin miembro vinculado, la lista está vacía."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Es una página', () => pm.expect(pm.response.json().content).to.be.an(\"array\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mis asignados sin sección",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/mis-casos",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "mis-casos"
+              ]
+            },
+            "description": "La sección es obligatoria: 400."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resumen de mis asignados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/mis-casos/resumen",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "mis-casos",
+                "resumen"
+              ]
+            },
+            "description": "Cantidad de casos por sección y avance del consolidador."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Trae las tres secciones', () => [\"paraHoy\", \"sinContactar\", \"enContacto\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reasignar el caso",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/casos/{{casoId}}/consolidador",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "casos",
+                "{{casoId}}",
+                "consolidador"
+              ]
+            },
+            "description": "Pasa el caso abierto a otro miembro activo. Requiere `consolidacion.administrar`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"consolidadorId\": {{liderGrupoId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cerrar el caso",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/casos/{{casoId}}/cerrar",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "casos",
+                "{{casoId}}",
+                "cerrar"
+              ]
+            },
+            "description": "Cierra con un resultado activo del catálogo y una observación final opcional.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resultadoId\": {{resultadoConsolidacionId}},\n  \"observacion\": \"Se comprometió a venir el domingo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Queda cerrado con su resultado', () => { pm.expect(pm.response.json().estado).to.eql('CERRADO'); pm.expect(pm.response.json().resultado.id).to.eql(pm.environment.get('resultadoConsolidacionId')); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cerrar con un resultado inactivo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/casos/{{casoId}}/cerrar",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "casos",
+                "{{casoId}}",
+                "cerrar"
+              ]
+            },
+            "description": "El caso ya está cerrado: 409 (y un resultado inactivo sería 400).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resultadoId\": {{resultadoNuevoId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reabrir el caso",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/casos/{{casoId}}/reabrir",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "casos",
+                "{{casoId}}",
+                "reabrir"
+              ]
+            },
+            "description": "Deshace un cierre por error: vuelve a «en contacto» porque tiene contactos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Vuelve a en contacto', () => { pm.expect(pm.response.json().estado).to.eql('EN_CONTACTO'); pm.expect(pm.response.json().resultado).to.eql(null); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cerrar el caso otra vez",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/casos/{{casoId}}/cerrar",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "casos",
+                "{{casoId}}",
+                "cerrar"
+              ]
+            },
+            "description": "Lo cierra definitivamente para poder abrirle un seguimiento individual.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resultadoId\": {{resultadoConsolidacionId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Iniciar seguimiento individual",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/casos",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "casos"
+              ]
+            },
+            "description": "Caso sin ronda. El consolidador es quien lo abre (si tiene miembro); el coordinador puede elegir a otro. 409 si la persona ya tiene un seguimiento abierto.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"miembroId\": {{integranteId}},\n  \"consolidadorId\": {{miembroId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Es individual y queda pendiente', () => { pm.expect(pm.response.json().ronda).to.eql(null); pm.expect(pm.response.json().estado).to.eql('PENDIENTE'); pm.expect(pm.response.json().antes.iteracion).to.eql(2); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Iniciar otro seguimiento a la misma persona",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/casos",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "casos"
+              ]
+            },
+            "description": "Una persona no puede tener dos seguimientos abiertos: 409.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"miembroId\": {{integranteId}},\n  \"consolidadorId\": {{miembroId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resumen de consolidación de la persona",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros/{{integranteId}}/consolidacion",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros",
+                "{{integranteId}}",
+                "consolidacion"
+              ]
+            },
+            "description": "Para la ficha: iteraciones, contactos por medio, último resultado, seguimiento abierto y días con contacto de las últimas 12 semanas."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tiene dos iteraciones y una abierta', () => { pm.expect(pm.response.json().iteraciones).to.eql(2); pm.expect(pm.response.json().casoAbierto).to.not.eql(null); pm.expect(pm.response.json().puedeIniciar).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Historial de consolidación de la persona",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/miembros/{{integranteId}}/consolidacion/historial?page=0&size=10",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "miembros",
+                "{{integranteId}}",
+                "consolidacion",
+                "historial"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Iteraciones de la más reciente a la más antigua, cada una con sus contactos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('La más reciente es la individual', () => { pm.expect(pm.response.json().content.length).to.eql(2); pm.expect(pm.response.json().content[0].ronda).to.eql(null); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Avance de la ronda",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/rondas/{{rondaId}}/avance",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "rondas",
+                "{{rondaId}}",
+                "avance"
+              ]
+            },
+            "description": "Embudo (personas, contactadas, volvieron a asistir en 28 días), estados, reparto por resultado y avance por consolidador."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Una persona contactada y cerrada', () => { pm.expect(pm.response.json().personas).to.eql(1); pm.expect(pm.response.json().contactadas).to.eql(1); pm.expect(pm.response.json().cerrados).to.eql(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cerrar la ronda",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/rondas/{{rondaId}}/cerrar",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "rondas",
+                "{{rondaId}}",
+                "cerrar"
+              ]
+            },
+            "description": "Queda de solo lectura; los casos abiertos se cierran como «No concluido»."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Queda cerrada', () => pm.expect(pm.response.json().estado).to.eql('CERRADA'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Borrar una ronda cerrada",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/rondas/{{rondaId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "rondas",
+                "{{rondaId}}"
+              ]
+            },
+            "description": "Solo se borra una ronda planificada: 409."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar rondas cerradas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/rondas?estado=CERRADA&page=0&size=10",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "rondas"
+              ],
+              "query": [
+                {
+                  "key": "estado",
+                  "value": "CERRADA"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Rondas de la más reciente a la más antigua, paginadas, con el resumen de su avance."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Incluye la ronda', () => pm.expect(pm.response.json().content.map(r => r.id)).to.include(pm.environment.get('rondaId')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Quitar del equipo",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiUrl}}/api/consolidacion/equipo/{{liderGrupoId}}/estado",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "consolidacion",
+                "equipo",
+                "{{liderGrupoId}}",
+                "estado"
+              ]
+            },
+            "description": "Deja de entrar en los repartos; sus casos abiertos no cambian.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"activo\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Queda inactivo', () => pm.expect(pm.response.json().activo).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "12. Infraestructura",
       "description": "Endpoints públicos de soporte.",
       "auth": {
         "type": "noauth"
@@ -5826,7 +7613,7 @@
       ]
     },
     {
-      "name": "12. Documentación",
+      "name": "13. Documentación",
       "description": "Especificación OpenAPI 3 del backend. Solo responde con el perfil `local` (en producción está deshabilitada y responde 404). La versión navegable está en `{{apiUrl}}/swagger-ui.html`.",
       "auth": {
         "type": "noauth"
@@ -5868,7 +7655,7 @@
       ]
     },
     {
-      "name": "13. Cierre",
+      "name": "14. Cierre",
       "description": "Deja la sesión como estaba: el administrador del sistema sale de la iglesia de prueba.",
       "item": [
         {

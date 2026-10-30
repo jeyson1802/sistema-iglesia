@@ -1,0 +1,116 @@
+<div class="card">
+    <header class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+        <div>
+            <h1 class="font-semibold text-2xl text-surface-900 dark:text-surface-0 m-0">Nueva ronda</h1>
+            <p class="text-muted-color m-0 mt-1">@if (ronda()) { Se guardó como planificada: puedes salir cuando quieras y seguir después. } @else { Te guiamos paso a paso. Al terminar el primer paso, la ronda queda guardada. }</p>
+        </div>
+        <p-button [label]="ronda() ? 'Salir y seguir después' : 'Cancelar'" icon="pi pi-times" severity="secondary" [text]="true" [disabled]="procesando()" (onClick)="salir()" />
+    </header>
+
+    <p-stepper [value]="paso()" (valueChange)="irA($event)" [linear]="false" styleClass="mb-6">
+        <p-step-list>
+            @for (item of pasos; track item.valor) {
+            <p-step [value]="item.valor" [disabled]="item.valor > 1 && !ronda()">{{ item.etiqueta }}</p-step>
+            }
+        </p-step-list>
+    </p-stepper>
+
+    <div class="empty:hidden" aria-live="polite">
+        @if (error() && paso() !== 1) {
+        <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-4">{{ error() }}</p-message>
+        }
+    </div>
+
+    <div class="max-w-4xl mx-auto">
+        @switch (paso()) { @case (1) {
+        <section aria-labelledby="paso-datos">
+            <h2 id="paso-datos" class="font-semibold text-xl m-0 mb-4">1. Datos de la ronda</h2>
+            <app-formulario-ronda
+                [datos]="datos()"
+                [guardando]="procesando()"
+                [error]="error()"
+                [erroresCampo]="erroresCampo()"
+                [mostrarCancelar]="false"
+                etiquetaGuardar="Guardar y continuar"
+                iconoGuardar="pi pi-arrow-right"
+                (guardar)="guardarDatos($event)"
+            />
+        </section>
+        } @case (2) {
+        <section aria-labelledby="paso-personas" class="flex flex-col gap-5">
+            <div>
+                <h2 id="paso-personas" class="font-semibold text-xl m-0">2. ¿A quiénes vas a consolidar?</h2>
+                @if (ronda()?.personas) {
+                <p class="text-muted-color m-0 mt-1">La ronda ya tiene {{ ronda()?.personas }} personas. Puedes agregar más.</p>
+                }
+            </div>
+            <app-selector-lote [rondaId]="ronda()!.id" [grupos]="opcionesGrupo()" [etiquetaGrupo]="nombreGrupo()" [(filtro)]="filtroLote" [(entrarian)]="entrarian" />
+            <div class="flex flex-col-reverse sm:flex-row sm:justify-between gap-3">
+                <p-button label="Atrás" icon="pi pi-arrow-left" severity="secondary" [text]="true" [disabled]="procesando()" (onClick)="irA(1)" />
+                <div class="flex flex-col-reverse sm:flex-row gap-3">
+                    <p-button label="Omitir por ahora" severity="secondary" [outlined]="true" [disabled]="procesando()" (onClick)="omitirPersonas()" />
+                    <p-button
+                        [label]="entrarian() === 1 ? 'Agregar 1 persona' : 'Agregar ' + entrarian() + ' personas'"
+                        icon="pi pi-arrow-right"
+                        iconPos="right"
+                        [loading]="procesando()"
+                        [disabled]="procesando() || entrarian() === 0 || entrarian() > loteMax"
+                        (onClick)="agregarLote()"
+                    />
+                </div>
+            </div>
+        </section>
+        } @case (3) {
+        <section aria-labelledby="paso-reparto" class="flex flex-col gap-5">
+            <div>
+                <h2 id="paso-reparto" class="font-semibold text-xl m-0">3. Reparto entre el equipo</h2>
+                <p class="text-muted-color m-0 mt-1">@if (ultimoLote()) { {{ ultimoLote() }} } La ronda tiene {{ ronda()?.personas }} personas; {{ ronda()?.sinAsignar }} sin consolidador.</p>
+            </div>
+            @if (ronda()?.sinAsignar) {
+            <app-reparto [rondaId]="ronda()!.id" [equipo]="equipo()" [(solicitud)]="solicitudReparto" />
+            } @else {
+            <p class="m-0 rounded-border p-4 bg-surface-100 dark:bg-surface-800">No hay personas por repartir. Agrégalas en el paso anterior o sigue a la revisión.</p>
+            }
+            <div class="flex flex-col-reverse sm:flex-row sm:justify-between gap-3">
+                <p-button label="Atrás" icon="pi pi-arrow-left" severity="secondary" [text]="true" [disabled]="procesando()" (onClick)="irA(2)" />
+                <div class="flex flex-col-reverse sm:flex-row gap-3">
+                    <p-button label="Dejar sin asignar por ahora" severity="secondary" [outlined]="true" [disabled]="procesando()" (onClick)="dejarSinAsignar()" />
+                    <p-button label="Repartir y continuar" icon="pi pi-arrow-right" iconPos="right" [loading]="procesando()" [disabled]="procesando() || !solicitudReparto()" (onClick)="repartir()" />
+                </div>
+            </div>
+        </section>
+        } @case (4) { @if (ronda(); as ronda) {
+        <section aria-labelledby="paso-revisar" class="flex flex-col gap-5">
+            <h2 id="paso-revisar" class="font-semibold text-xl m-0">4. Revisa y comienza</h2>
+            <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 m-0">
+                <div class="rounded-border border border-surface p-4">
+                    <dt class="text-sm text-muted-color">Ronda</dt>
+                    <dd class="m-0 font-semibold">{{ ronda.nombre }}</dd>
+                    <dd class="m-0 text-sm text-muted-color first-letter:uppercase">{{ conDia(ronda.fechaInicio) }}@if (ronda.fechaFin) { al {{ conDia(ronda.fechaFin) }} }</dd>
+                </div>
+                <div class="rounded-border border border-surface p-4">
+                    <dt class="text-sm text-muted-color">Personas</dt>
+                    <dd class="m-0 text-2xl font-semibold tabular-nums">{{ ronda.personas }}</dd>
+                </div>
+                <div class="rounded-border border border-surface p-4">
+                    <dt class="text-sm text-muted-color">Sin consolidador</dt>
+                    <dd class="m-0 text-2xl font-semibold tabular-nums">{{ ronda.sinAsignar }}</dd>
+                </div>
+            </dl>
+            @if (ronda.personas === 0) {
+            <p-message severity="info" icon="pi pi-info-circle">Para iniciarla, agrega al menos una persona en el paso 2.</p-message>
+            } @else if (ronda.sinAsignar > 0) {
+            <p-message severity="warn" icon="pi pi-exclamation-triangle">{{ ronda.sinAsignar }} personas aún no tienen consolidador: puedes repartirlas después desde la ronda.</p-message>
+            }
+            <div class="flex flex-col-reverse sm:flex-row sm:justify-between gap-3">
+                <p-button label="Atrás" icon="pi pi-arrow-left" severity="secondary" [text]="true" [disabled]="procesando()" (onClick)="irA(3)" />
+                <div class="flex flex-col-reverse sm:flex-row gap-3">
+                    <p-button label="Guardar como planificada" severity="secondary" [outlined]="true" [disabled]="procesando()" (onClick)="guardarPlanificada()" />
+                    <p-button label="Iniciar ronda" icon="pi pi-play" [loading]="procesando()" [disabled]="procesando() || ronda.personas === 0" (onClick)="iniciar()" />
+                </div>
+            </div>
+            <p class="text-sm text-muted-color m-0 sm:text-right">Al iniciarla, cada consolidador ve a sus personas en «Mis asignados».</p>
+        </section>
+        } } }
+    </div>
+</div>

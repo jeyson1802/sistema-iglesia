@@ -1,0 +1,22 @@
+@if (disponible()) {
+<div class="flex gap-2" [class.w-full]="anchos()">
+    <a [href]="llamada()" class="p-button p-component p-button-success no-underline justify-center gap-2 min-h-11" [class.flex-1]="anchos()" [attr.aria-label]="'Llamar a ' + nombre()" (click)="contactar.emit('LLAMADA')">
+        <i class="pi pi-phone" aria-hidden="true"></i>
+        <span class="p-button-label">Llamar</span>
+    </a>
+    <a
+        [href]="whatsapp()"
+        target="_blank"
+        rel="noopener"
+        class="p-button p-component p-button-success p-button-outlined no-underline justify-center gap-2 min-h-11"
+        [class.flex-1]="anchos()"
+        [attr.aria-label]="'Escribir por WhatsApp a ' + nombre()"
+        (click)="contactar.emit('WHATSAPP')"
+    >
+        <i class="pi pi-whatsapp" aria-hidden="true"></i>
+        <span class="p-button-label">WhatsApp</span>
+    </a>
+</div>
+} @else {
+<p class="flex items-center gap-2 text-sm text-muted-color m-0"><i class="pi pi-info-circle" aria-hidden="true"></i>Sin teléfono: coordina una visita</p>
+}

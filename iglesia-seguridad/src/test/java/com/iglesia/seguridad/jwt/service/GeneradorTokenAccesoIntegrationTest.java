@@ -73,15 +73,18 @@ class GeneradorTokenAccesoIntegrationTest {
 	}
 
 	@Test
-	void elAdministradorDeIglesiaRecibeLosOchoPermisos() throws Exception {
+	void elAdministradorDeIglesiaRecibeTodosLosPermisosDeSuIglesia() throws Exception {
 		semilla.crearUsuario("admin@iglesia32.test", 32L, null, semilla.idRolBase("ADMIN_IGLESIA"));
 
 		Jwt jwt = iniciarSesion("admin@iglesia32.test");
 
 		assertThat(jwt.getClaimAsStringList(ClaimsJwt.ROLES)).containsExactly("ADMIN_IGLESIA");
-		assertThat(jwt.getClaimAsStringList(ClaimsJwt.PERMISOS)).containsExactly("miembros.crear",
-				"miembros.desactivar", "miembros.editar", "miembros.ver", "roles.administrar", "roles.ver",
-				"usuarios.administrar", "usuarios.ver");
+		assertThat(jwt.getClaimAsStringList(ClaimsJwt.PERMISOS)).containsExactly("aportes.anular",
+				"aportes.configurar", "aportes.editar", "aportes.registrar", "aportes.ver", "asistencia.configurar",
+				"asistencia.registrar", "asistencia.ver", "consolidacion.administrar", "consolidacion.contactar",
+				"consolidacion.ver", "grupos.administrar", "grupos.ver", "iglesia.personalizar", "miembros.crear",
+				"miembros.desactivar", "miembros.editar", "miembros.ver", "niveles.administrar", "roles.administrar",
+				"roles.ver", "usuarios.administrar", "usuarios.ver");
 	}
 
 	private Jwt iniciarSesion(String correo) throws Exception {

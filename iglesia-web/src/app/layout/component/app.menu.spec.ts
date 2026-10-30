@@ -30,10 +30,10 @@ describe('Menú lateral', () => {
             expect(grupos).toEqual(['Principal']);
         });
 
-        it('el perfil Líder ve «Miembros», «Mis aportes», «Asistencia» y «Seguimiento» pero no los grupos, los niveles ni la configuración', () => {
+        it('el perfil Líder ve «Miembros», «Mis aportes», «Asistencia», «Seguimiento» y «Mis asignados» pero no los grupos, los niveles ni la configuración', () => {
             const etiquetasMenu = etiquetas(construirMenu(perfilBase('LIDER'), true));
 
-            expect(etiquetasMenu).toEqual(['Principal', 'Inicio', 'Iglesia', 'Miembros', 'Mis aportes', 'Asistencia', 'Seguimiento']);
+            expect(etiquetasMenu).toEqual(['Principal', 'Inicio', 'Iglesia', 'Miembros', 'Mis aportes', 'Asistencia', 'Seguimiento', 'Mis asignados']);
         });
 
         it('el Administrador de iglesia ve los grupos con el nombre de su iglesia, «Aportes» y la configuración de aportes', () => {
@@ -41,14 +41,26 @@ describe('Menú lateral', () => {
             const iglesia = menu.find((grupo) => grupo.label === 'Iglesia');
             const administracion = menu.find((grupo) => grupo.label === 'Administración');
 
-            expect(iglesia?.items?.map((item) => item.label)).toEqual(['Miembros', 'Hogares de paz', 'Aportes', 'Asistencia', 'Seguimiento']);
+            expect(iglesia?.items?.map((item) => item.label)).toEqual(['Miembros', 'Hogares de paz', 'Aportes', 'Asistencia', 'Seguimiento', 'Consolidación', 'Mis asignados']);
             expect(iglesia?.items?.[1].routerLink).toEqual(['/grupos']);
             expect(iglesia?.items?.[1].icon).toContain('pi-sitemap');
             expect(iglesia?.items?.[2].routerLink).toEqual(['/aportes']);
             expect(iglesia?.items?.[2].icon).toContain('pi-wallet');
-            expect(administracion?.items?.at(-2)?.label).toBe('Configuración de aportes');
-            expect(administracion?.items?.at(-2)?.routerLink).toEqual(['/aportes/configuracion']);
-            expect(administracion?.items?.at(-2)?.icon).toContain('pi-cog');
+            expect(administracion?.items?.at(-3)?.label).toBe('Configuración de aportes');
+            expect(administracion?.items?.at(-3)?.routerLink).toEqual(['/aportes/configuracion']);
+            expect(administracion?.items?.at(-3)?.icon).toContain('pi-cog');
+        });
+
+        it('consolidación: el coordinador ve la gestión y los resultados; el consolidador, solo «Mis asignados»', () => {
+            const coordinador = etiquetas(construirMenu(perfilPersonalizado(11, 'Coordinación', 'ADMIN_IGLESIA', ['consolidacion.administrar']), true));
+            const consolidador = etiquetas(construirMenu(perfilPersonalizado(12, 'Consolidación', 'LIDER', ['consolidacion.contactar']), true));
+            const supervisor = etiquetas(construirMenu(perfilPersonalizado(13, 'Pastoral', 'ADMIN_IGLESIA', ['consolidacion.ver']), true));
+
+            expect(coordinador).toEqual(jasmine.arrayContaining(['Consolidación', 'Mis asignados', 'Resultados de consolidación']));
+            expect(consolidador).toContain('Mis asignados');
+            expect(consolidador).not.toContain('Consolidación');
+            expect(supervisor).toContain('Consolidación');
+            expect(supervisor).not.toContain('Mis asignados');
         });
 
         it('sin nombre configurado los grupos se llaman «Grupos»', () => {
@@ -82,7 +94,7 @@ describe('Menú lateral', () => {
         it('con usuarios.ver aparece «Administración › Usuarios», antes de «Roles»', () => {
             const administracion = construirMenu(perfilBase('ADMIN_IGLESIA'), true).find((grupo) => grupo.label === 'Administración');
 
-            expect(administracion?.items?.map((item) => item.label)).toEqual(['Mi iglesia', 'Usuarios', 'Roles', 'Niveles', 'Configuración de aportes', 'Horarios de culto']);
+            expect(administracion?.items?.map((item) => item.label)).toEqual(['Mi iglesia', 'Usuarios', 'Roles', 'Niveles', 'Configuración de aportes', 'Horarios de culto', 'Resultados de consolidación']);
             expect(administracion?.items?.[1].routerLink).toEqual(['/usuarios']);
             expect(administracion?.items?.[1].icon).toContain('pi-users');
         });

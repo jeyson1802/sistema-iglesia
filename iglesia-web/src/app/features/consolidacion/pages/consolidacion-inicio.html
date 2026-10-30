@@ -1,0 +1,100 @@
+<div class="card">
+    <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+            <h1 class="font-semibold text-2xl text-surface-900 dark:text-surface-0 m-0">Consolidación</h1>
+            <p class="text-muted-color m-0 mt-1">Organiza las llamadas y visitas a los nuevos y a quienes necesitan acompañamiento.</p>
+        </div>
+        @if (puedeAdministrar() && !sinRondas()) {
+        <p-button label="Nueva ronda" icon="pi pi-plus" (onClick)="nuevaRonda()" styleClass="w-full sm:w-auto" />
+        }
+    </header>
+
+    <p-tabs [value]="pestana()" (valueChange)="cambiarPestana($event)">
+        @if (puedeAdministrar()) {
+        <p-tablist>
+            <p-tab value="rondas"><i class="pi pi-sync mr-2" aria-hidden="true"></i>Rondas</p-tab>
+            <p-tab value="equipo"><i class="pi pi-users mr-2" aria-hidden="true"></i>Equipo</p-tab>
+        </p-tablist>
+        }
+        <p-tabpanels styleClass="px-0">
+            <p-tabpanel value="rondas">
+                @if (sinRondas()) {
+                <div class="flex flex-col items-center gap-4 py-12 text-center max-w-md mx-auto">
+                    <span class="flex items-center justify-center w-20 h-20 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-400/20 dark:text-primary-300" aria-hidden="true"><i class="pi pi-heart text-4xl"></i></span>
+                    <p class="text-lg m-0">Aún no hay rondas. Crea la primera para organizar las llamadas y visitas de tu equipo.</p>
+                    @if (puedeAdministrar()) {
+                    <p-button label="Nueva ronda" icon="pi pi-plus" (onClick)="nuevaRonda()" />
+                    }
+                </div>
+                } @else { @if (cargandoEnCurso()) {
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-8" role="status" aria-label="Cargando rondas en curso">
+                    <p-skeleton height="10rem" />
+                    <p-skeleton height="10rem" styleClass="hidden md:block" />
+                </div>
+                } @else if (enCurso().length > 0) {
+                <section class="mb-8" aria-labelledby="rondas-en-curso">
+                    <h2 id="rondas-en-curso" class="font-semibold text-lg m-0 mb-3">Rondas en curso</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        @for (ronda of enCurso(); track ronda.id) {
+                        <app-tarjeta-ronda [ronda]="ronda" (ver)="ver($event)" />
+                        }
+                    </div>
+                </section>
+                }
+
+                <section aria-labelledby="todas-las-rondas">
+                    <h2 id="todas-las-rondas" class="font-semibold text-lg m-0 mb-3">Todas las rondas</h2>
+                    <div class="flex flex-col sm:flex-row gap-3 mb-4">
+                        <p-iconfield class="flex-1">
+                            <p-inputicon styleClass="pi pi-search" />
+                            <input pInputText type="search" [ngModel]="texto()" (ngModelChange)="buscar($event)" placeholder="Buscar ronda por nombre" aria-label="Buscar ronda por nombre" autocomplete="off" [fluid]="true" />
+                        </p-iconfield>
+                        <p-select
+                            [options]="estados"
+                            optionLabel="etiqueta"
+                            optionValue="valor"
+                            [ngModel]="filtro().estado"
+                            (ngModelChange)="filtrarEstado($event)"
+                            placeholder="Todos los estados"
+                            [showClear]="true"
+                            ariaLabel="Filtrar por estado"
+                            appendTo="body"
+                            styleClass="w-full sm:w-56"
+                        />
+                    </div>
+                    @if (error()) {
+                    <div class="flex flex-col items-center gap-3 py-8 text-center" role="alert">
+                        <span class="text-muted-color">No se pudieron cargar las rondas.</span>
+                        <p-button label="Reintentar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="cargar()" />
+                    </div>
+                    } @else {
+                    <app-tabla-rondas [rondas]="lista()" [totalRegistros]="total()" [pagina]="pagina()" [tamanoPagina]="tamanoPagina()" [cargando]="cargando()" (cambiarPagina)="cambiarPagina($event)" (ver)="ver($event)" />
+                    }
+                </section>
+                }
+            </p-tabpanel>
+
+            @if (puedeAdministrar()) {
+            <p-tabpanel value="equipo">
+                <p class="text-muted-color m-0 mb-4">Las personas que llaman y visitan. Cada una ve sus asignados en «Mis asignados» con su propio usuario.</p>
+                <div class="flex flex-col sm:flex-row sm:items-end gap-3 mb-6">
+                    <div class="flex flex-col gap-2 flex-1 max-w-lg">
+                        <label for="equipo-nuevo" class="font-medium">Agregar al equipo</label>
+                        <app-selector-miembro inputId="equipo-nuevo" [ngModel]="nuevoIntegrante()" (ngModelChange)="nuevoIntegrante.set($event)" />
+                    </div>
+                    <p-button label="Agregar" icon="pi pi-user-plus" [loading]="agregando()" [disabled]="!nuevoIntegrante() || agregando()" (onClick)="agregar()" />
+                </div>
+                <div aria-live="polite">
+                    @if (errorEquipo()) {
+                    <p-message severity="error" icon="pi pi-times-circle" [closable]="true" styleClass="mb-4" (onClose)="errorEquipo.set(null)">{{ errorEquipo() }}</p-message>
+                    }
+                </div>
+                <app-tarjetas-equipo [equipo]="equipo()" [cargando]="cargandoEquipo()" [puedeAdministrar]="true" [procesando]="procesando()" (cambiarEstado)="cambiarEstado($event)" />
+            </p-tabpanel>
+            }
+        </p-tabpanels>
+    </p-tabs>
+</div>
+
+<p-confirmdialog styleClass="w-full max-w-md mx-4" />
+<p-toast position="bottom-center" />

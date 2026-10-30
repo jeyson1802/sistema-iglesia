@@ -1,0 +1,81 @@
+<div class="flex flex-col gap-4">
+    <header class="card mb-0 flex flex-col gap-4">
+        <div>
+            <h1 class="font-semibold text-2xl text-surface-900 dark:text-surface-0 m-0">Mis asignados</h1>
+            @if (cargandoResumen() && !resumen()) {
+            <p-skeleton width="16rem" height="1.25rem" styleClass="mt-2" />
+            } @else if (resumen()?.asignados) {
+            <p class="m-0 mt-1 text-lg" aria-live="polite">@if (saludo(); as saludo) { Hola. Tienes <strong>{{ saludo }}</strong>. } @else { Hola. No tienes contactos urgentes hoy. }</p>
+            }
+        </div>
+        @if (resumen(); as resumen) { @if (resumen.asignados > 0) {
+        <div class="flex flex-col gap-1" role="img" [attr.aria-label]="resumen.contactados + ' de ' + resumen.asignados + ' personas contactadas'">
+            <span class="text-sm text-muted-color" aria-hidden="true">{{ resumen.contactados }} de {{ resumen.asignados }} contactadas</span>
+            <p-metergroup [value]="medidor()" aria-hidden="true">
+                <ng-template #label></ng-template>
+            </p-metergroup>
+        </div>
+        } } @if (!sinAsignados()) {
+        <p-iconfield>
+            <p-inputicon styleClass="pi pi-search" />
+            <input pInputText type="search" [ngModel]="texto()" (ngModelChange)="buscar($event)" placeholder="Buscar por nombre" aria-label="Buscar entre mis asignados" autocomplete="off" [fluid]="true" />
+        </p-iconfield>
+        }
+    </header>
+
+    @if (sinAsignados()) {
+    <div class="card mb-0 flex flex-col items-center gap-4 py-12 text-center">
+        <span class="flex items-center justify-center w-20 h-20 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-400/20 dark:text-primary-300" aria-hidden="true"><i class="pi pi-inbox text-4xl"></i></span>
+        <p class="text-lg m-0 max-w-md">No tienes personas asignadas por ahora. Cuando tu coordinador inicie una ronda, aparecerán aquí.</p>
+    </div>
+    } @else { @for (item of secciones; track item.seccion) { @let estadoSeccion = estado(item.seccion);
+    <app-seccion-casos
+        [titulo]="item.titulo"
+        [icono]="item.icono"
+        [cantidad]="resumen()?.[item.cantidad] ?? estadoSeccion.total"
+        [casos]="estadoSeccion.casos"
+        [totalRegistros]="estadoSeccion.total"
+        [pagina]="estadoSeccion.pagina"
+        [tamanoPagina]="estadoSeccion.tamano"
+        [cargando]="estadoSeccion.cargando"
+        [error]="estadoSeccion.error"
+        [mensajeVacio]="q() ? 'Nadie coincide con «' + q() + '» en esta sección.' : item.vacio"
+        [sinRegistrar]="pendientes()"
+        (cambiarPagina)="cambiarPagina(item.seccion, $event)"
+        (contactar)="contactar($event)"
+        (registrar)="registrar($event)"
+        (ver)="ver($event)"
+        (descartar)="descartar($event)"
+        (reintentar)="cargar(item.seccion)"
+    />
+    } }
+</div>
+
+<app-hoja-contacto
+    [visible]="hojaVisible()"
+    (visibleChange)="cambioHoja($event)"
+    [nombre]="objetivo()?.nombre ?? ''"
+    [medioInicial]="medioInicial()"
+    [guardando]="guardando()"
+    [error]="errorHoja()"
+    [erroresCampo]="erroresCampo()"
+    [puedeCerrar]="true"
+    (guardar)="guardarContacto($event)"
+    (guardarYCerrar)="guardarContacto($event, true)"
+/>
+
+<app-cerrar-caso [(visible)]="cierreVisible" [nombre]="objetivo()?.nombre ?? ''" [resultados]="resultados()" [guardando]="cerrando()" [error]="errorCierre()" (cerrar)="cerrarCaso($event)" />
+
+<p-toast [key]="claveDeshacer" position="bottom-center">
+    <ng-template #message let-mensaje>
+        <span class="p-toast-message-icon pi pi-check" aria-hidden="true"></span>
+        <div class="p-toast-message-text flex items-center gap-3 w-full">
+            <div class="flex-1">
+                <div class="p-toast-summary">{{ mensaje.summary }}</div>
+                <div class="p-toast-detail">{{ mensaje.detail }}</div>
+            </div>
+            <p-button label="Deshacer" icon="pi pi-undo" size="small" severity="secondary" (onClick)="deshacer(mensaje)" />
+        </div>
+    </ng-template>
+</p-toast>
+<p-toast position="bottom-center" />

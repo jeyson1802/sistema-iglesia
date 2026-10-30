@@ -34,6 +34,12 @@ public final class Permisos {
 
 	public static final String ASISTENCIA_CONFIGURAR = "asistencia.configurar";
 
+	public static final String CONSOLIDACION_ADMINISTRAR = "consolidacion.administrar";
+
+	public static final String CONSOLIDACION_VER = "consolidacion.ver";
+
+	public static final String CONSOLIDACION_CONTACTAR = "consolidacion.contactar";
+
 	public static final String USUARIOS_VER = "usuarios.ver";
 
 	public static final String USUARIOS_ADMINISTRAR = "usuarios.administrar";

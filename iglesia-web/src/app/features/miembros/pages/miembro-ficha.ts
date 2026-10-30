@@ -24,6 +24,7 @@ import { Rol } from '@/app/core/auth/models/rol';
 import { AportesMiembroComponent } from '../components/aportes-miembro/aportes-miembro';
 import { ArbolLiderazgoComponent } from '../components/arbol-liderazgo/arbol-liderazgo';
 import { AsistenciaMiembroComponent } from '../components/asistencia-miembro/asistencia-miembro';
+import { ConsolidacionMiembroComponent } from '../components/consolidacion-miembro/consolidacion-miembro';
 import { CodigoAsistenciaMiembroComponent } from '../components/codigo-asistencia-miembro/codigo-asistencia-miembro';
 import { DarAccesoComponent, RolAccesoMiembro } from '../components/dar-acceso/dar-acceso';
 import { FormularioMiembroComponent } from '../components/formulario-miembro/formulario-miembro';
@@ -71,6 +72,7 @@ const BOTONES_CONFIRMACION = {
         ArbolLiderazgoComponent,
         AsistenciaMiembroComponent,
         CodigoAsistenciaMiembroComponent,
+        ConsolidacionMiembroComponent,
         DarAccesoComponent,
         FormularioMiembroComponent,
         ProgresoFichaComponent

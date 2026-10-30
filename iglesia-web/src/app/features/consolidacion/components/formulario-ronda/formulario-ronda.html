@@ -1,0 +1,49 @@
+<div aria-live="polite">
+    @if (error()) {
+    <p-message severity="error" icon="pi pi-times-circle" styleClass="mb-4">{{ error() }}</p-message>
+    }
+</div>
+<form [formGroup]="formulario" (ngSubmit)="enviar()" class="flex flex-col gap-5" novalidate>
+    <div class="flex flex-col gap-2">
+        <label for="ronda-nombre" class="font-medium">Nombre</label>
+        <input pInputText id="ronda-nombre" formControlName="nombre" autocomplete="off" [maxlength]="limites.nombreRondaMax" [fluid]="true" aria-describedby="ronda-nombre-ayuda" />
+        <small id="ronda-nombre-ayuda" class="text-muted-color">Un nombre que tu equipo reconozca, p. ej. el mes o el evento del que vienen las personas.</small>
+        <app-mensaje-error-campo [control]="formulario.controls.nombre" [mensajes]="mensajesNombre" />
+        <app-mensaje-error-servidor [mensaje]="erroresCampo()['nombre']" />
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="flex flex-col gap-2">
+            <label for="ronda-inicio" class="font-medium">Inicio</label>
+            <p-datepicker inputId="ronda-inicio" formControlName="fechaInicio" dateFormat="dd/mm/yy" [showIcon]="true" [readonlyInput]="true" [fluid]="true" />
+            <app-mensaje-error-campo [control]="formulario.controls.fechaInicio" [mensajes]="mensajesInicio" />
+        </div>
+        <div class="flex flex-col gap-2">
+            <label for="ronda-fin" class="font-medium">Fin <span class="text-muted-color font-normal">(opcional)</span></label>
+            <p-datepicker inputId="ronda-fin" formControlName="fechaFin" dateFormat="dd/mm/yy" [minDate]="inicio()" [showIcon]="true" [showClear]="true" [readonlyInput]="true" [fluid]="true" />
+            @if (finAnterior()) {
+            <p-message severity="error" size="small" variant="simple">La fecha de fin debe ser igual o posterior a la de inicio.</p-message>
+            }
+            <app-mensaje-error-servidor [mensaje]="erroresCampo()['fechaFin']" />
+        </div>
+    </div>
+    <div class="flex flex-wrap items-center gap-2 -mt-2" role="group" aria-label="Duración rápida">
+        <span class="text-sm text-muted-color">Dura:</span>
+        @for (atajo of atajos; track atajo.dias) {
+        <p-button [label]="atajo.etiqueta" size="small" severity="secondary" [rounded]="true" [outlined]="true" (onClick)="aplicarAtajo(atajo.dias)" />
+        }
+    </div>
+
+    <div class="flex flex-col gap-2">
+        <label for="ronda-descripcion" class="font-medium">Descripción <span class="text-muted-color font-normal">(opcional)</span></label>
+        <textarea pTextarea id="ronda-descripcion" formControlName="descripcion" rows="3" [maxlength]="limites.descripcionMax" [autoResize]="true" [fluid]="true" placeholder="Ej.: Nuevos que llegaron en octubre"></textarea>
+        <small class="text-muted-color self-end tabular-nums" aria-live="polite">{{ largoDescripcion() }}/{{ limites.descripcionMax }}</small>
+    </div>
+
+    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+        @if (mostrarCancelar()) {
+        <p-button label="Cancelar" severity="secondary" [outlined]="true" [disabled]="guardando()" (onClick)="cancelar.emit()" />
+        }
+        <p-button type="submit" [label]="etiquetaGuardar()" [icon]="iconoGuardar()" iconPos="right" [loading]="guardando()" [disabled]="guardando()" />
+    </div>
+</form>

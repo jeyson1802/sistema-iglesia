@@ -3,6 +3,17 @@
     <li class="h-6 rounded" [class]="clase(semana)" [pTooltip]="texto(semana)" tooltipPosition="top" tabindex="0" [attr.aria-label]="texto(semana)"></li>
     }
 </ol>
+@if (marcadas().size > 0) {
+<div class="grid grid-cols-12 gap-1 mt-1" aria-hidden="true">
+    @for (semana of semanas(); track semana.inicio) {
+    <span class="flex justify-center">
+        @if (marcadas().has(semana.inicio)) {
+        <i class="pi pi-phone text-xs text-primary"></i>
+        }
+    </span>
+    }
+</div>
+}
 <div class="flex justify-between text-xs text-muted-color mt-1" aria-hidden="true">
     @if (semanas().length > 0) {
     <span>{{ etiqueta(semanas()[0].inicio) }}</span>

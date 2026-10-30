@@ -44,6 +44,12 @@ public final class Permisos {
 
 	public static final String ASISTENCIA_CONFIGURAR = "asistencia.configurar";
 
+	public static final String CONSOLIDACION_ADMINISTRAR = "consolidacion.administrar";
+
+	public static final String CONSOLIDACION_VER = "consolidacion.ver";
+
+	public static final String CONSOLIDACION_CONTACTAR = "consolidacion.contactar";
+
 	public static final String PUEDE_VER_IGLESIAS = "hasAuthority('" + IGLESIAS_VER + "')";
 
 	public static final String PUEDE_ADMINISTRAR_IGLESIAS = "hasAuthority('" + IGLESIAS_ADMINISTRAR + "')";
@@ -114,6 +120,21 @@ public final class Permisos {
 	/** Las reglas de seguimiento las lee quien ve toda la asistencia o quien la configura. */
 	public static final String PUEDE_VER_REGLAS_SEGUIMIENTO = "hasAnyAuthority('" + ASISTENCIA_VER + "', '"
 			+ ASISTENCIA_CONFIGURAR + "')";
+
+	/** Coordinador de consolidación: equipo, rondas, reparto y catálogo de resultados. */
+	public static final String PUEDE_ADMINISTRAR_CONSOLIDACION = "hasAuthority('" + CONSOLIDACION_ADMINISTRAR + "')";
+
+	/** Rondas y su avance: quien las ve o las coordina. */
+	public static final String PUEDE_VER_RONDAS = "hasAnyAuthority('" + CONSOLIDACION_VER + "', '"
+			+ CONSOLIDACION_ADMINISTRAR + "')";
+
+	/** «Mis asignados»: el consolidador o el coordinador (que incluye todo lo del consolidador). */
+	public static final String PUEDE_CONTACTAR = "hasAnyAuthority('" + CONSOLIDACION_CONTACTAR + "', '"
+			+ CONSOLIDACION_ADMINISTRAR + "')";
+
+	/** Casos, historial y resumen de una persona: cualquiera de los tres; el servicio aplica el ámbito. */
+	public static final String PUEDE_CONSULTAR_CONSOLIDACION = "hasAnyAuthority('" + CONSOLIDACION_VER + "', '"
+			+ CONSOLIDACION_ADMINISTRAR + "', '" + CONSOLIDACION_CONTACTAR + "')";
 
 	private Permisos() {
 	}

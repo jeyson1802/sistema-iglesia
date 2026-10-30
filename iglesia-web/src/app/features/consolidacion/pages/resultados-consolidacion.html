@@ -1,0 +1,42 @@
+<div class="card">
+    <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+            <h1 class="font-semibold text-xl text-surface-900 dark:text-surface-0 m-0 mb-2">Resultados de consolidación</h1>
+            <p class="text-muted-color m-0">Cómo puede terminar el seguimiento de una persona. Se ofrecen en este orden al cerrar un caso.</p>
+        </div>
+        @if (!errorCarga()) {
+        <p-button label="Nuevo resultado" icon="pi pi-plus" [disabled]="cargando()" (onClick)="nuevo()" />
+        }
+    </header>
+
+    <div class="empty:hidden" aria-live="polite">
+        @if (errorAccion()) {
+        <p-message severity="error" icon="pi pi-times-circle" [closable]="true" styleClass="mb-4" (onClose)="errorAccion.set(null)">{{ errorAccion() }}</p-message>
+        }
+    </div>
+
+    @if (errorCarga()) {
+    <div class="flex flex-col items-center gap-4 py-8 text-center" role="alert">
+        <i class="pi pi-exclamation-circle text-4xl text-muted-color" aria-hidden="true"></i>
+        <span class="font-medium text-surface-900 dark:text-surface-0">{{ errorCarga() }}</span>
+        <p-button label="Reintentar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="cargar()" />
+    </div>
+    } @else {
+    <app-tabla-resultados [resultados]="resultados()" [cargando]="cargando()" [ordenando]="ordenando()" (subir)="subir($event)" (bajar)="bajar($event)" (editar)="editar($event)" (cambiarEstado)="cambiarEstado($event)" />
+
+    @if (!cargando() && vistaPrevia().length > 0) {
+    <section class="mt-8 flex flex-col gap-3" aria-labelledby="resultados-vista-previa">
+        <div>
+            <h2 id="resultados-vista-previa" class="font-semibold text-lg m-0">Vista previa</h2>
+            <p class="text-muted-color text-sm m-0 mt-1">Así los verá el consolidador al cerrar un caso (los inactivos no aparecen).</p>
+        </div>
+        <div class="max-w-xl rounded-border border border-dashed border-surface p-4">
+            <app-grupo-opciones [opciones]="vistaPrevia()" etiqueta="Vista previa de los resultados" columnas="grid-cols-1 sm:grid-cols-2" [compacto]="true" />
+        </div>
+    </section>
+    } }
+</div>
+
+<app-formulario-resultado [(visible)]="dialogoVisible" [resultado]="resultadoEditado()" [guardando]="guardando()" [error]="errorDialogo()" (guardar)="guardar($event)" />
+
+<p-confirmdialog styleClass="w-full max-w-md mx-4" />

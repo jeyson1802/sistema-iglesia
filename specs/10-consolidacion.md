@@ -527,6 +527,30 @@ La pantalla más importante del módulo. Debe sentirse como una lista de tareas 
 - **«Volvió a asistir» calculado:** se mide la efectividad con la asistencia real (SPEC 09), sin pedirle al consolidador que lo anote.
 - **Al cerrar no se toca la ficha:** decidido así para mantener el alcance acotado; asignar grupo o cambiar la condición sigue haciéndose en la ficha.
 
+### Ajustes durante la implementación
+
+Datos y API:
+- `consolidador` tiene su propio `id` (identity) con `UNIQUE (iglesia_id, miembro_id)`; los endpoints del equipo siguen identificando por `miembroId`.
+- `caso_consolidacion.proximo_contacto` se guarda en el caso (el último contacto que lo fija manda), para ordenar «Para hoy» sin recorrer contactos.
+- «Mis asignados» usa `GET /mis-casos?seccion=PARA_HOY|SIN_CONTACTAR|EN_CONTACTO` (cada sección pagina por su cuenta) y `GET /mis-casos/resumen` para el saludo y el medidor.
+- Se agregaron `GET /rondas/{id}` y `PATCH /casos/consolidador` (reasignar varios). Los resultados no se borran: se desactivan, por eso no hay `DELETE`.
+- Se quitó el paquete vacío `seguimiento` de `iglesia-api`.
+
+Reglas:
+- La fecha de un contacto admite 5 minutos de adelanto por diferencias de reloj.
+- «Volvió a asistir» cuenta desde el día siguiente al primer «Se habló» y hasta 28 días después.
+- Fuera de ámbito el backend responde 404; la tarjeta de la ficha se oculta con 404 o 403.
+
+Frontend:
+- La etiqueta «Sin acceso al sistema» del equipo se omitió: iglesia-api no sabe qué miembros tienen usuario (bases separadas).
+- El gráfico de anillo de resultados se reemplazó por barras horizontales (se leen mejor con nombres largos y en el celular).
+- El reparto se ajusta con «Mover a…» por persona en lugar de arrastrar y soltar (accesible con teclado y en el celular).
+- El lote no permite excluir personas antes de confirmar (el backend solo acepta una lista de inclusión): para eso está el modo «Elegir a mano» y «Quitar del lote» después.
+- El aviso de «contacto vencido» del detalle de la ronda no tiene botón «Ver».
+- El saludo de «Mis asignados» no incluye el nombre: el usuario autenticado no lo trae.
+- Desde la pantalla del caso, «Llamar» o «WhatsApp» abre la hoja de registro de inmediato (no espera a volver de la app), porque el caso ya está en pantalla.
+- La franja de 12 semanas de asistencia (`app-semanas-asistencia`) acepta `marcas` para señalar las semanas con contacto en el historial.
+
 ## Riesgos
 
 - **Datos sensibles en las observaciones** (situaciones personales, peticiones): se limitan por ámbito, nunca van a los logs y se muestran solo a quien tiene el caso, su red o `consolidacion.ver`. Conviene recordarlo en la ayuda de la pantalla.

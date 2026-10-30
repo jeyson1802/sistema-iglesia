@@ -1,0 +1,106 @@
+<div [attr.aria-busy]="cargando()">
+    @if (cargando()) {
+    <div class="flex flex-col gap-4" role="status" aria-label="Cargando personas">
+        @for (fila of filasCarga; track fila) {
+        <div class="flex items-center gap-3">
+            <p-skeleton shape="circle" size="2.5rem" />
+            <p-skeleton width="30%" height="1.25rem" />
+            <p-skeleton width="15%" height="1.25rem" />
+            <p-skeleton width="20%" height="1.25rem" styleClass="ml-auto" />
+        </div>
+        }
+    </div>
+    } @else if (casos().length === 0) {
+    <div class="flex flex-col items-center gap-2 py-8 text-center">
+        <i class="pi pi-users text-3xl text-muted-color" aria-hidden="true"></i>
+        <p class="text-muted-color m-0">{{ mensajeVacio() }}</p>
+    </div>
+    } @else {
+    <div class="hidden md:block">
+        <p-table [value]="filas()" [(selection)]="seleccion" dataKey="id" [rowHover]="true" [scrollable]="true" tableStyleClass="min-w-240">
+            <ng-template #header>
+                <tr>
+                    @if (seleccionable()) {
+                    <th scope="col" class="w-12"><p-tableHeaderCheckbox ariaLabel="Seleccionar todas las personas de esta página" /></th>
+                    }
+                    <th scope="col">Persona</th>
+                    <th scope="col">Consolidador</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Contactos</th>
+                    <th scope="col">Último contacto</th>
+                    <th scope="col">Resultado</th>
+                </tr>
+            </ng-template>
+            <ng-template #body let-caso>
+                <tr class="cursor-pointer" tabindex="0" (click)="ver.emit(caso)" (keydown.enter)="ver.emit(caso)" [attr.aria-label]="'Abrir el caso de ' + caso.persona.nombreCompleto">
+                    @if (seleccionable()) {
+                    <td (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()"><p-tableCheckbox [value]="caso" [ariaLabel]="'Seleccionar a ' + caso.persona.nombreCompleto" /></td>
+                    }
+                    <td>
+                        <span class="flex items-center gap-3">
+                            <span class="flex items-center justify-center shrink-0 w-9 h-9 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-400/20 dark:text-primary-300 text-sm font-semibold" aria-hidden="true"
+                                >{{ iniciales(caso.persona.nombreCompleto) }}</span
+                            >
+                            <span class="flex flex-col">
+                                <span class="font-medium">{{ caso.persona.nombreCompleto }}</span>
+                                @if (caso.persona.condicion === 'NUEVO') {
+                                <span><p-tag [value]="etiquetaNuevo" severity="info" styleClass="text-xs" /></span>
+                                }
+                            </span>
+                        </span>
+                    </td>
+                    <td>
+                        @if (caso.consolidador) { {{ caso.consolidador.nombre }} } @else {
+                        <span class="text-muted-color italic">Sin asignar</span>
+                        }
+                    </td>
+                    <td><p-tag [value]="estado(caso.estado)" [severity]="severidad(caso.estado)" styleClass="whitespace-nowrap" /></td>
+                    <td class="text-sm">{{ resumen(caso.contactos) }}</td>
+                    <td class="text-sm">
+                        @if (caso.ultimoContacto; as contacto) {
+                        <span class="block">{{ ultimo(caso) }}</span>
+                        <time class="block text-muted-color" [attr.datetime]="contacto.fechaHora" [title]="completa(contacto.fechaHora)">{{ hace(contacto.fechaHora) }}</time>
+                        } @else {
+                        <span class="text-muted-color">—</span>
+                        }
+                    </td>
+                    <td class="text-sm">{{ caso.resultado?.nombre ?? (caso.estado === 'CERRADO' ? 'No concluido' : '—') }}</td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </div>
+
+    <ul class="md:hidden flex flex-col gap-3 list-none p-0 m-0">
+        @for (caso of casos(); track caso.id) {
+        <li class="border border-surface rounded-border p-4 flex items-start gap-3">
+            @if (seleccionable()) {
+            <p-checkbox [binary]="true" [ngModel]="idsSeleccionados().has(caso.id)" (ngModelChange)="alternar(caso, $event)" [ariaLabel]="'Seleccionar a ' + caso.persona.nombreCompleto" styleClass="mt-1" />
+            }
+            <button type="button" class="flex-1 min-w-0 text-left bg-transparent border-0 p-0 cursor-pointer flex flex-col gap-1 text-surface-900 dark:text-surface-0" (click)="ver.emit(caso)">
+                <span class="flex items-start justify-between gap-2">
+                    <span class="font-medium truncate">{{ caso.persona.nombreCompleto }}</span>
+                    <p-tag [value]="estado(caso.estado)" [severity]="severidad(caso.estado)" styleClass="whitespace-nowrap" />
+                </span>
+                <span class="text-sm text-muted-color">{{ caso.consolidador?.nombre ?? 'Sin asignar' }} · {{ resumen(caso.contactos) }}</span>
+                @if (caso.ultimoContacto; as contacto) {
+                <span class="text-sm text-muted-color">Último: {{ ultimo(caso)?.toLowerCase() }} ({{ hace(contacto.fechaHora) }})</span>
+                }
+            </button>
+        </li>
+        }
+    </ul>
+    } @if (!cargando()) {
+    <p-paginator
+        [first]="primerRegistro()"
+        [rows]="tamanoPagina()"
+        [totalRecords]="totalRegistros()"
+        [rowsPerPageOptions]="opcionesPorPagina"
+        [showCurrentPageReport]="true"
+        [currentPageReportTemplate]="plantillaReporte"
+        [alwaysShow]="true"
+        appendTo="body"
+        (onPageChange)="alPaginar($event)"
+        styleClass="mt-4"
+    />
+    }
+</div>

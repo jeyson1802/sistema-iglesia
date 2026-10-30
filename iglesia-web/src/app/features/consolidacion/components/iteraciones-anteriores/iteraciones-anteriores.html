@@ -1,0 +1,36 @@
+@if (iteraciones().length === 0) {
+<p class="text-muted-color m-0">Es su primer seguimiento: no tiene iteraciones anteriores.</p>
+} @else {
+<p-accordion [multiple]="true">
+    @for (iteracion of iteraciones(); track iteracion.casoId) {
+    <p-accordion-panel [value]="iteracion.casoId">
+        <p-accordion-header>
+            <span class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 w-full pr-3 text-left">
+                <span class="font-medium">{{ iteracion.ronda?.nombre ?? 'Seguimiento individual' }}</span>
+                <span class="text-sm text-muted-color" [title]="completa(iteracion.desde)">{{ mes(iteracion.desde) }}</span>
+                <p-tag class="sm:ml-auto" [value]="iteracion.resultado?.nombre ?? 'No concluido'" [severity]="iteracion.resultado ? 'success' : 'secondary'" />
+            </span>
+        </p-accordion-header>
+        <p-accordion-content>
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 m-0 mb-4 text-sm">
+                <div>
+                    <dt class="text-muted-color">Consolidador</dt>
+                    <dd class="m-0">{{ iteracion.consolidador?.nombre ?? 'Sin asignar' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-muted-color">Contactos</dt>
+                    <dd class="m-0">{{ resumen(iteracion.contactos) }}</dd>
+                </div>
+                @if (iteracion.observacionCierre) {
+                <div class="sm:col-span-2">
+                    <dt class="text-muted-color">Observación de cierre</dt>
+                    <dd class="m-0 whitespace-pre-line">{{ iteracion.observacionCierre }}</dd>
+                </div>
+                }
+            </dl>
+            <app-linea-tiempo [contactos]="iteracion.detalle" mensajeVacio="En esta iteración no se registraron contactos." />
+        </p-accordion-content>
+    </p-accordion-panel>
+    }
+</p-accordion>
+}

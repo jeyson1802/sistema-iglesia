@@ -95,7 +95,8 @@ class IglesiaActuandoIntegrationTest {
 				"iglesias.ver", "miembros.crear", "miembros.desactivar", "miembros.editar", "miembros.ver",
 				"niveles.administrar", "grupos.ver", "grupos.administrar", "aportes.ver", "aportes.registrar",
 				"aportes.editar", "aportes.anular", "aportes.configurar", "iglesia.personalizar", "asistencia.registrar",
-				"asistencia.ver", "asistencia.configurar", "roles.administrar",
+				"asistencia.ver", "asistencia.configurar", "consolidacion.administrar", "consolidacion.ver",
+				"consolidacion.contactar", "roles.administrar",
 				"roles.ver",
 				"usuarios.administrar", "usuarios.ver");
 

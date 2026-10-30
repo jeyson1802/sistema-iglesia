@@ -1,0 +1,44 @@
+<div class="flex flex-col gap-3">
+    <div class="flex flex-wrap gap-2" role="radiogroup" aria-label="Filtrar por estado">
+        @for (chip of chips(); track chip.valor) {
+        <button
+            type="button"
+            role="radio"
+            [attr.aria-checked]="chip.valor === chipActivo()"
+            (click)="elegirChip(chip.valor)"
+            class="inline-flex items-center gap-2 rounded-full border px-3 min-h-9 text-sm cursor-pointer transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+            [class.border-primary]="chip.valor === chipActivo()"
+            [class.bg-primary]="chip.valor === chipActivo()"
+            [class.text-primary-contrast]="chip.valor === chipActivo()"
+            [class.border-surface]="chip.valor !== chipActivo()"
+            [class.bg-transparent]="chip.valor !== chipActivo()"
+            [class.text-surface-900]="chip.valor !== chipActivo()"
+            [class.dark:text-surface-0]="chip.valor !== chipActivo()"
+        >
+            {{ chip.etiqueta }}<span class="font-semibold tabular-nums">{{ chip.cantidad }}</span>
+        </button>
+        }
+    </div>
+    <div class="flex flex-col sm:flex-row gap-3">
+        <p-iconfield class="flex-1">
+            <p-inputicon styleClass="pi pi-search" />
+            <input pInputText type="search" [ngModel]="texto()" (ngModelChange)="escribir($event)" placeholder="Buscar por nombre" aria-label="Buscar persona por nombre" autocomplete="off" [fluid]="true" />
+        </p-iconfield>
+        @if (consolidadores().length > 0) {
+        <p-select
+            [options]="opcionesConsolidadores()"
+            optionLabel="nombre"
+            optionValue="id"
+            [ngModel]="filtro().consolidadorId"
+            (ngModelChange)="elegirConsolidador($event)"
+            placeholder="Todos los consolidadores"
+            [showClear]="true"
+            [filter]="true"
+            filterBy="nombre"
+            ariaLabel="Filtrar por consolidador"
+            appendTo="body"
+            styleClass="w-full sm:w-64"
+        />
+        }
+    </div>
+</div>

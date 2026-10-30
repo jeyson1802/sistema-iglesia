@@ -1,0 +1,44 @@
+<p-panel [toggleable]="true" [collapsed]="plegada()" toggler="header" styleClass="border-surface">
+    <ng-template #header>
+        <h2 class="flex items-center gap-2 m-0 text-lg font-semibold">
+            <i [class]="icono() + ' text-primary'" aria-hidden="true"></i>{{ titulo() }}
+            <span class="inline-flex items-center justify-center min-w-7 h-7 px-2 rounded-full bg-surface-100 dark:bg-surface-800 text-sm tabular-nums">{{ cantidad() }}</span>
+        </h2>
+    </ng-template>
+    <div [attr.aria-busy]="cargando()">
+        @if (cargando() && casos().length === 0) {
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3" role="status" [attr.aria-label]="'Cargando ' + titulo()">
+            @for (tarjeta of tarjetasCarga; track tarjeta) {
+            <p-skeleton height="9rem" />
+            }
+        </div>
+        } @else if (error()) {
+        <div class="flex flex-col items-center gap-3 py-6 text-center" role="alert">
+            <span class="text-muted-color">No se pudo cargar esta lista.</span>
+            <p-button label="Reintentar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="reintentar.emit()" />
+        </div>
+        } @else if (casos().length === 0) {
+        <p class="text-muted-color m-0 py-2">{{ mensajeVacio() }}</p>
+        } @else {
+        <ul class="grid grid-cols-1 lg:grid-cols-2 gap-3 list-none p-0 m-0" [class.opacity-60]="cargando()">
+            @for (caso of casos(); track caso.id) {
+            <li>
+                <app-tarjeta-caso [caso]="caso" [sinRegistrar]="sinRegistrar().get(caso.id) ?? null" (contactar)="contactar.emit({ caso, medio: $event })" (registrar)="registrar.emit(caso)" (ver)="ver.emit(caso)" (descartar)="descartar.emit(caso)" />
+            </li>
+            }
+        </ul>
+        }
+        <p-paginator
+            [first]="primerRegistro()"
+            [rows]="tamanoPagina()"
+            [totalRecords]="totalRegistros()"
+            [rowsPerPageOptions]="opcionesPorPagina"
+            [showCurrentPageReport]="true"
+            [currentPageReportTemplate]="plantillaReporte"
+            [alwaysShow]="true"
+            appendTo="body"
+            (onPageChange)="alPaginar($event)"
+            styleClass="mt-3"
+        />
+    </div>
+</p-panel>
