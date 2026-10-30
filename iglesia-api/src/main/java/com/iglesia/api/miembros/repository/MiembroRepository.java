@@ -67,6 +67,16 @@ public interface MiembroRepository extends JpaRepository<Miembro, Long>, JpaSpec
 	 * de la configuración regional del servidor.
 	 */
 	@EntityGraph(attributePaths = { "nivel", "lider" })
+	/**
+	 * Miembros activos fuera del grupo, los últimos en llegar a la iglesia primero (por fecha de ingreso o, si no
+	 * tienen, por la de registro).
+	 */
+	@Query("""
+			select m from Miembro m
+			where m.activo = true and (m.grupoId is null or m.grupoId <> :grupoId)
+			order by coalesce(m.fechaIngreso, cast(m.creadoEn as LocalDate)) desc, m.id desc""")
+	List<Miembro> recientesFueraDelGrupo(@Param("grupoId") Long grupoId, Pageable paginacion);
+
 	@Query("""
 			select m from Miembro m
 			where length(m.nombres) = :largoNombres and length(m.apellidos) = :largoApellidos

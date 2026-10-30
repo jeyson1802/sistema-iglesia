@@ -117,11 +117,18 @@ public class ReferenciasMiembro {
 	}
 
 	/**
-	 * Hasta {@value LimitesMiembro#OPCIONES_MAX} miembros activos que no están en el grupo y cuyo nombre contiene el
-	 * texto, con el grupo en el que están ahora (o ninguno).
+	 * Miembros activos que no están en el grupo, con el grupo en el que están ahora (o ninguno): con texto, hasta
+	 * {@value LimitesMiembro#OPCIONES_MAX} cuyo nombre lo contiene, por nombre; sin texto, los
+	 * {@value LimitesMiembro#CANDIDATOS_RECIENTES} últimos en llegar a la iglesia.
 	 */
 	@Transactional(readOnly = true)
 	public List<IntegranteGrupo> candidatosPara(Long grupoId, String q) {
+		if (q == null || q.isBlank()) {
+			return miembros.recientesFueraDelGrupo(grupoId, PageRequest.of(0, LimitesMiembro.CANDIDATOS_RECIENTES))
+				.stream()
+				.map(mapper::aIntegrante)
+				.toList();
+		}
 		Specification<Miembro> criterio = Specification.allOf(EspecificacionesMiembro.nombreContiene(q),
 				EspecificacionesMiembro.conEstado(true), EspecificacionesMiembro.fueraDelGrupo(grupoId));
 		return miembros.findAll(criterio, PageRequest.of(0, LimitesMiembro.OPCIONES_MAX, ORDEN_POR_NOMBRE))

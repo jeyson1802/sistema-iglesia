@@ -11,7 +11,7 @@ import { GruposService } from '@/app/features/grupos/services/grupos.service';
 import { OLIVOS } from '@/app/features/grupos/testing/grupos-prueba';
 import { NivelesService } from '@/app/features/niveles/services/niveles.service';
 import { RolesService } from '@/app/features/roles/services/roles.service';
-import { ROLES_BASE } from '@/app/features/roles/testing/roles-prueba';
+import { CONSOLIDADOR, ROLES_BASE } from '@/app/features/roles/testing/roles-prueba';
 import { UsuariosService } from '@/app/features/usuarios/services/usuarios.service';
 import { OpcionesMiembroService } from '@/app/shared/components/selector-miembro/opciones-miembro.service';
 import { UbigeoService } from '@/app/shared/components/selector-ubigeo/ubigeo.service';
@@ -42,7 +42,7 @@ describe('MiembroFichaComponent', () => {
                 { provide: UsuariosService, useValue: usuarios },
                 { provide: NivelesService, useValue: { listar: () => of([]) } },
                 { provide: GruposService, useValue: { listar: () => of([OLIVOS]) } },
-                { provide: RolesService, useValue: { listar: () => of(ROLES_BASE) } },
+                { provide: RolesService, useValue: { listar: () => of([...ROLES_BASE, CONSOLIDADOR]) } },
                 { provide: ConfiguracionIglesiaService, useValue: { nombresGrupos: signal({ nombreGrupoSingular: 'Célula', nombreGrupoPlural: 'Células' }) } },
                 { provide: SesionService, useValue: { tienePermiso: (permiso: Permiso) => permisos.has(permiso) } },
                 { provide: IdentidadIglesiaService, useValue: { nombreComercial: signal('Iglesia Vida Nueva'), urlLogo: signal(null) } },
@@ -209,13 +209,13 @@ describe('MiembroFichaComponent', () => {
             expect(html().textContent).toContain('Lidera a miembros activos');
         });
 
-        it('dar acceso ofrece Líder y Miembro y, al crear, muestra el acceso', async () => {
+        it('dar acceso ofrece los roles que exigen miembro, también los personalizados, y, al crear, muestra el acceso', async () => {
             usuarios.crearParaMiembro.and.returnValue(of(usuario));
             await crear('22');
 
             boton('Dar acceso al sistema')?.click();
             await fixture.whenStable();
-            expect(senal<{ nombre: string }[]>('rolesAcceso').map(({ nombre }) => nombre)).toEqual(['Líder', 'Miembro']);
+            expect(senal<{ nombre: string }[]>('rolesAcceso').map(({ nombre }) => nombre)).toEqual(['Líder', 'Miembro', 'Consolidador']);
 
             componente()['darAcceso']({ correo: 'juan@correo.test', contrasenaTemporal: 'Temporal123', rolIds: [3] });
             await fixture.whenStable();

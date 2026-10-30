@@ -5,9 +5,10 @@ import { Permiso } from '@/app/core/auth/models/permiso';
 import { SesionService } from '@/app/core/auth/services/sesion.service';
 import { diaSemanaDe, DIAS_SEMANA } from '@/app/core/models/dia-semana';
 import { hoyIso } from '@/app/shared/utils/fecha';
+import { AsistenciaGrupoService } from '../../services/asistencia-grupo.service';
 import { ReunionesService } from '../../services/reuniones.service';
 import { SeguimientoService } from '../../services/seguimiento.service';
-import { REUNION_GRUPO } from '../../testing/asistencia-prueba';
+import { paginaDe, REUNION_DEL_GRUPO, REUNION_GRUPO } from '../../testing/asistencia-prueba';
 import { AsistenciaGrupoComponent, GrupoAsistencia } from './asistencia-grupo';
 import { SeguimientoGrupo } from '../../models/seguimiento';
 
@@ -26,6 +27,7 @@ describe('AsistenciaGrupoComponent', () => {
     };
     let servicio: jasmine.SpyObj<ReunionesService>;
     let seguimiento: jasmine.SpyObj<SeguimientoService>;
+    let asistenciaGrupo: jasmine.SpyObj<AsistenciaGrupoService>;
     let permisos: Set<Permiso>;
     let fixture: ComponentFixture<AsistenciaGrupoComponent>;
     let router: Router;
@@ -33,7 +35,13 @@ describe('AsistenciaGrupoComponent', () => {
     const crear = async (grupo: GrupoAsistencia = GRUPO): Promise<void> => {
         await TestBed.configureTestingModule({
             imports: [AsistenciaGrupoComponent],
-            providers: [provideRouter([]), { provide: ReunionesService, useValue: servicio }, { provide: SeguimientoService, useValue: seguimiento }, { provide: SesionService, useValue: { tienePermiso: (permiso: Permiso) => permisos.has(permiso) } }]
+            providers: [
+                provideRouter([]),
+                { provide: ReunionesService, useValue: servicio },
+                { provide: SeguimientoService, useValue: seguimiento },
+                { provide: AsistenciaGrupoService, useValue: asistenciaGrupo },
+                { provide: SesionService, useValue: { tienePermiso: (permiso: Permiso) => permisos.has(permiso) } }
+            ]
         }).compileComponents();
         router = TestBed.inject(Router);
         spyOn(router, 'navigate').and.resolveTo(true);
@@ -51,6 +59,18 @@ describe('AsistenciaGrupoComponent', () => {
         servicio = jasmine.createSpyObj<ReunionesService>('ReunionesService', ['abrir']);
         seguimiento = jasmine.createSpyObj<SeguimientoService>('SeguimientoService', ['delGrupo']);
         seguimiento.delGrupo.and.returnValue(of(SEGUIMIENTO));
+        asistenciaGrupo = jasmine.createSpyObj<AsistenciaGrupoService>('AsistenciaGrupoService', ['reuniones', 'detalle']);
+        asistenciaGrupo.reuniones.and.returnValue(of(paginaDe([REUNION_DEL_GRUPO])));
+    });
+
+    it('antes del detalle muestra el resumen y luego las reuniones por día', async () => {
+        await crear();
+
+        const resumen = html().querySelector('dl')!.textContent!.replace(/\s+/g, ' ');
+        expect(resumen).toContain('Asistencia promedio · 12 semanas75 %');
+        expect(resumen).toContain('Reuniones · 12 semanas1');
+        expect(asistenciaGrupo.reuniones).toHaveBeenCalledWith(8, 0, 10);
+        expect(html().querySelector('app-reuniones-grupo')?.textContent).toContain('3 de 4');
     });
 
     it('muestra la evolución semanal y a los integrantes por riesgo, con el paginador', async () => {

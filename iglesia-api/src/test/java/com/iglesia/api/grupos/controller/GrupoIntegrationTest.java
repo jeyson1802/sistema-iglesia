@@ -1,5 +1,7 @@
 package com.iglesia.api.grupos.controller;
 
+import java.time.LocalDate;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -102,6 +104,26 @@ class GrupoIntegrationTest {
 			.andExpect(status().isNotFound());
 		integrante(admin, grupoA, 999_999).andExpect(status().isNotFound());
 		mvc.perform(get("/api/miembros/{id}", tito).with(admin)).andExpect(jsonPath("$.grupo").doesNotExist());
+	}
+
+	@Test
+	void sinBusquedaSugiereLosCincoUltimosEnLlegarALaIglesia() throws Exception {
+		JwtRequestPostProcessor admin = PruebasNegocio.administradorDe(PruebasNegocio.nuevaIglesia(jdbc));
+		long grupo = PruebasNegocio.idDe(crear(admin,
+				"{\"liderId\":%d}".formatted(miembro(admin, conIngreso("Lider", LocalDate.now().minusYears(5))))));
+		for (int meses = 6; meses >= 1; meses--) {
+			miembro(admin, conIngreso("Hace" + meses, LocalDate.now().minusMonths(meses)));
+		}
+		miembro(admin, "{\"nombres\":\"Hoy\",\"apellidos\":\"Registro\"}");
+
+		mvc.perform(get("/api/grupos/{id}/candidatos", grupo).with(admin))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$[*].nombreCompleto",
+					contains("Hoy Registro", "Hace1 Prueba", "Hace2 Prueba", "Hace3 Prueba", "Hace4 Prueba")));
+	}
+
+	private static String conIngreso(String nombres, LocalDate ingreso) {
+		return "{\"nombres\":\"%s\",\"apellidos\":\"Prueba\",\"fechaIngreso\":\"%s\"}".formatted(nombres, ingreso);
 	}
 
 	@Test

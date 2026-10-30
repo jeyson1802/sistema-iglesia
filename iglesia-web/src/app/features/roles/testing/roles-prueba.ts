@@ -20,6 +20,18 @@ export const SECRETARIA: RolAcceso = {
     requiereMiembro: false
 };
 
+/** Rol personalizado que hereda de Líder: exige un miembro vinculado, como su rol base. */
+export const CONSOLIDADOR: RolAcceso = {
+    id: 11,
+    nombre: 'Consolidador',
+    rolBase: 'LIDER',
+    base: false,
+    activo: true,
+    permisos: [],
+    cantidadUsuarios: 0,
+    requiereMiembro: true
+};
+
 /** Catálogo en el orden de `GET /api/permisos` (módulo y orden). */
 export const CATALOGO: PermisoCatalogo[] = [
     { codigo: 'miembros.ver', modulo: 'Miembros', descripcion: 'Ver el listado y el detalle de miembros' },

@@ -1954,7 +1954,7 @@
                 }
               ]
             },
-            "description": "Hasta 20 miembros activos que no están en el grupo, con el grupo en el que están ahora."
+            "description": "Con `q`, hasta 20 miembros activos que no están en el grupo y cuyo nombre lo contiene, con el grupo en el que están ahora."
           },
           "event": [
             {
@@ -1965,6 +1965,38 @@
                   "pm.test('Responde 200', () => pm.response.to.have.status(200));",
                   "const c = pm.response.json().find(m => m.id === Number(pm.environment.get('integranteId')));",
                   "pm.test('Ofrece al integrante, todavía sin grupo', () => { pm.expect(c).to.exist; pm.expect(c.grupo).to.eql(null); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Últimos en llegar a la iglesia (sin búsqueda)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/grupos/{{grupoId}}/candidatos",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "grupos",
+                "{{grupoId}}",
+                "candidatos"
+              ]
+            },
+            "description": "Sin `q`, los 5 últimos miembros activos en llegar a la iglesia (por fecha de ingreso o, si no tienen, por la de registro) que no están en el grupo."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Como máximo cinco', () => pm.expect(pm.response.json().length).to.be.at.most(5));"
                 ]
               }
             }
@@ -5698,6 +5730,114 @@
                   "pm.test('Responde 200', () => pm.response.to.have.status(200));",
                   "pm.test('Doce semanas e integrantes', () => { const g = pm.response.json(); pm.expect(g.semanas).to.have.lengthOf(12); pm.expect(g.integrantes).to.be.an('array'); });",
                   "pm.test('Esta semana hubo reunión', () => pm.expect(pm.response.json().semanas[11].reuniones).to.be.at.least(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reuniones del grupo con su resumen",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/grupos/{{grupoId}}/reuniones?page=0&size=10",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "grupos",
+                "{{grupoId}}",
+                "reuniones"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Página de las reuniones del grupo, la más reciente primero, con los integrantes esperados, los que asistieron, los que faltaron, los visitantes y el porcentaje. Con `asistencia.grupo`, solo los grupos que lidera."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cada reunión trae su resumen', () => { const r = pm.response.json().content[0]; pm.expect(r.reunionId).to.be.a('number'); pm.expect(r.esperados).to.eql(r.asistieron + r.faltaron); pm.expect(r.visitantes).to.be.a('number'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Quiénes asistieron y faltaron a una reunión del grupo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/grupos/{{grupoId}}/reuniones/{{reunionGrupoId}}",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "grupos",
+                "{{grupoId}}",
+                "reuniones",
+                "{{reunionGrupoId}}"
+              ]
+            },
+            "description": "Integrantes que asistieron, integrantes que faltaron y visitantes de una reunión del grupo, cada lista por nombre y con su nivel."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Trae las tres listas', () => { const d = pm.response.json(); pm.expect(d.reunionId).to.eql(Number(pm.environment.get('reunionGrupoId'))); pm.expect(d.asistieron).to.be.an('array'); pm.expect(d.faltaron).to.be.an('array'); pm.expect(d.visitantes).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reunión que no es del grupo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/grupos/{{grupoId}}/reuniones/999999999",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "grupos",
+                "{{grupoId}}",
+                "reuniones",
+                "999999999"
+              ]
+            },
+            "description": "Una reunión que no existe o que no es de este grupo responde 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Es un ProblemDetail con traceId', () => pm.expect(pm.response.json().traceId).to.be.a('string'));"
                 ]
               }
             }

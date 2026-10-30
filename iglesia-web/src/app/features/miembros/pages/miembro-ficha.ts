@@ -20,7 +20,6 @@ import { NivelesService } from '@/app/features/niveles/services/niveles.service'
 import { RolesService } from '@/app/features/roles/services/roles.service';
 import { CrearUsuario, UsuarioAdmin } from '@/app/features/usuarios/models/usuario-admin';
 import { UsuariosService } from '@/app/features/usuarios/services/usuarios.service';
-import { Rol } from '@/app/core/auth/models/rol';
 import { AportesMiembroComponent } from '../components/aportes-miembro/aportes-miembro';
 import { ArbolLiderazgoComponent } from '../components/arbol-liderazgo/arbol-liderazgo';
 import { AsistenciaMiembroComponent } from '../components/asistencia-miembro/asistencia-miembro';
@@ -35,8 +34,6 @@ import { MiembrosService } from '../services/miembros.service';
 const RUTA_MIEMBROS = '/miembros';
 /** Estado de navegación con el que el alta abre la ficha recién creada, para avisar que se registró. */
 const AVISO_REGISTRADO = 'registrado';
-/** Roles base que se pueden dar desde la ficha: los dos que exigen un miembro vinculado. */
-const ROLES_CON_MIEMBRO: readonly Rol[] = ['LIDER', 'MIEMBRO'];
 /** Cuántos posibles duplicados se nombran en el aviso. */
 const DUPLICADOS_NOMBRADOS = 3;
 
@@ -207,7 +204,7 @@ export class MiembroFichaComponent {
         });
     }
 
-    /** Los roles se piden la primera vez que se abre el diálogo. */
+    /** Los roles se piden la primera vez que se abre el diálogo: los activos que exigen miembro, base o personalizados. */
     protected abrirDarAcceso(): void {
         this.errorAccion.set(null);
         this.errorAcceso.set(null);
@@ -217,7 +214,7 @@ export class MiembroFichaComponent {
         }
         this.roles.listar().subscribe({
             next: (roles) => {
-                this.rolesAcceso.set(roles.filter((rol) => rol.base && rol.activo && ROLES_CON_MIEMBRO.includes(rol.rolBase)).map(({ id, nombre }) => ({ id, nombre })));
+                this.rolesAcceso.set(roles.filter((rol) => rol.activo && rol.requiereMiembro).map(({ id, nombre }) => ({ id, nombre })));
                 this.accesoVisible.set(true);
             },
             error: (error: unknown) => this.errorAccion.set(detalleDeError(error, MENSAJE_ERROR_ROLES))

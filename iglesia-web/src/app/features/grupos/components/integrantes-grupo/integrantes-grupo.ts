@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, map } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
@@ -21,7 +21,8 @@ const AMBITO_QUITAR = 'quitar-del-grupo';
 const FILAS_CARGA = [0, 1, 2];
 
 /**
- * Dos listas para administrar los integrantes de un grupo (presentacional): «Disponibles», con búsqueda, y «Miembros
+ * Dos listas para administrar los integrantes de un grupo (presentacional): «Disponibles» (sin búsqueda, los últimos
+ * en llegar a la iglesia; con búsqueda, los que coinciden) y «Miembros
  * del grupo». Se arrastra de una a otra y cada fila tiene además un botón equivalente, para teclado y pantallas
  * táctiles. Emite la intención; quien la usa confirma, llama a la API y actualiza las listas.
  */
@@ -55,6 +56,8 @@ export class IntegrantesGrupoComponent {
 
     private arrastrado: CandidatoGrupo | IntegranteGrupo | null = null;
     protected readonly busqueda = inject(NonNullableFormBuilder).control('');
+    /** Si hay texto buscado: sin él, «Disponibles» muestra a los últimos en llegar a la iglesia. */
+    protected readonly hayBusqueda = toSignal(this.busqueda.valueChanges.pipe(map((texto) => texto.trim() !== '')), { initialValue: false });
 
     constructor() {
         effect(() => (this.editable() ? this.busqueda.enable({ emitEvent: false }) : this.busqueda.disable({ emitEvent: false })));

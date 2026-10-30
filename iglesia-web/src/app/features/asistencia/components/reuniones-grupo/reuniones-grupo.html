@@ -1,0 +1,41 @@
+@if (error()) {
+<div class="flex flex-col items-start gap-2" role="alert">
+    <span class="text-muted-color">No se pudieron cargar las reuniones del grupo.</span>
+    <p-button label="Reintentar" icon="pi pi-refresh" size="small" severity="secondary" [outlined]="true" (onClick)="cargar()" />
+</div>
+} @else {
+<app-tabla-reuniones-grupo [reuniones]="reuniones()" [totalRegistros]="total()" [pagina]="pagina()" [tamanoPagina]="tamanoPagina()" [cargando]="cargando()" (cambiarPagina)="cambiarPagina($event)" (ver)="ver($event)" />
+}
+
+<p-drawer [(visible)]="panelVisible" position="right" [header]="tituloPanel()" styleClass="w-full! md:w-[36rem]!" closeButtonAriaLabel="Cerrar el detalle de la reunión">
+    @if (elegida(); as reunion) {
+    <dl class="grid grid-cols-3 gap-3 m-0 mb-5">
+        <div class="rounded-border border border-surface p-3">
+            <dt class="text-sm text-muted-color">Asistieron</dt>
+            <dd class="m-0 text-2xl font-semibold tabular-nums">{{ reunion.asistieron }}<span class="text-sm font-normal text-muted-color"> de {{ reunion.esperados }}</span></dd>
+        </div>
+        <div class="rounded-border border border-surface p-3">
+            <dt class="text-sm text-muted-color">{{ etiquetaFaltaron() }}</dt>
+            <dd class="m-0 text-2xl font-semibold tabular-nums">{{ reunion.faltaron }}</dd>
+        </div>
+        <div class="rounded-border border border-surface p-3">
+            <dt class="text-sm text-muted-color">Visitantes</dt>
+            <dd class="m-0 text-2xl font-semibold tabular-nums">{{ reunion.visitantes }}</dd>
+        </div>
+    </dl>
+    } @if (cargandoDetalle()) {
+    <div class="flex flex-col gap-3" role="status" aria-label="Cargando el detalle de la reunión">
+        <p-skeleton height="2.5rem" />
+        @for (fila of [1, 2, 3, 4]; track fila) {
+        <p-skeleton height="1.5rem" />
+        }
+    </div>
+    } @else if (errorDetalle()) {
+    <div class="flex flex-col items-start gap-2" role="alert">
+        <span class="text-muted-color">No se pudo cargar el detalle de la reunión.</span>
+        <p-button label="Reintentar" icon="pi pi-refresh" size="small" severity="secondary" [outlined]="true" (onClick)="cargarDetalle()" />
+    </div>
+    } @else if (detalle(); as detalle) {
+    <app-detalle-reunion-grupo [detalle]="detalle" [puedeVerPersonas]="puedeVerPersonas()" (verPersona)="verPersona($event)" />
+    }
+</p-drawer>

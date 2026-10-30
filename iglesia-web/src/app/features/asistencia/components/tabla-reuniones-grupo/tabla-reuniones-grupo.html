@@ -1,0 +1,104 @@
+<div [attr.aria-busy]="cargando()">
+    @if (cargando()) {
+    <div class="flex flex-col gap-4" role="status" aria-label="Cargando reuniones">
+        @for (fila of filasCarga; track fila) {
+        <div class="flex items-center gap-4">
+            <p-skeleton width="7rem" height="1.5rem" />
+            <p-skeleton width="40%" height="1.5rem" />
+            <p-skeleton width="10%" height="1.5rem" styleClass="ml-auto" />
+        </div>
+        }
+    </div>
+    } @else if (reuniones().length === 0) {
+    <p class="text-center text-muted-color py-8 m-0">Aún no hay reuniones registradas para este grupo.</p>
+    } @else {
+    <!-- Escritorio -->
+    <div class="hidden md:block">
+        <p-table [value]="filas()" [rowHover]="true" dataKey="reunionId" [scrollable]="true" tableStyleClass="min-w-160">
+            <ng-template #header>
+                <tr>
+                    <th scope="col">Fecha</th>
+                    <th scope="col" class="w-72">Asistencia de integrantes</th>
+                    <th scope="col" class="text-right">No asistieron</th>
+                    <th scope="col" class="text-right">Visitantes</th>
+                    <th scope="col"><span class="sr-only">Ver detalle</span></th>
+                </tr>
+            </ng-template>
+            <ng-template #body let-reunion>
+                <tr class="cursor-pointer" tabindex="0" (click)="ver.emit(reunion)" (keydown.enter)="ver.emit(reunion)" [attr.aria-label]="descripcion(reunion)">
+                    <td class="whitespace-nowrap">
+                        <span class="font-medium first-letter:uppercase">{{ conDia(reunion.fecha) }}</span>
+                        @if (hora(reunion.hora); as hora) {
+                        <span class="text-muted-color"> · {{ hora }}</span>
+                        } @if (reunion.fecha === hoy) {
+                        <p-tag value="Hoy" severity="info" styleClass="ml-2" />
+                        }
+                    </td>
+                    <td>
+                        <div class="flex items-center gap-3">
+                            <p-progressbar [value]="reunion.porcentaje ?? 0" [showValue]="false" styleClass="flex-1 h-2" aria-hidden="true" />
+                            <span class="whitespace-nowrap tabular-nums text-sm">
+                                <span class="font-semibold">{{ reunion.asistieron }}</span> de {{ reunion.esperados }} @if (reunion.porcentaje !== null) {
+                                <span class="text-muted-color">({{ reunion.porcentaje }} %)</span>
+                                }
+                            </span>
+                        </div>
+                    </td>
+                    <td class="text-right tabular-nums">
+                        @if (reunion.faltaron > 0) {
+                        <span class="font-semibold">{{ reunion.faltaron }}</span>
+                        @if (reunion.fecha === hoy) {
+                        <span class="text-muted-color text-sm"> sin marcar</span>
+                        } } @else {
+                        <span class="text-muted-color">—</span>
+                        }
+                    </td>
+                    <td class="text-right tabular-nums">
+                        @if (reunion.visitantes > 0) { {{ reunion.visitantes }} } @else {
+                        <span class="text-muted-color">—</span>
+                        }
+                    </td>
+                    <td class="text-right"><i class="pi pi-chevron-right text-muted-color" aria-hidden="true"></i></td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </div>
+
+    <!-- Móvil -->
+    <ul class="md:hidden flex flex-col gap-3 list-none p-0 m-0">
+        @for (reunion of reuniones(); track reunion.reunionId) {
+        <li>
+            <button type="button" class="w-full text-left border border-surface rounded-border p-4 flex flex-col gap-3 bg-transparent cursor-pointer" [attr.aria-label]="descripcion(reunion)" (click)="ver.emit(reunion)">
+                <span class="flex items-center justify-between gap-2">
+                    <span class="font-medium first-letter:uppercase">{{ conDia(reunion.fecha) }}</span>
+                    @if (reunion.fecha === hoy) {
+                    <p-tag value="Hoy" severity="info" />
+                    }
+                </span>
+                <span class="flex items-center gap-3">
+                    <p-progressbar [value]="reunion.porcentaje ?? 0" [showValue]="false" styleClass="flex-1 h-2" aria-hidden="true" />
+                    <span class="whitespace-nowrap tabular-nums text-sm"><span class="font-semibold">{{ reunion.asistieron }}</span> de {{ reunion.esperados }}</span>
+                </span>
+                <span class="flex flex-wrap gap-x-4 text-sm text-muted-color">
+                    <span>{{ reunion.fecha === hoy ? 'Sin marcar' : 'No asistieron' }}: {{ reunion.faltaron }}</span>
+                    <span>Visitantes: {{ reunion.visitantes }}</span>
+                </span>
+            </button>
+        </li>
+        }
+    </ul>
+    } @if (!cargando()) {
+    <p-paginator
+        [first]="primerRegistro()"
+        [rows]="tamanoPagina()"
+        [totalRecords]="totalRegistros()"
+        [rowsPerPageOptions]="opcionesPorPagina"
+        [showCurrentPageReport]="true"
+        [currentPageReportTemplate]="plantillaReporte"
+        [alwaysShow]="true"
+        appendTo="body"
+        (onPageChange)="alPaginar($event)"
+        styleClass="mt-4"
+    />
+    }
+</div>

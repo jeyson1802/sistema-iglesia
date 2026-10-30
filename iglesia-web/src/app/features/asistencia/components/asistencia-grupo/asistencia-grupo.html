@@ -21,12 +21,36 @@
         <span class="text-muted-color">No se pudo cargar la asistencia del grupo.</span>
         <p-button label="Reintentar" icon="pi pi-refresh" size="small" severity="secondary" [outlined]="true" (onClick)="cargar()" />
     </div>
-    } @else if (datos(); as datos) { @if (huboReuniones()) {
+    } @else if (datos(); as datos) {
+    <h3 class="sr-only">Resumen de las últimas 12 semanas</h3>
+    <dl class="grid grid-cols-1 sm:grid-cols-3 gap-3 m-0 mb-6">
+        <div class="rounded-border border border-surface p-4">
+            <dt class="text-sm text-muted-color">Asistencia promedio · 12 semanas</dt>
+            <dd class="m-0 text-2xl font-semibold tabular-nums">{{ resumen().promedio === null ? '—' : resumen().promedio + ' %' }}</dd>
+        </div>
+        <div class="rounded-border border border-surface p-4">
+            <dt class="text-sm text-muted-color">Semana pasada</dt>
+            <dd class="m-0 flex flex-wrap items-center gap-2">
+                <span class="text-2xl font-semibold tabular-nums">{{ resumen().semanaPasada === null ? '—' : resumen().semanaPasada + ' %' }}</span>
+                @if (resumen().semanaPasada !== null && resumen().promedioAnterior !== null) {
+                <app-tendencia-asistencia [actual]="resumen().semanaPasada" [anterior]="resumen().promedioAnterior" />
+                }
+            </dd>
+        </div>
+        <div class="rounded-border border border-surface p-4">
+            <dt class="text-sm text-muted-color">Reuniones · 12 semanas</dt>
+            <dd class="m-0 text-2xl font-semibold tabular-nums">{{ resumen().reuniones }}</dd>
+        </div>
+    </dl>
+    @if (huboReuniones()) {
     <h3 class="font-medium text-base m-0 mb-2">Integrantes que asistieron, por semana</h3>
     <app-grafico-evolucion tipo="line" [etiquetas]="etiquetasSemanas()" [series]="seriesSemanas()" [porcentaje]="true" descripcion="Porcentaje de integrantes que asistieron a la reunión del grupo por semana" alto="h-56" />
     } @else {
     <p class="text-muted-color m-0">Aún no hay reuniones con asistencia en las últimas 12 semanas.</p>
     }
+    <h3 class="font-medium text-base mt-6 mb-1">Reuniones por día</h3>
+    <p class="text-sm text-muted-color m-0 mb-3">Elige una reunión para ver quiénes asistieron y quiénes no.</p>
+    <app-reuniones-grupo [grupoId]="grupo().id" [puedeVerPersonas]="puedeVerPersonas()" />
     <h3 class="font-medium text-base mt-6 mb-1">Integrantes</h3>
     <p class="text-sm text-muted-color m-0 mb-3">Primero quienes más necesitan seguimiento. Cuentan sus días de culto y las reuniones del grupo.</p>
     <app-tabla-seguimiento

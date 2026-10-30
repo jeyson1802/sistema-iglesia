@@ -1,0 +1,42 @@
+<div class="flex flex-col gap-4">
+    <p-selectbutton [options]="opciones()" optionLabel="etiqueta" optionValue="valor" [allowEmpty]="false" [ngModel]="lista()" (ngModelChange)="lista.set($event)" aria-label="Elegir qué personas ver" styleClass="flex-wrap" />
+
+    <p-table
+        [value]="personas()"
+        dataKey="miembroId"
+        [paginator]="true"
+        [rows]="filasPorPagina"
+        [rowsPerPageOptions]="opcionesPorPagina"
+        [showCurrentPageReport]="true"
+        [currentPageReportTemplate]="plantillaReporte"
+        [alwaysShowPaginator]="true"
+        [rowHover]="puedeVerPersonas()"
+        size="small"
+    >
+        <ng-template #header>
+            <tr>
+                <th scope="col">Nombre</th>
+                <th scope="col">Nivel</th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-persona>
+            <tr>
+                <td>
+                    @if (puedeVerPersonas()) {
+                    <button type="button" class="p-0 bg-transparent border-0 text-left font-medium text-primary hover:underline cursor-pointer" [attr.aria-label]="'Ver la asistencia de ' + persona.nombreCompleto" (click)="verPersona.emit(persona)">
+                        {{ persona.nombreCompleto }}
+                    </button>
+                    } @else {
+                    <span class="font-medium">{{ persona.nombreCompleto }}</span>
+                    }
+                </td>
+                <td class="text-muted-color">{{ persona.nivel ?? '—' }}</td>
+            </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+            <tr>
+                <td colspan="2" class="text-center text-muted-color py-6">{{ mensajeVacio() }}</td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>

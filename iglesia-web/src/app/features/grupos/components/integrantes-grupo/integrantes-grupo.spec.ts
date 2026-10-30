@@ -40,7 +40,7 @@ describe('IntegrantesGrupoComponent', () => {
 
         expect(html().textContent).toContain('Miembros del grupo (1)');
         expect(html().textContent).toContain('Rosa Quispe');
-        const [luis, tito] = Array.from(html().querySelectorAll('ul[aria-label="Miembros disponibles"] li')).map((fila) => fila.textContent ?? '');
+        const [luis, tito] = Array.from(html().querySelectorAll('ul[aria-label="Últimos en llegar a la iglesia"] li')).map((fila) => fila.textContent ?? '');
         expect(luis).toContain('En Célula de Beto Soto');
         expect(tito).toContain('Tito Vera');
         expect(tito).toContain('Sin grupo');
@@ -102,6 +102,18 @@ describe('IntegrantesGrupoComponent', () => {
         await fixture.whenStable();
 
         expect(html().textContent).toContain('Aún no tiene miembros. Arrastra aquí a los disponibles.');
-        expect(html().textContent).toContain('No hay miembros disponibles con esa búsqueda.');
+        expect(html().textContent).toContain('No hay miembros disponibles.');
+    });
+
+    it('sin búsqueda presenta a los últimos en llegar y, al buscar, los resultados', async () => {
+        await crear();
+        expect(html().textContent).toContain('Últimos en llegar a la iglesia');
+
+        const control = (fixture.componentInstance as unknown as Record<string, { setValue: (v: string) => void }>)['busqueda'];
+        control.setValue('luis');
+        await fixture.whenStable();
+
+        expect(html().textContent).toContain('Resultados de la búsqueda');
+        expect(html().querySelector('ul[aria-label="Miembros disponibles encontrados"]')).not.toBeNull();
     });
 });

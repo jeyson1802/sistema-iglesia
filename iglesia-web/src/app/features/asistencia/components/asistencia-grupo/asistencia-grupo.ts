@@ -12,12 +12,14 @@ import { GraficoEvolucionComponent, SerieGrafico } from '@/app/shared/components
 import { hoyIso } from '@/app/shared/utils/fecha';
 import { FILAS_POR_PAGINA, PaginaPedida, paginaACargar } from '@/app/shared/utils/paginacion';
 import { AbrirReunion } from '../../models/asistencia';
-import { PersonaSeguimiento, SeguimientoGrupo, semanaCorta } from '../../models/seguimiento';
+import { PersonaSeguimiento, resumenSerie, SeguimientoGrupo, semanaCorta } from '../../models/seguimiento';
 import { RUTA_ASISTENCIA } from '../../models/rutas-asistencia';
 import { ReunionesService } from '../../services/reuniones.service';
 import { SeguimientoService } from '../../services/seguimiento.service';
 import { AbrirOtraFechaComponent, OrigenReunion } from '../abrir-otra-fecha/abrir-otra-fecha';
+import { ReunionesGrupoComponent } from '../reuniones-grupo/reuniones-grupo';
 import { TablaSeguimientoComponent } from '../tabla-seguimiento/tabla-seguimiento';
+import { TendenciaAsistenciaComponent } from '../tendencia-asistencia/tendencia-asistencia';
 
 const MENSAJE_ERROR_ABRIR = 'No se pudo abrir la reunión. Intenta de nuevo.';
 
@@ -30,13 +32,13 @@ export interface GrupoAsistencia {
 }
 
 /**
- * Asistencia de un grupo (contenedor) para su página de detalle: evolución semanal del porcentaje de sus integrantes
- * que asistió, sus integrantes ordenados por riesgo (faltas seguidas, alertas) y el acceso «Tomar asistencia de hoy»
+ * Asistencia de un grupo (contenedor) para su página de detalle: un resumen de las últimas 12 semanas, la evolución
+ * semanal del porcentaje de sus integrantes que asistió, sus reuniones por día (con quiénes asistieron y quiénes no), sus integrantes ordenados por riesgo (faltas seguidas, alertas) y el acceso «Tomar asistencia de hoy»
  * (si hoy es su día) o «de otra fecha».
  */
 @Component({
     selector: 'app-asistencia-grupo',
-    imports: [ButtonModule, SkeletonModule, ToastModule, AbrirOtraFechaComponent, GraficoEvolucionComponent, TablaSeguimientoComponent],
+    imports: [ButtonModule, SkeletonModule, ToastModule, AbrirOtraFechaComponent, GraficoEvolucionComponent, ReunionesGrupoComponent, TablaSeguimientoComponent, TendenciaAsistenciaComponent],
     providers: [MessageService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './asistencia-grupo.html',
@@ -60,6 +62,20 @@ export class AsistenciaGrupoComponent {
     protected readonly huboReuniones = computed(() => (this.datos()?.semanas ?? []).some(({ reuniones }) => reuniones > 0));
     protected readonly etiquetasSemanas = computed(() => (this.datos()?.semanas ?? []).map(({ inicio }) => semanaCorta(inicio)));
     protected readonly seriesSemanas = computed<readonly SerieGrafico[]>(() => [{ etiqueta: 'Integrantes que asistieron', valores: (this.datos()?.semanas ?? []).map(({ porcentaje }) => porcentaje), tono: 'primario' }]);
+    /** Promedio, semana pasada (frente al promedio de las anteriores) y reuniones de las últimas 12 semanas. */
+    protected readonly resumen = computed(() => {
+        const semanas = this.datos()?.semanas ?? [];
+        const { promedio, semanaPasada, variacion } = resumenSerie(
+            semanas.map(({ porcentaje }) => porcentaje),
+            true
+        );
+        return {
+            promedio,
+            semanaPasada,
+            promedioAnterior: semanaPasada === null || variacion === null ? null : semanaPasada - variacion,
+            reuniones: semanas.reduce((suma, { reuniones }) => suma + reuniones, 0)
+        };
+    });
     protected readonly pagina = signal(0);
     protected readonly tamanoPagina = signal(FILAS_POR_PAGINA);
     protected readonly cargando = signal(true);

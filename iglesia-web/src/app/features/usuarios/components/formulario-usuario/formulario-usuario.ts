@@ -30,8 +30,9 @@ function alMenosUnRol(control: AbstractControl): ValidationErrors | null {
 const normalizarCorreo = (correo: string): string => correo.trim().toLowerCase();
 
 /**
- * Diálogo para crear o editar un usuario (presentacional). Solo ofrece los roles activos que no exigen miembro (ni el
- * de administrador del sistema); los que el usuario ya tiene y exigen miembro se muestran bloqueados y se reenvían.
+ * Diálogo para crear o editar un usuario (presentacional). Ofrece los roles activos salvo el de administrador del
+ * sistema; los que exigen miembro (líder, miembro y los personalizados que heredan de ellos) solo si el usuario editado
+ * ya está vinculado con un miembro. Sin miembro, los que ya tiene y lo exigen se muestran bloqueados y se reenvían.
  * Cambiar el correo o desactivar al usuario cierra sus sesiones, así que se confirma antes de guardar.
  */
 @Component({
@@ -86,9 +87,12 @@ export class FormularioUsuarioComponent {
 
     protected readonly titulo = computed(() => (this.modo() === 'crear' ? 'Nuevo usuario' : `Editar «${this.usuario()?.correo ?? ''}»`));
 
-    /** Roles que el usuario editado ya tiene y exigen miembro: no se pueden quitar desde aquí. */
+    /** Usuario editado que ya está vinculado con un miembro: puede recibir los roles que lo exigen. */
+    private readonly conMiembro = computed(() => this.modo() === 'editar' && this.usuario()?.miembroId != null);
+
+    /** Roles que el usuario editado (sin miembro) ya tiene y exigen miembro: no se pueden quitar desde aquí. */
     private readonly idsBloqueados = computed<ReadonlySet<number>>(() => {
-        const usuario = this.modo() === 'editar' ? this.usuario() : null;
+        const usuario = this.modo() === 'editar' && !this.conMiembro() ? this.usuario() : null;
         const asignados = new Set(usuario?.roles.map(({ id }) => id) ?? []);
         return new Set(
             this.roles()
@@ -98,7 +102,7 @@ export class FormularioUsuarioComponent {
     });
 
     /** Roles ofrecidos más los bloqueados, en el orden en que llegan del backend. */
-    protected readonly rolesMostrados = computed(() => this.roles().filter((rol) => this.idsBloqueados().has(rol.id) || esOfrecido(rol)));
+    protected readonly rolesMostrados = computed(() => this.roles().filter((rol) => this.idsBloqueados().has(rol.id) || esOfrecido(rol, this.conMiembro())));
 
     /** Los controles no son signals: se escucha el estado para habilitar «Guardar» en una app zoneless. */
     protected readonly valido = toSignal(this.formulario.statusChanges.pipe(map((estado) => estado === 'VALID')), { initialValue: false });
@@ -202,7 +206,7 @@ export class FormularioUsuarioComponent {
     }
 }
 
-/** Roles que se pueden asignar desde esta pantalla. */
-function esOfrecido(rol: RolAcceso): boolean {
-    return rol.activo && !rol.requiereMiembro && rol.rolBase !== 'ADMIN_SISTEMA';
+/** Roles que se pueden asignar desde esta pantalla; los que exigen miembro, solo a un usuario vinculado. */
+function esOfrecido(rol: RolAcceso, conMiembro: boolean): boolean {
+    return rol.activo && (conMiembro || !rol.requiereMiembro) && rol.rolBase !== 'ADMIN_SISTEMA';
 }

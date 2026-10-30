@@ -138,22 +138,43 @@ describe('FormularioUsuarioComponent', () => {
             expect(campo('usuario-activo').checked).toBeTrue();
         });
 
-        it('muestra marcados y deshabilitados los roles que exigen miembro, con su aviso', () => {
-            expect(rolesVisibles()).toEqual(['Administrador de iglesia', 'Líder', 'Secretaría']);
+        it('a un usuario vinculado le ofrece los roles que exigen miembro, también los personalizados, y se pueden cambiar', () => {
+            expect(rolesVisibles()).toEqual(['Administrador de iglesia', 'Líder', 'Miembro', 'Secretaría', 'Líder de jóvenes']);
             expect(casilla(3).checked).toBeTrue();
-            expect(casilla(3).disabled).toBeTrue();
-            expect(casilla(10).checked).toBeTrue();
-            expect(casilla(10).disabled).toBeFalse();
-            expect(dialogo().textContent).toContain('Se gestiona al vincular el usuario con un miembro');
+            expect(casilla(3).disabled).toBeFalse();
+            expect(casilla(12).checked).toBeFalse();
+            expect(casilla(12).disabled).toBeFalse();
+            expect(dialogo().textContent).not.toContain('Se gestiona al vincular el usuario con un miembro');
         });
 
-        it('los roles bloqueados cuentan para «al menos uno» y se reenvían al guardar', async () => {
-            await marcar(10);
-            expect(boton('Guardar')!.disabled).toBeFalse();
+        it('asigna un rol personalizado que hereda de Líder y quita el de Líder', async () => {
+            await marcar(12);
+            await marcar(3);
 
             await guardar();
 
-            expect(actualizados).toEqual([{ correo: 'lider.miembro@prueba.test', rolIds: [3], activo: true }]);
+            expect(actualizados).toEqual([{ correo: 'lider.miembro@prueba.test', rolIds: [10, 12], activo: true }]);
+        });
+
+        describe('sin miembro vinculado', () => {
+            beforeEach(() => abrir('editar', { ...LIDER_MIEMBRO, miembroId: null }));
+
+            it('muestra marcados y deshabilitados los roles que exigen miembro, con su aviso', () => {
+                expect(rolesVisibles()).toEqual(['Administrador de iglesia', 'Líder', 'Secretaría']);
+                expect(casilla(3).checked).toBeTrue();
+                expect(casilla(3).disabled).toBeTrue();
+                expect(casilla(10).disabled).toBeFalse();
+                expect(dialogo().textContent).toContain('Se gestiona al vincular el usuario con un miembro');
+            });
+
+            it('los roles bloqueados cuentan para «al menos uno» y se reenvían al guardar', async () => {
+                await marcar(10);
+                expect(boton('Guardar')!.disabled).toBeFalse();
+
+                await guardar();
+
+                expect(actualizados).toEqual([{ correo: 'lider.miembro@prueba.test', rolIds: [3], activo: true }]);
+            });
         });
 
         it('sin cambios de correo ni de estado guarda sin pedir confirmación', async () => {

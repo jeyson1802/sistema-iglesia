@@ -178,8 +178,9 @@ class GrupoController {
 	@GetMapping("/{id}/candidatos")
 	@PreAuthorize(Permisos.PUEDE_ADMINISTRAR_GRUPOS)
 	@Operation(summary = "Buscar miembros para agregar al grupo", description = """
-			Hasta 20 miembros activos que no están en el grupo y cuyo nombre contiene el texto, ordenados por \
-			apellidos, con el grupo en el que están ahora (agregarlos los mueve). Requiere `grupos.administrar`.""")
+			Miembros activos que no están en el grupo, con el grupo en el que están ahora (agregarlos los mueve). Con \
+			texto, hasta 20 cuyo nombre lo contiene, ordenados por apellidos; sin texto, los 5 últimos en llegar a la \
+			iglesia (por fecha de ingreso o, si no tienen, por la de registro). Requiere `grupos.administrar`.""")
 	@ApiResponse(responseCode = "200", description = "Candidatos.")
 	@ApiResponse(responseCode = "400", description = RespuestasOpenApi.DATOS_INVALIDOS,
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
@@ -196,7 +197,7 @@ class GrupoController {
 	List<CandidatoGrupoResponse> candidatos(
 			@Parameter(description = DESCRIPCION_ID, example = "4") @PathVariable Long id,
 			@Parameter(description = "Parte de los nombres y apellidos, sin distinguir mayúsculas ni tildes. Vacío: "
-					+ "los primeros 20.", example = "rosa") @RequestParam(required = false) @Size(
+					+ "los 5 últimos en llegar a la iglesia.", example = "rosa") @RequestParam(required = false) @Size(
 							max = LimitesMiembro.BUSQUEDA_MAX) String q) {
 		return servicio.candidatos(id, q);
 	}

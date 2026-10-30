@@ -12,7 +12,7 @@
     >
         <header class="flex flex-col gap-1">
             <h2 id="disponibles-titulo" class="font-semibold text-lg m-0">Disponibles</h2>
-            <p class="m-0 text-sm text-muted-color">Miembros activos que no están en este grupo. Arrástralos al grupo o usa «Agregar».</p>
+            <p class="m-0 text-sm text-muted-color">Miembros activos que no están en este grupo. Búscalos por nombre y arrástralos al grupo o usa «Agregar».</p>
         </header>
         <div class="flex flex-col gap-2">
             <label for="buscar-candidatos" class="sr-only">Buscar miembros disponibles</label>
@@ -21,6 +21,7 @@
                 <input pInputText id="buscar-candidatos" type="search" [formControl]="busqueda" autocomplete="off" placeholder="Buscar por nombres o apellidos" [fluid]="true" />
             </p-iconfield>
         </div>
+        <p class="m-0 text-sm font-medium text-muted-color" aria-live="polite">{{ hayBusqueda() ? 'Resultados de la búsqueda' : 'Últimos en llegar a la iglesia' }}</p>
         @if (buscando()) {
         <div class="flex flex-col gap-3" role="status" aria-label="Buscando miembros">
             @for (fila of filasCarga; track fila) {
@@ -28,9 +29,9 @@
             }
         </div>
         } @else if (candidatos().length === 0) {
-        <p class="m-0 py-6 text-center text-muted-color">No hay miembros disponibles con esa búsqueda.</p>
+        <p class="m-0 py-6 text-center text-muted-color">{{ hayBusqueda() ? 'No hay miembros disponibles con esa búsqueda.' : 'No hay miembros disponibles.' }}</p>
         } @else {
-        <ul class="list-none p-0 m-0 flex flex-col gap-2" aria-label="Miembros disponibles">
+        <ul class="list-none p-0 m-0 flex flex-col gap-2" [attr.aria-label]="hayBusqueda() ? 'Miembros disponibles encontrados' : 'Últimos en llegar a la iglesia'">
             @for (candidato of candidatos(); track candidato.id) {
             <li
                 class="flex items-center justify-between gap-3 rounded-border border border-surface px-3 py-2"
