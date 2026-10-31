@@ -9,7 +9,7 @@ describe('FiltrosSeguimientoComponent', () => {
     beforeEach(() => {
         fixture = TestBed.createComponent(FiltrosSeguimientoComponent);
         fixture.componentRef.setInput('filtro', FILTRO_SEGUIMIENTO_INICIAL);
-        fixture.componentRef.setInput('conteos', { conAlertas: 12, faltasSeguidas: 9, nuevoSinVolver: 2, asistenciaEnCaida: 4 });
+        fixture.componentRef.setInput('conteos', { personas: 40, conAlertas: 12, faltasSeguidas: 9, nuevoSinVolver: 2, asistenciaEnCaida: 4 });
         emitidos = [];
         fixture.componentInstance.filtrar.subscribe((filtro) => emitidos.push(filtro));
         fixture.detectChanges();
@@ -17,14 +17,14 @@ describe('FiltrosSeguimientoComponent', () => {
 
     afterEach(() => jasmine.clock().uninstall());
 
-    it('muestra una opción por alerta con su cantidad y avisa la elegida', async () => {
+    it('muestra «Todos» y una opción por alerta, cada una con su cantidad, y avisa la elegida', async () => {
         await fixture.whenStable();
         fixture.detectChanges();
         const opciones = Array.from(fixture.nativeElement.querySelectorAll('p-selectbutton p-togglebutton')) as HTMLElement[];
-        expect(opciones.map((opcion) => opcion.textContent?.replace(/\s+/g, '').trim())).toEqual(['Todaslasalertas12', 'Faltasseguidas9', 'Nuevosinvolver2', 'Asistenciaencaída4']);
+        expect(opciones.map((opcion) => opcion.textContent?.replace(/\s+/g, '').trim())).toEqual(['Todos40', 'Faltasseguidas9', 'Nuevosinvolver2', 'Asistenciaencaída4']);
         expect(opciones[0].getAttribute('aria-pressed')).toBe('true');
         opciones[1].click();
-        expect(emitidos).toEqual([{ ...FILTRO_SEGUIMIENTO_INICIAL, alerta: 'FALTAS_SEGUIDAS' }]);
+        expect(emitidos).toEqual([{ ...FILTRO_SEGUIMIENTO_INICIAL, alerta: 'FALTAS_SEGUIDAS', todos: false }]);
         fixture.componentRef.setInput('filtro', emitidos[0]);
         fixture.detectChanges();
         await fixture.whenStable();
@@ -40,6 +40,11 @@ describe('FiltrosSeguimientoComponent', () => {
         expect(emitidos).toEqual([]);
         jasmine.clock().tick(ESPERA_BUSQUEDA_MS);
         expect(emitidos).toEqual([{ ...FILTRO_SEGUIMIENTO_INICIAL, q: 'ana' }]);
+    });
+
+    it('no tiene la casilla «Mostrar también a quienes están al día»: «Todos» ya los incluye', () => {
+        expect(fixture.nativeElement.querySelector('p-checkbox')).toBeNull();
+        expect(FILTRO_SEGUIMIENTO_INICIAL).toEqual(jasmine.objectContaining({ alerta: null, todos: true }));
     });
 
     it('solo ofrece el filtro por grupo si hay grupos', () => {

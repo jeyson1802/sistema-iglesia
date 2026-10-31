@@ -15,9 +15,16 @@
 
         @if (modo() === 'crear') {
         <div class="flex flex-col gap-2">
-            <label for="rol-base" class="font-medium">Hereda de</label>
-            <p-select inputId="rol-base" formControlName="rolBaseId" [options]="opcionesRolBase()" optionLabel="etiqueta" optionValue="id" placeholder="Elige un rol base" [fluid]="true" />
-            <small class="text-muted-color">Define la página de inicio y los permisos que se pueden marcar.</small>
+            <label for="rol-base" class="font-medium">Alcance</label>
+            <p-select inputId="rol-base" formControlName="rolBaseId" [options]="opcionesRolBase()" optionLabel="etiqueta" optionValue="id" placeholder="Elige el alcance" [fluid]="true">
+                <ng-template #item let-opcion>
+                    <div class="flex flex-col">
+                        <span>{{ opcion.etiqueta }}</span>
+                        <small class="text-muted-color">Ve el {{ opcion.inicio }}</small>
+                    </div>
+                </ng-template>
+            </p-select>
+            <small class="text-muted-color">Qué datos alcanzan sus permisos y qué página de inicio ve. Ej.: una «Tesorería» con alcance «Toda la iglesia» ve los aportes de todos.</small>
             <app-mensaje-error-campo [control]="formulario.controls.rolBaseId" [mensajes]="mensajesRolBase" />
         </div>
         } }
@@ -25,7 +32,7 @@
         <fieldset class="flex flex-col gap-4 border-0 p-0 m-0">
             <legend class="font-medium mb-2">Permisos</legend>
             @if (!soloLectura()) {
-            <small class="text-muted-color -mt-2">Solo se pueden marcar los permisos del rol base.</small>
+            <small class="text-muted-color -mt-2">Marca los que necesite, sin importar el alcance.</small>
             } @for (grupo of grupos(); track grupo.modulo) {
             <div class="flex flex-col gap-3">
                 <span class="text-sm font-semibold text-muted-color uppercase">{{ grupo.modulo }}</span>

@@ -4,7 +4,7 @@ import { PermisoCatalogo, RolAcceso } from '../models/rol-acceso';
 /** Roles base como los devuelve `GET /api/roles` (ids y permisos de la semilla de Flyway). */
 export const ROLES_BASE: RolAcceso[] = [
     { id: 1, nombre: 'Administrador del sistema', rolBase: 'ADMIN_SISTEMA', base: true, activo: true, permisos: ['usuarios.ver', 'usuarios.administrar', 'roles.ver'], cantidadUsuarios: 1, requiereMiembro: false },
-    { id: 2, nombre: 'Administrador de iglesia', rolBase: 'ADMIN_IGLESIA', base: true, activo: true, permisos: [...PERMISOS], cantidadUsuarios: 2, requiereMiembro: false },
+    { id: 2, nombre: 'Administrador de iglesia', rolBase: 'ADMIN_IGLESIA', base: true, activo: true, permisos: PERMISOS.filter((permiso) => !permiso.startsWith('iglesias.')), cantidadUsuarios: 2, requiereMiembro: false },
     { id: 3, nombre: 'Líder', rolBase: 'LIDER', base: true, activo: true, permisos: [], cantidadUsuarios: 5, requiereMiembro: true },
     { id: 4, nombre: 'Miembro', rolBase: 'MIEMBRO', base: true, activo: true, permisos: [], cantidadUsuarios: 40, requiereMiembro: true }
 ];
@@ -41,5 +41,6 @@ export const CATALOGO: PermisoCatalogo[] = [
     { codigo: 'roles.ver', modulo: 'Roles', descripcion: 'Ver roles y sus permisos' },
     { codigo: 'roles.administrar', modulo: 'Roles', descripcion: 'Crear, editar, desactivar y reactivar roles personalizados' },
     { codigo: 'usuarios.ver', modulo: 'Usuarios', descripcion: 'Ver usuarios del sistema' },
-    { codigo: 'usuarios.administrar', modulo: 'Usuarios', descripcion: 'Crear y editar usuarios y asignarles roles' }
+    { codigo: 'usuarios.administrar', modulo: 'Usuarios', descripcion: 'Crear y editar usuarios y asignarles roles' },
+    { codigo: 'iglesias.ver', modulo: 'Iglesias', descripcion: 'Ver el catálogo de iglesias' }
 ];

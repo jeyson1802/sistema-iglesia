@@ -54,6 +54,9 @@ public final class Permisos {
 	/** Solo del rol base {@code ADMIN_SISTEMA}: dar de alta iglesias y entrar a operarlas. */
 	public static final String IGLESIAS_ADMINISTRAR = "iglesias.administrar";
 
+	/** Solo del rol base {@code ADMIN_SISTEMA}: ver las cifras de todas las iglesias y el uso del sistema. */
+	public static final String ESTADISTICAS_SISTEMA = "estadisticas.sistema";
+
 	public static final String PUEDE_VER_USUARIOS = "hasAuthority('" + USUARIOS_VER + "')";
 
 	public static final String PUEDE_ADMINISTRAR_USUARIOS = "hasAuthority('" + USUARIOS_ADMINISTRAR + "')";
@@ -67,6 +70,10 @@ public final class Permisos {
 	public static final String PUEDE_ADMINISTRAR_ROLES = "hasAuthority('" + ROLES_ADMINISTRAR + "')";
 
 	public static final String PUEDE_ADMINISTRAR_IGLESIAS = "hasAuthority('" + IGLESIAS_ADMINISTRAR + "')";
+
+	/** El servicio decide el alcance: todas las iglesias (vista global) o la del token. */
+	public static final String PUEDE_VER_USO = "hasAnyAuthority('" + ESTADISTICAS_SISTEMA + "', '" + USUARIOS_VER
+			+ "')";
 
 	private Permisos() {
 	}

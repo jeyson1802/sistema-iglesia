@@ -1,7 +1,7 @@
 import { esPermiso, PERMISOS } from './permiso';
 
 describe('Permiso', () => {
-    it('conoce los 23 permisos del catálogo de iglesia-seguridad', () => {
+    it('conoce los 27 permisos del catálogo de iglesia-seguridad', () => {
         expect(PERMISOS).toEqual([
             'miembros.ver',
             'miembros.crear',
@@ -28,6 +28,7 @@ describe('Permiso', () => {
             'roles.administrar',
             'iglesias.ver',
             'iglesias.administrar',
+            'estadisticas.sistema',
             'iglesia.personalizar'
         ]);
     });

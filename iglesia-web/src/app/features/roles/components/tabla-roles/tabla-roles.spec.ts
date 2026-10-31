@@ -19,12 +19,13 @@ describe('TablaRolesComponent', () => {
     const filas = (): HTMLTableRowElement[] => Array.from(html().querySelectorAll('tbody tr'));
     const botones = (fila: HTMLElement): string[] => Array.from(fila.querySelectorAll('button')).map((boton) => boton.getAttribute('aria-label') ?? boton.textContent?.trim() ?? '');
 
-    it('muestra nombre, rol base, tipo, estado, usuarios y número de permisos', async () => {
+    it('muestra nombre, alcance, tipo, estado, usuarios y número de permisos', async () => {
         await crear([SECRETARIA]);
 
         const texto = filas()[0].textContent ?? '';
+        expect(fixture.nativeElement.querySelector('thead')?.textContent).toContain('Alcance');
         expect(texto).toContain('Secretaría');
-        expect(texto).toContain('Administrador de iglesia');
+        expect(texto).toContain('Toda la iglesia');
         expect(texto).toContain('Personalizado');
         expect(texto).toContain('Activo');
         expect(texto).toContain('3');

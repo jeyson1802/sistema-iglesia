@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model, output, untracked } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormControl, FormRecord, NonNullableFormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { map } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
@@ -9,9 +9,8 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { Permiso } from '@/app/core/auth/models/permiso';
-import { ETIQUETA_ROL } from '@/app/core/auth/models/rol';
 import { MensajeErrorCampoComponent, MensajesError } from '@/app/shared/components/mensaje-error-campo/mensaje-error-campo';
-import { GuardarRol, NOMBRE_ROL_MAX, PermisoCatalogo, RolAcceso, ROLES_BASE_HEREDABLES } from '../../models/rol-acceso';
+import { ETIQUETA_ALCANCE, GuardarRol, INICIO_DEL_ALCANCE, NOMBRE_ROL_MAX, PermisoCatalogo, RolAcceso, ROLES_BASE_HEREDABLES } from '../../models/rol-acceso';
 import { agruparPorModulo } from '../../services/rol-acceso.mapper';
 
 /** Qué se hace en el diálogo: los roles base y quien no administra roles solo pueden verlos. */
@@ -19,15 +18,16 @@ export type ModoFormularioRol = 'crear' | 'editar' | 'ver';
 
 const ERROR_SIN_PERMISOS = 'sinPermisos';
 
-/** Exige al menos un permiso marcado; los deshabilitados (fuera del rol base) no cuentan. */
+/** Exige al menos un permiso marcado. */
 function alMenosUnPermiso(control: AbstractControl): ValidationErrors | null {
     const marcados = Object.values(control.value as Record<string, boolean>).some(Boolean);
     return marcados ? null : { [ERROR_SIN_PERMISOS]: true };
 }
 
 /**
- * Diálogo para crear, editar o ver un rol (presentacional). Solo se pueden marcar los permisos del rol base: al
- * cambiarlo, los que ya no aplican se desmarcan y se deshabilitan.
+ * Diálogo para crear, editar o ver un rol (presentacional). Al crear o editar se puede marcar cualquier permiso de
+ * iglesia, sea cual sea el rol base (p. ej. «Tesorería» con todo lo de aportes). El rol base se muestra como «alcance»:
+ * solo decide qué datos alcanzan sus permisos y la página de inicio. Los permisos del sistema (catálogo de iglesias…) no se ofrecen porque no se pueden asignar.
  */
 @Component({
     selector: 'app-formulario-rol',
@@ -40,7 +40,7 @@ export class FormularioRolComponent {
     readonly modo = input<ModoFormularioRol>('crear');
     /** Rol que se edita o se ve; `null` al crear. */
     readonly rol = input<RolAcceso | null>(null);
-    /** Todos los roles base (de ellos salen las opciones de herencia y los permisos permitidos). */
+    /** Todos los roles base (de ellos salen las opciones de herencia y los permisos asignables). */
     readonly rolesBase = input.required<readonly RolAcceso[]>();
     readonly catalogo = input.required<readonly PermisoCatalogo[]>();
     readonly guardando = input(false);
@@ -64,7 +64,7 @@ export class FormularioRolComponent {
         required: 'Escribe el nombre del rol',
         maxlength: `El nombre no puede superar ${NOMBRE_ROL_MAX} caracteres`
     };
-    protected readonly mensajesRolBase: MensajesError = { required: 'Elige el rol base del que hereda' };
+    protected readonly mensajesRolBase: MensajesError = { required: 'Elige el alcance del rol' };
     protected readonly mensajesPermisos: MensajesError = { [ERROR_SIN_PERMISOS]: 'Marca al menos un permiso' };
 
     protected readonly soloLectura = computed(() => this.modo() === 'ver');
@@ -77,10 +77,18 @@ export class FormularioRolComponent {
     protected readonly opcionesRolBase = computed(() =>
         this.rolesBase()
             .filter((rol) => ROLES_BASE_HEREDABLES.includes(rol.rolBase))
-            .map((rol) => ({ id: rol.id, etiqueta: ETIQUETA_ROL[rol.rolBase] }))
+            .map((rol) => ({ id: rol.id, etiqueta: ETIQUETA_ALCANCE[rol.rolBase], inicio: INICIO_DEL_ALCANCE[rol.rolBase] }))
     );
 
-    protected readonly grupos = computed(() => agruparPorModulo(this.catalogo()));
+    /** Permisos que se pueden dar a un rol de iglesia: los de los roles base heredables (mismo criterio que el backend). */
+    private readonly asignables = computed(
+        () => new Set<Permiso>(this.rolesBase().filter((rol) => ROLES_BASE_HEREDABLES.includes(rol.rolBase)).flatMap((rol) => rol.permisos))
+    );
+
+    /** Al ver se muestran todos los permisos del rol; al crear o editar, solo los asignables. */
+    private readonly permisosVisibles = computed(() => (this.soloLectura() ? this.catalogo() : this.catalogo().filter(({ codigo }) => this.asignables().has(codigo))));
+
+    protected readonly grupos = computed(() => agruparPorModulo(this.permisosVisibles()));
 
     /** Los controles no son signals: se escucha el estado para habilitar «Guardar» en una app zoneless. */
     protected readonly valido = toSignal(this.formulario.statusChanges.pipe(map((estado) => estado === 'VALID')), { initialValue: false });
@@ -91,13 +99,6 @@ export class FormularioRolComponent {
             if (this.visible()) {
                 const [rol, modo, catalogo] = [this.rol(), this.modo(), this.catalogo()];
                 untracked(() => this.reiniciar(rol, modo, catalogo));
-            }
-        });
-        // Al crear, el rol base elegido decide qué permisos se pueden marcar. Se escucha cada cambio (no un signal)
-        // para que elegir de nuevo el mismo rol base tras reabrir el diálogo también aplique.
-        this.formulario.controls.rolBaseId.valueChanges.pipe(takeUntilDestroyed()).subscribe((rolBaseId) => {
-            if (this.modo() === 'crear') {
-                this.limitarPermisos(this.permisosDelRolBase(this.rolesBase().find((rol) => rol.id === rolBaseId)));
             }
         });
     }
@@ -122,7 +123,7 @@ export class FormularioRolComponent {
         this.guardar.emit({
             nombre: nombre.trim(),
             rolBaseId: this.modo() === 'crear' ? rolBaseId : null,
-            permisos: this.catalogo()
+            permisos: this.permisosVisibles()
                 .map(({ codigo }) => codigo)
                 .filter((codigo) => permisos[codigo])
         });
@@ -145,27 +146,7 @@ export class FormularioRolComponent {
             if (modo === 'editar') {
                 this.formulario.controls.rolBaseId.disable({ emitEvent: false });
             }
-            // Al editar valen los permisos del rol base del que hereda; al crear, ninguno hasta elegirlo.
-            this.limitarPermisos(modo === 'editar' ? this.permisosDelRolBase(this.rolesBase().find((base) => base.base && base.rolBase === rol?.rolBase)) : new Set());
         }
         this.formulario.updateValueAndValidity();
-    }
-
-    private permisosDelRolBase(rolBase: RolAcceso | undefined): ReadonlySet<Permiso> {
-        return new Set(rolBase?.permisos ?? []);
-    }
-
-    /** Habilita solo los permisos permitidos; los demás se desmarcan para no enviar permisos fuera del rol base. */
-    private limitarPermisos(permitidos: ReadonlySet<Permiso>): void {
-        const permisos = this.permisos;
-        for (const [codigo, control] of Object.entries(permisos.controls)) {
-            if (permitidos.has(codigo as Permiso)) {
-                control.enable({ emitEvent: false });
-            } else {
-                control.setValue(false, { emitEvent: false });
-                control.disable({ emitEvent: false });
-            }
-        }
-        permisos.updateValueAndValidity();
     }
 }

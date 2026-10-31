@@ -55,6 +55,14 @@ describe('FormularioAporteComponent', () => {
         expect(dialogo().textContent).toContain('Guardar y registrar otro');
     });
 
+    it('muestra siempre la petición y la observación interna, sin tener que desplegarlas', async () => {
+        await abrir();
+
+        expect(document.getElementById('aporte-peticion')?.closest('[hidden]')).toBeNull();
+        expect(document.getElementById('aporte-observacion')?.closest('[hidden]')).toBeNull();
+        expect(dialogo().textContent).not.toContain('Más datos');
+    });
+
     it('si la categoría exige aportante el campo pasa a obligatorio y lo dice', async () => {
         await abrir();
         await fijar({ monto: 50 });

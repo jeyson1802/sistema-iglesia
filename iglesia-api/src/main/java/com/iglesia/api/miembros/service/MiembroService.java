@@ -56,6 +56,9 @@ public class MiembroService {
 
 	static final String NO_ENCONTRADO = "Miembro no encontrado";
 
+	/** Para el portal del miembro: el usuario del token no tiene un miembro vinculado (o ya no existe). */
+	public static final String SIN_MIEMBRO_VINCULADO = "Tu usuario no está vinculado a un miembro de la iglesia";
+
 	static final String DEMASIADOS_FOTOCHECKS = "Hay más de " + LimitesMiembro.FOTOCHECKS_MAX
 			+ " miembros con estos filtros: filtre más para imprimir sus fotochecks";
 
@@ -145,6 +148,18 @@ public class MiembroService {
 			.filter(encontrado -> ambito.actual().incluye(encontrado.getId()))
 			.orElseThrow(() -> new RecursoNoEncontradoException(NO_ENCONTRADO));
 		return aRespuesta(miembro);
+	}
+
+	/**
+	 * Ficha del miembro vinculado al usuario del token. No depende del ámbito de lectura ni de permisos: es su propia
+	 * información, y el miembro sale solo del token.
+	 */
+	@Transactional(readOnly = true)
+	public MiembroResponse propio() {
+		return usuarioActual.miembroId()
+			.flatMap(miembros::findWithReferenciasById)
+			.map(this::aRespuesta)
+			.orElseThrow(() -> new RecursoNoEncontradoException(SIN_MIEMBRO_VINCULADO));
 	}
 
 	/** Líderes del miembro, del directo al pastor principal. */

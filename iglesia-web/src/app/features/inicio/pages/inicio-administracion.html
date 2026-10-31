@@ -1,1 +1,59 @@
-<app-bienvenida-perfil [titulo]="titulo" [descripcion]="descripcion" [icono]="icono" [etiquetaPerfil]="etiquetaPerfil" [correo]="correo()" />
+<div class="flex flex-col gap-6">
+    <app-bienvenida-perfil [titulo]="titulo()" descripcion="Así va la iglesia en el periodo elegido." [icono]="icono" [etiquetaPerfil]="etiquetaPerfil()" [nombre]="correo()">
+        <app-selector-periodo [(periodo)]="periodo" />
+        @if (rango(); as rango) {
+        <p class="text-xs text-muted-color m-0 mt-1">{{ rango }}</p>
+        }
+    </app-bienvenida-perfil>
+
+    <app-atajos-del-dia [atajos]="atajos()" />
+
+    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 m-0" [class]="columnasTarjetas()" aria-label="Cifras clave del periodo">
+        @if (verMiembros()) { @if (miembros.datos(); as datos) {
+        <div appTarjetaIndicador [destacada]="true" icono="pi pi-users" etiqueta="Miembros activos" [valor]="numero(datos.activos)" ayuda="Miembros activos de la iglesia hoy."></div>
+        <div appTarjetaIndicador [destacada]="true" icono="pi pi-user-plus" etiqueta="Nuevos del periodo" [valor]="numero(datos.altas)" [actual]="datos.altas" [anterior]="datos.altasAnterior" ayuda="Personas que ingresaron en el periodo."></div>
+        } @else if (!miembros.error()) {
+        <p-skeleton height="6rem" /><p-skeleton height="6rem" />
+        } }
+        @if (verAsistencia()) { @if (asistencia.datos(); as datos) {
+        <div appTarjetaIndicador [destacada]="true" icono="pi pi-check-square" etiqueta="Asistentes por culto" [valor]="numero(datos.asistentesPromedio, 1)" [actual]="datos.asistentesPromedio" [anterior]="datos.asistentesPromedioAnterior" ayuda="Personas que asistieron, en promedio, por día de culto."></div>
+        <div appTarjetaIndicador [destacada]="true" icono="pi pi-bell" etiqueta="Personas con alerta" [valor]="numero(datos.alertas.conAlertas)" ayuda="Personas que hoy necesitan seguimiento por su asistencia."></div>
+        } @else if (!asistencia.error()) {
+        <p-skeleton height="6rem" /><p-skeleton height="6rem" />
+        } }
+        @if (verAportes()) { @if (aportes.datos(); as datos) {
+        <div appTarjetaIndicador [destacada]="true" icono="pi pi-wallet" etiqueta="Total de aportes" [valor]="totalAportes()" [actual]="datos.resumen.total" [anterior]="datos.resumen.totalPeriodoAnterior" ayuda="Suma de los aportes vigentes del periodo."></div>
+        } @else if (!aportes.error()) {
+        <p-skeleton height="6rem" />
+        } }
+    </dl>
+
+    @if (verMiembros()) {
+    <app-bloque-miembros [datos]="miembros.datos()" [cargando]="miembros.cargando()" [error]="miembros.error()" (reintentar)="miembros.recargar()" />
+    }
+    @if (verAsistencia()) { @defer (on viewport) {
+    <app-bloque-asistencia [datos]="asistencia.datos()" [cargando]="asistencia.cargando()" [error]="asistencia.error()" (reintentar)="asistencia.recargar()" />
+    } @placeholder {
+    <div class="card mb-0! h-64"></div>
+    } }
+    @if (verGrupos()) { @defer (on viewport) {
+    <app-bloque-grupos [datos]="grupos.datos()" [cargando]="grupos.cargando()" [error]="grupos.error()" (reintentar)="grupos.recargar()" />
+    } @placeholder {
+    <div class="card mb-0! h-64"></div>
+    } }
+    @if (verConsolidacion()) { @defer (on viewport) {
+    <app-bloque-consolidacion [datos]="consolidacion.datos()" [cargando]="consolidacion.cargando()" [error]="consolidacion.error()" (reintentar)="consolidacion.recargar()" />
+    } @placeholder {
+    <div class="card mb-0! h-64"></div>
+    } }
+    @if (verAportes()) { @defer (on viewport) {
+    <app-bloque-aportes [datos]="aportes.datos()" [cargando]="aportes.cargando()" [error]="aportes.error()" (reintentar)="aportes.recargar()" />
+    } @placeholder {
+    <div class="card mb-0! h-64"></div>
+    } }
+    @if (verUso()) { @defer (on viewport) {
+    <app-bloque-uso [datos]="uso.datos()" [cargando]="uso.cargando()" [error]="uso.error()" (reintentar)="uso.recargar()" />
+    } @placeholder {
+    <div class="card mb-0! h-64"></div>
+    } }
+</div>

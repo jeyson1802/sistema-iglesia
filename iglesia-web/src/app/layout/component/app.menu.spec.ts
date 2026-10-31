@@ -30,10 +30,10 @@ describe('Menú lateral', () => {
             expect(grupos).toEqual(['Principal']);
         });
 
-        it('el perfil Líder ve «Miembros», «Mis aportes», «Asistencia», «Seguimiento» y «Mis asignados» pero no los grupos, los niveles ni la configuración', () => {
+        it('el perfil Líder ve «Miembros», «Asistencia», «Seguimiento» y «Mis asignados» pero no los aportes, los grupos, los niveles ni la configuración', () => {
             const etiquetasMenu = etiquetas(construirMenu(perfilBase('LIDER'), true));
 
-            expect(etiquetasMenu).toEqual(['Principal', 'Inicio', 'Iglesia', 'Miembros', 'Mis aportes', 'Asistencia', 'Seguimiento', 'Mis asignados']);
+            expect(etiquetasMenu).toEqual(['Principal', 'Inicio', 'Iglesia', 'Miembros', 'Asistencia', 'Seguimiento', 'Mis asignados']);
         });
 
         it('el Administrador de iglesia ve los grupos con el nombre de su iglesia, «Aportes» y la configuración de aportes', () => {

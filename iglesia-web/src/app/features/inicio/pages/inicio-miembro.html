@@ -1,1 +1,39 @@
-<app-bienvenida-perfil [titulo]="titulo" [descripcion]="descripcion" [icono]="icono" [etiquetaPerfil]="etiquetaPerfil" [correo]="correo()" />
+<div class="flex flex-col gap-6">
+    <app-bienvenida-perfil titulo="Mi perfil" [descripcion]="descripcion()" [icono]="icono" [etiquetaPerfil]="etiquetaPerfil()" [nombre]="nombre()" />
+
+    @if (sinVinculo()) {
+    <section class="card mb-0! flex flex-col items-center text-center gap-3 py-10" role="status">
+        <i class="pi pi-link text-4xl text-muted-color" aria-hidden="true"></i>
+        <h2 class="font-semibold text-lg m-0">Tu usuario aún no está vinculado a tu ficha de miembro</h2>
+        <p class="text-muted-color m-0 max-w-md">Pide al administrador de tu iglesia que vincule tu usuario con tu ficha; después verás aquí tu asistencia y tu código.</p>
+    </section>
+    } @else {
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <div class="flex flex-col gap-6">
+            @if (codigo.datos(); as codigo) {
+            <app-mi-codigo-qr [codigo]="codigo" />
+            } @else if (codigo.error()) {
+            <section class="card mb-0! flex flex-col items-start gap-2" role="alert">
+                <h2 class="font-semibold text-lg m-0">Mi código de asistencia</h2>
+                <span class="text-muted-color">No se pudo cargar tu código.</span>
+                <p-button label="Reintentar" icon="pi pi-refresh" size="small" severity="secondary" [outlined]="true" (onClick)="codigo.recargar()" />
+            </section>
+            } @else {
+            <p-skeleton height="22rem" />
+            }
+            @if (perfil.datos(); as perfil) {
+            <app-mis-datos [perfil]="perfil" />
+            } @else if (perfil.error()) {
+            <section class="card mb-0! flex flex-col items-start gap-2" role="alert">
+                <h2 class="font-semibold text-lg m-0">Mis datos</h2>
+                <span class="text-muted-color">No se pudieron cargar tus datos.</span>
+                <p-button label="Reintentar" icon="pi pi-refresh" size="small" severity="secondary" [outlined]="true" (onClick)="perfil.recargar()" />
+            </section>
+            } @else {
+            <p-skeleton height="16rem" />
+            }
+        </div>
+        <app-mi-asistencia class="lg:col-span-2" [asistencia]="asistencia.datos()" [cargando]="asistencia.cargando()" [error]="asistencia.error()" (reintentar)="asistencia.recargar()" />
+    </div>
+    }
+</div>

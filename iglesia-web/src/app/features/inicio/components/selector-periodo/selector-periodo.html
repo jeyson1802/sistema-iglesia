@@ -1,0 +1,28 @@
+<div class="flex flex-col lg:flex-row lg:items-end gap-4">
+    <div class="flex flex-col gap-2">
+        <span id="selector-periodo" class="font-medium">Período</span>
+        <p-selectbutton [options]="opciones" optionLabel="etiqueta" optionValue="valor" [ngModel]="elegido()" (ngModelChange)="elegirPeriodo($event)" [allowEmpty]="false" ariaLabelledBy="selector-periodo" class="flex-wrap" />
+    </div>
+    @if (elegido() === 'PERSONALIZADO') {
+    <div class="flex flex-col gap-2 sm:w-64">
+        <label for="selector-rango" class="font-medium">Rango de fechas</label>
+        <p-datepicker
+            inputId="selector-rango"
+            selectionMode="range"
+            [ngModel]="rango()"
+            (ngModelChange)="elegirRango($event)"
+            [maxDate]="hoy"
+            dateFormat="dd/mm/yy"
+            [readonlyInput]="true"
+            [showIcon]="true"
+            [showButtonBar]="true"
+            [fluid]="true"
+            placeholder="Desde – hasta"
+            [attr.aria-describedby]="errorRango() ? 'selector-rango-error' : null"
+        />
+        @if (errorRango()) {
+        <small id="selector-rango-error" class="text-red-500" role="alert">{{ errorRango() }}</small>
+        }
+    </div>
+    }
+</div>

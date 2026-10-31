@@ -1,0 +1,24 @@
+<app-bloque-estadistico titulo="Uso del sistema" idTitulo="titulo-bloque-uso" [ruta]="ruta()" etiquetaRuta="Ver usuarios" descripcion="Se cuenta un día por usuario cada vez que entra; no se registra qué hace." [cargando]="cargando() || (!datos() && !error())" [error]="error()" (reintentar)="reintentar.emit()">
+    @if (datos(); as datos) {
+    <dl class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 m-0 mb-6">
+        <div appTarjetaIndicador etiqueta="Activos en el periodo" [valor]="numero(datos.activosPeriodo)" [actual]="datos.activosPeriodo" [anterior]="datos.activosPeriodoAnterior" [ayuda]="'Usuarios distintos que entraron al menos una vez, de ' + numero(datos.usuarios) + ' cuentas habilitadas (' + numero(datos.usuariosNuevos) + ' nuevas).'"></div>
+        <div appTarjetaIndicador etiqueta="Activos por día" [valor]="numero(datos.activosDiarios, 1)" [actual]="datos.activosDiarios" [anterior]="datos.activosDiariosAnterior" ayuda="Promedio de usuarios distintos que entran cada día del periodo."></div>
+        <div appTarjetaIndicador etiqueta="Activos semanales · mensuales" [valor]="numero(datos.activosSemanales) + ' · ' + numero(datos.activosMensuales)" ayuda="Usuarios distintos que entraron al menos una vez en los últimos 7 y 30 días."></div>
+        @if (datos.global) {
+        <div appTarjetaIndicador etiqueta="Iglesias con actividad" [valor]="numero(datos.iglesiasActivas)" [actual]="datos.iglesiasActivas" [anterior]="datos.iglesiasActivasAnterior" ayuda="Iglesias con al menos un usuario que entró en el periodo."></div>
+        } @else {
+        <div appTarjetaIndicador etiqueta="Cuentas habilitadas" [valor]="numero(datos.usuarios)" [ayuda]="numero(datos.usuariosNuevos) + ' creadas en el periodo.'"></div>
+        }
+    </dl>
+    @if (huboActividad()) {
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2">
+            <h3 class="font-medium text-base m-0 mb-2">Usuarios activos</h3>
+            <app-grafico-evolucion [etiquetaEje]="eje(datos.periodo.granularidad)" tipo="line" [etiquetas]="etiquetas()" [series]="series()" descripcion="Usuarios distintos que entraron en cada intervalo del periodo" alto="h-56" />
+        </div>
+        <app-grafico-distribucion [partes]="porRol()" descripcion="Activos por perfil" />
+    </div>
+    } @else {
+    <p class="text-muted-color m-0">Nadie entró al sistema en el periodo. La actividad se cuenta desde que se activó este registro.</p>
+    } }
+</app-bloque-estadistico>

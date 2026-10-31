@@ -1,5 +1,6 @@
 package com.iglesia.seguridad.rol.service;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -96,7 +97,7 @@ public class RolService {
 		Rol rolBase = roles.findConPermisosById(solicitud.rolBaseId())
 			.orElseThrow(() -> new ReglaNegocioException("El rol base indicado no existe"));
 		politica.verificarHeredable(rolBase);
-		politica.verificarPermisosDelRolBase(solicitud.permisos(), rolBase);
+		politica.verificarPermisosAsignables(solicitud.permisos(), rolesBaseHeredables());
 		if (roles.existsByIglesiaIdAndNombreIgnoreCase(iglesiaId, solicitud.nombre().strip())) {
 			throw new ConflictoException(NOMBRE_REPETIDO);
 		}
@@ -111,7 +112,7 @@ public class RolService {
 		UsuarioAutenticado actor = proveedorUsuario.actual();
 		Rol rol = buscarVisible(actor, id);
 		politica.verificarEditable(rol);
-		politica.verificarPermisosDelRolBase(solicitud.permisos(), rol.getRolBase());
+		politica.verificarPermisosAsignables(solicitud.permisos(), rolesBaseHeredables());
 		if (roles.existsByIglesiaIdAndNombreIgnoreCaseAndIdNot(rol.getIglesiaId(), solicitud.nombre().strip(), id)) {
 			throw new ConflictoException(NOMBRE_REPETIDO);
 		}
@@ -119,6 +120,11 @@ public class RolService {
 		garantiaAdministrador.verificarQueQuedaAdministrador(rol.getIglesiaId());
 		LOG.info("Rol actualizado id={} iglesiaId={} por usuarioId={}", id, rol.getIglesiaId(), actor.usuarioId());
 		return aRespuesta(rol, actor);
+	}
+
+	/** Roles base de los que puede heredar un rol de iglesia: sus permisos son los que se pueden asignar. */
+	private List<Rol> rolesBaseHeredables() {
+		return roles.findByCodigoIn(Arrays.stream(RolBase.values()).filter(RolBase::heredable).toList());
 	}
 
 	@Transactional

@@ -26,7 +26,7 @@
     <ng-template #header>
         <tr>
             <th scope="col">Nombre</th>
-            <th scope="col">Rol base</th>
+            <th scope="col">Alcance</th>
             <th scope="col">Tipo</th>
             <th scope="col">Estado</th>
             <th scope="col" class="text-right">Usuarios</th>
@@ -37,7 +37,7 @@
     <ng-template #body let-rol>
         <tr>
             <td class="font-medium">{{ rol.nombre }}</td>
-            <td>{{ etiquetaRolBase(rol) }}</td>
+            <td>{{ etiquetaAlcance(rol) }}</td>
             <td>
                 <p-tag [value]="rol.base ? 'Base' : 'Personalizado'" [severity]="rol.base ? 'secondary' : 'info'" />
             </td>

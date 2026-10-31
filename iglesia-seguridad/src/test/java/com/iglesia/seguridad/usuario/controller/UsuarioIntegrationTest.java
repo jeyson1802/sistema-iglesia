@@ -201,7 +201,7 @@ class UsuarioIntegrationTest {
 		String acceso = JsonPath.read(login("lider@iglesia95.test", "ClaveSegura123").getResponse()
 			.getContentAsString(), "$.tokenAcceso");
 		assertThat(decodificador.decode(acceso).<Number>getClaim(ClaimsJwt.MIEMBRO_ID).longValue()).isEqualTo(31L);
-		assertThat(decodificador.decode(acceso).getClaimAsStringList(ClaimsJwt.PERMISOS)).containsExactly("aportes.ver",
+		assertThat(decodificador.decode(acceso).getClaimAsStringList(ClaimsJwt.PERMISOS)).containsExactly(
 				"asistencia.grupo", "consolidacion.contactar", "miembros.ver");
 
 		mvc.perform(post("/api/usuarios").header(HttpHeaders.AUTHORIZATION, bearer(token))

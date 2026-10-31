@@ -1,0 +1,12 @@
+<section class="card mb-0!" aria-labelledby="titulo-mis-datos">
+    <h2 id="titulo-mis-datos" class="font-semibold text-lg m-0 mb-4">Mis datos</h2>
+    <dl class="m-0 flex flex-col divide-y divide-surface">
+        @for (fila of filas(); track fila.etiqueta) {
+        <div class="flex flex-col sm:flex-row sm:justify-between gap-1 py-2">
+            <dt class="text-muted-color text-sm">{{ fila.etiqueta }}</dt>
+            <dd class="m-0 font-medium sm:text-right first-letter:uppercase">{{ fila.valor }}</dd>
+        </div>
+        }
+    </dl>
+    <p class="text-sm text-muted-color m-0 mt-4"><i class="pi pi-info-circle mr-1" aria-hidden="true"></i>¿Algún dato no es correcto? Pídeselo a tu líder.</p>
+</section>

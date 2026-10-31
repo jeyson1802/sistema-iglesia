@@ -77,28 +77,16 @@
             </div>
         </div>
 
-        <div>
-            <p-button
-                [label]="masDatos() ? 'Ocultar más datos' : 'Más datos (opcional)'"
-                [icon]="masDatos() ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
-                [text]="true"
-                size="small"
-                severity="secondary"
-                [attr.aria-expanded]="masDatos()"
-                aria-controls="aporte-mas-datos"
-                (onClick)="masDatos.set(!masDatos())"
-            />
-            <div id="aporte-mas-datos" [hidden]="!masDatos()" class="flex flex-col gap-4 mt-2">
-                <div class="flex flex-col gap-2">
-                    <label for="aporte-peticion" class="font-medium">Petición</label>
-                    <textarea pTextarea id="aporte-peticion" formControlName="peticion" rows="3" [autoResize]="true" [maxlength]="limites.peticion" placeholder="Motivo de oración que acompaña el aporte" [fluid]="true"></textarea>
-                    <app-mensaje-error-campo [control]="formulario.controls.peticion" [mensajes]="mensajesPeticion" [reservarEspacio]="false" />
-                </div>
-                <div class="flex flex-col gap-2">
-                    <label for="aporte-observacion" class="font-medium">Observación interna</label>
-                    <textarea pTextarea id="aporte-observacion" formControlName="observacion" rows="2" [autoResize]="true" [maxlength]="limites.observacion" placeholder="Nota para tesorería (no la ve el aportante)" [fluid]="true"></textarea>
-                    <app-mensaje-error-campo [control]="formulario.controls.observacion" [mensajes]="mensajesObservacion" [reservarEspacio]="false" />
-                </div>
+        <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-2">
+                <label for="aporte-peticion" class="font-medium">Petición</label>
+                <textarea pTextarea id="aporte-peticion" formControlName="peticion" rows="3" [autoResize]="true" [maxlength]="limites.peticion" placeholder="Motivo de oración que acompaña el aporte" [fluid]="true"></textarea>
+                <app-mensaje-error-campo [control]="formulario.controls.peticion" [mensajes]="mensajesPeticion" [reservarEspacio]="false" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <label for="aporte-observacion" class="font-medium">Observación interna</label>
+                <textarea pTextarea id="aporte-observacion" formControlName="observacion" rows="2" [autoResize]="true" [maxlength]="limites.observacion" placeholder="Nota para tesorería (no la ve el aportante)" [fluid]="true"></textarea>
+                <app-mensaje-error-campo [control]="formulario.controls.observacion" [mensajes]="mensajesObservacion" [reservarEspacio]="false" />
             </div>
         </div>
 

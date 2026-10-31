@@ -4,9 +4,8 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
-import { ETIQUETA_ROL } from '@/app/core/auth/models/rol';
 import { FILAS_POR_PAGINA, OPCIONES_FILAS_POR_PAGINA, PLANTILLA_REPORTE_PAGINA } from '@/app/shared/utils/paginacion';
-import { RolAcceso } from '../../models/rol-acceso';
+import { ETIQUETA_ALCANCE, RolAcceso } from '../../models/rol-acceso';
 
 /** Filas de relleno que se muestran como skeleton mientras se cargan los roles. */
 const FILAS_CARGA = 4;
@@ -37,7 +36,7 @@ export class TablaRolesComponent {
     protected readonly filasCarga = Array.from({ length: FILAS_CARGA }, (_, indice) => indice);
 
     /** El cuerpo de `p-table` recibe la fila sin tipo: se tipa aquí. */
-    protected etiquetaRolBase(rol: RolAcceso): string {
-        return ETIQUETA_ROL[rol.rolBase];
+    protected etiquetaAlcance(rol: RolAcceso): string {
+        return ETIQUETA_ALCANCE[rol.rolBase];
     }
 }

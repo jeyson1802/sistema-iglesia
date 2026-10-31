@@ -1,1 +1,43 @@
-<app-bienvenida-perfil [titulo]="titulo" [descripcion]="descripcion" [icono]="icono" [etiquetaPerfil]="etiquetaPerfil" [correo]="correo()" />
+<div class="flex flex-col gap-6">
+    <app-bienvenida-perfil [titulo]="titulo" [descripcion]="descripcion" [icono]="icono" [etiquetaPerfil]="etiquetaPerfil()" [nombre]="correo()">
+        <app-selector-periodo [(periodo)]="periodo" />
+        @if (rango(); as rango) {
+        <p class="text-xs text-muted-color m-0 mt-1">{{ rango }}</p>
+        }
+    </app-bienvenida-perfil>
+
+    <app-atajos-del-dia [atajos]="atajos()" />
+
+    <dl class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 m-0" aria-label="Cifras clave de tu red">
+        @if (verRed()) { @if (red.datos(); as datos) {
+        <div appTarjetaIndicador [destacada]="true" icono="pi pi-sitemap" etiqueta="Personas en tu red" [valor]="numero(datos.activos)" [ayuda]="numero(datos.directos) + ' las lideras directamente; el resto, a través de tus líderes.'"></div>
+        <div appTarjetaIndicador [destacada]="true" icono="pi pi-user-plus" etiqueta="Nuevos en tu red" [valor]="numero(datos.altas)" [actual]="datos.altas" [anterior]="datos.altasAnterior" ayuda="Personas de tu red que ingresaron en el periodo."></div>
+        } @else if (!red.error()) {
+        <p-skeleton height="6rem" /><p-skeleton height="6rem" />
+        } }
+        @if (verAsistencia()) { @if (asistencia.datos(); as datos) {
+        <div appTarjetaIndicador [destacada]="true" icono="pi pi-check-square" etiqueta="Asistencia de tu red" [valor]="numero(datos.asistentesPromedio, 1)" [actual]="datos.asistentesPromedio" [anterior]="datos.asistentesPromedioAnterior" ayuda="Personas de tu red que asistieron, en promedio, por día de culto."></div>
+        } @else if (!asistencia.error()) {
+        <p-skeleton height="6rem" />
+        } }
+        @if (verGrupos()) { @if (grupos.datos(); as datos) {
+        <div appTarjetaIndicador [destacada]="true" icono="pi pi-home" etiqueta="Asistencia a tus grupos" [valor]="datos.porcentajeAsistencia === null ? '—' : datos.porcentajeAsistencia + ' %'" [actual]="datos.porcentajeAsistencia" [anterior]="datos.porcentajeAsistenciaAnterior" ayuda="Parte de los integrantes de tus grupos (y los de tu red) que asistió a sus reuniones."></div>
+        } @else if (!grupos.error()) {
+        <p-skeleton height="6rem" />
+        } }
+    </dl>
+
+    @if (verRed()) {
+    <app-bloque-miembros titulo="Mi red" [datos]="red.datos()" [cargando]="red.cargando()" [error]="red.error()" (reintentar)="red.recargar()" />
+    }
+    @if (verAsistencia()) { @defer (on viewport) {
+    <app-bloque-asistencia titulo="Asistencia de mi red" [datos]="asistencia.datos()" [cargando]="asistencia.cargando()" [error]="asistencia.error()" (reintentar)="asistencia.recargar()" />
+    } @placeholder {
+    <div class="card mb-0! h-64"></div>
+    } }
+    @if (verGrupos()) { @defer (on viewport) {
+    <app-bloque-grupos titulo="Mis grupos" ruta="/asistencia" [datos]="grupos.datos()" [cargando]="grupos.cargando()" [error]="grupos.error()" (reintentar)="grupos.recargar()" />
+    } @placeholder {
+    <div class="card mb-0! h-64"></div>
+    } }
+</div>

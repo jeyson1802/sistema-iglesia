@@ -7,6 +7,9 @@ import { SesionService } from '@/app/core/auth/services/sesion.service';
 import inicioRoutes from './inicio.routes';
 import { perfilBase } from '@/app/core/auth/testing/perfiles-prueba';
 import { Perfil } from '@/app/core/auth/models/perfil';
+import { IdentidadIglesiaService } from '@/app/core/iglesias/services/identidad-iglesia.service';
+import { EstadisticasService } from './services/estadisticas.service';
+import { estadisticasServicePrueba } from './testing/estadisticas-service-prueba';
 
 describe('Rutas de inicio', () => {
     const perfilActivo = signal<Perfil | null>(null);
@@ -14,9 +17,14 @@ describe('Rutas de inicio', () => {
 
     beforeEach(() => {
         perfilActivo.set(null);
-        const sesion = { perfilActivo, usuarioActual: signal({ id: 1, correo: 'u@i.test', iglesiaId: 1, miembroId: 2, perfiles: [perfilBase('MIEMBRO')] }) };
+        const sesion = { perfilActivo, actuandoEnIglesia: signal(false), tienePermiso: () => false, usuarioActual: signal({ id: 1, correo: 'u@i.test', iglesiaId: 1, miembroId: 2, perfiles: [perfilBase('MIEMBRO')] }) };
         TestBed.configureTestingModule({
-            providers: [provideRouter([...inicioRoutes, { path: '**', children: [] }]), { provide: SesionService, useValue: sesion }]
+            providers: [
+                provideRouter([...inicioRoutes, { path: '**', children: [] }]),
+                { provide: SesionService, useValue: sesion },
+                { provide: EstadisticasService, useValue: estadisticasServicePrueba() },
+                { provide: IdentidadIglesiaService, useValue: { nombreComercial: signal(null) } }
+            ]
         });
     });
 

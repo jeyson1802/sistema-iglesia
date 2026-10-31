@@ -28,6 +28,7 @@ export const PERMISOS = [
     'roles.administrar',
     'iglesias.ver',
     'iglesias.administrar',
+    'estadisticas.sistema',
     'iglesia.personalizar'
 ] as const;
 export type Permiso = (typeof PERMISOS)[number];

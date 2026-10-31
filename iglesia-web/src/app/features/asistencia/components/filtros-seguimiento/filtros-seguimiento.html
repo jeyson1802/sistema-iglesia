@@ -9,7 +9,7 @@
     </p-selectbutton>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-        <div class="flex flex-col gap-2" [class]="opcionesGrupo().length === 0 ? 'md:col-span-2' : ''">
+        <div class="flex flex-col gap-2" [class]="opcionesGrupo().length === 0 ? 'md:col-span-3' : 'md:col-span-2'">
             <label for="filtro-seguimiento-nombre" class="font-medium">Nombre</label>
             <p-iconfield>
                 <p-inputicon styleClass="pi pi-search" />
@@ -22,9 +22,5 @@
             <p-select inputId="filtro-seguimiento-grupo" formControlName="grupoId" [options]="opcionesGrupo()" optionLabel="nombre" optionValue="id" [filter]="true" [showClear]="true" placeholder="Todos" [fluid]="true" />
         </div>
         }
-        <div class="flex items-center gap-2 md:pb-2">
-            <p-checkbox inputId="filtro-seguimiento-todos" formControlName="todos" [binary]="true" />
-            <label for="filtro-seguimiento-todos">Mostrar también a quienes están al día</label>
-        </div>
     </div>
 </form>

@@ -1,6 +1,6 @@
 # SPEC 11 — Páginas de inicio por perfil
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 02 (permisos y perfiles), SPEC 03 (OpenAPI y trazabilidad), SPEC 05 (acceso global del administrador del sistema), SPEC 06 (miembros, grupos y jerarquía), SPEC 07 (aportes), SPEC 09 (asistencia y seguimiento), SPEC 10 (consolidación)
 > **Fecha:** 2026-10-30
 > **Objetivo:** Que cada persona, al entrar, vea en su página de inicio lo que le toca según su perfil, con estadísticas claras y atajos a lo que tiene que hacer hoy:

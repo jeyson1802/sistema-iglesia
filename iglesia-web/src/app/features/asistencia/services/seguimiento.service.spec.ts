@@ -27,7 +27,7 @@ describe('SeguimientoService', () => {
     });
 
     it('envía solo los filtros de la lista que tienen valor', () => {
-        servicio.lista({ ...FILTRO_SEGUIMIENTO_INICIAL, alerta: 'NUEVO_SIN_VOLVER', q: ' ana ', grupoId: 4 }, 0, 10).subscribe();
+        servicio.lista({ ...FILTRO_SEGUIMIENTO_INICIAL, alerta: 'NUEVO_SIN_VOLVER', q: ' ana ', grupoId: 4, todos: false }, 0, 10).subscribe();
         const pedido = http.expectOne((req) => req.url === `${api}/seguimiento-asistencia`);
         expect(pedido.request.params.get('alerta')).toBe('NUEVO_SIN_VOLVER');
         expect(pedido.request.params.get('q')).toBe('ana');
@@ -40,7 +40,7 @@ describe('SeguimientoService', () => {
         servicio.conteos({ ...FILTRO_SEGUIMIENTO_INICIAL, alerta: 'FALTAS_SEGUIDAS', todos: true }).subscribe();
         const pedido = http.expectOne((req) => req.url === `${api}/seguimiento-asistencia/conteos`);
         expect(pedido.request.params.keys()).toEqual([]);
-        pedido.flush({ conAlertas: 0, faltasSeguidas: 0, nuevoSinVolver: 0, asistenciaEnCaida: 0 });
+        pedido.flush({ personas: 0, conAlertas: 0, faltasSeguidas: 0, nuevoSinVolver: 0, asistenciaEnCaida: 0 });
     });
 
     it('consulta el grupo, los servicios y las reglas, y guarda las reglas', () => {

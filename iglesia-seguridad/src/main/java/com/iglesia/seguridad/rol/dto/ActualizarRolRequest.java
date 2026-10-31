@@ -15,7 +15,8 @@ import com.iglesia.seguridad.rol.constant.LimitesRol;
 public record ActualizarRolRequest(
 		@Schema(description = "Nombre del rol; único en la iglesia sin distinguir mayúsculas.",
 				example = "Secretaría general") @NotBlank @Size(max = LimitesRol.NOMBRE_MAX) String nombre,
-		@Schema(description = "Códigos de los permisos; deben ser un subconjunto de los del rol base. Reemplazan a "
+		@Schema(description = "Códigos de los permisos: cualquiera de iglesia, sin importar el rol base (nunca los del "
+				+ "sistema). Reemplazan a "
 				+ "los actuales.", example = "[\"miembros.ver\", \"miembros.crear\", \"miembros.editar\"]")
 		@NotNull Set<@NotBlank String> permisos) {
 }

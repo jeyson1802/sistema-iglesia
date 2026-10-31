@@ -1,0 +1,53 @@
+<app-bloque-estadistico titulo="Crecimiento" idTitulo="titulo-bloque-sistema" ruta="/iglesias" etiquetaRuta="Ir a Iglesias" descripcion="Todas las iglesias juntas; solo conteos, sin datos de personas." [cargando]="cargando() || (!datos() && !error())" [error]="error()" (reintentar)="reintentar.emit()">
+    @if (datos(); as datos) {
+    <dl class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 m-0 mb-6">
+        <div appTarjetaIndicador etiqueta="Altas de miembros" [valor]="numero(datos.altas)" [actual]="datos.altas" [anterior]="datos.altasAnterior" ayuda="Miembros que ingresaron en el periodo, en todas las iglesias."></div>
+        <div appTarjetaIndicador etiqueta="Bajas de miembros" [valor]="numero(datos.bajas)" [actual]="datos.bajas" [anterior]="datos.bajasAnterior" [subirEsBueno]="false" ayuda="Miembros desactivados en el periodo, en todas las iglesias."></div>
+        <div appTarjetaIndicador etiqueta="Iglesias con actividad" [valor]="numero(datos.iglesiasConActividad)" [actual]="datos.iglesiasConActividad" [anterior]="datos.iglesiasConActividadAnterior" ayuda="Iglesias que registraron miembros, asistencias o contactos en el periodo."></div>
+        <div appTarjetaIndicador etiqueta="Crecimiento neto" [valor]="numero(datos.altas - datos.bajas)" ayuda="Altas menos bajas del periodo."></div>
+    </dl>
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div>
+            <h3 class="font-medium text-base m-0 mb-2">Miembros e iglesias</h3>
+            <app-grafico-evolucion [etiquetaEje]="eje(datos.periodo.granularidad)" [etiquetas]="etiquetas()" [series]="seriesMiembros()" descripcion="Altas y bajas de miembros e iglesias nuevas en cada intervalo del periodo" alto="h-56" />
+        </div>
+        <div>
+            <h3 class="font-medium text-base m-0 mb-2">Actividad por módulo</h3>
+            <app-grafico-evolucion [etiquetaEje]="eje(datos.periodo.granularidad)" tipo="line" [etiquetas]="etiquetas()" [series]="seriesModulos()" descripcion="Miembros registrados, asistencias marcadas y contactos de consolidación en cada intervalo del periodo" alto="h-56" />
+        </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <app-grafico-distribucion [partes]="datos.porTamano" descripcion="Iglesias por tamaño (miembros activos)" />
+        <app-grafico-distribucion [partes]="datos.porCondicion" descripcion="Miembros por condición" />
+    </div>
+    <h3 class="font-medium text-base mt-6 mb-3">Iglesias con más miembros</h3>
+    <p-table
+        [value]="mayores()"
+        [paginator]="true"
+        [rows]="filasPorPagina"
+        [rowsPerPageOptions]="opcionesPorPagina"
+        [showCurrentPageReport]="true"
+        [currentPageReportTemplate]="plantillaReporte"
+        [alwaysShowPaginator]="true"
+        dataKey="iglesiaId"
+    >
+        <ng-template #header>
+            <tr>
+                <th scope="col">Iglesia</th>
+                <th scope="col" class="text-right">Miembros activos</th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-iglesia>
+            <tr>
+                <td>{{ iglesia.nombre }}</td>
+                <td class="text-right tabular-nums">{{ numero(iglesia.miembros) }}</td>
+            </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+            <tr>
+                <td colspan="2" class="text-center text-muted-color py-6">Aún no hay iglesias registradas.</td>
+            </tr>
+        </ng-template>
+    </p-table>
+    }
+</app-bloque-estadistico>

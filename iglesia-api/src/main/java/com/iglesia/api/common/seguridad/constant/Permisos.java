@@ -50,6 +50,9 @@ public final class Permisos {
 
 	public static final String CONSOLIDACION_CONTACTAR = "consolidacion.contactar";
 
+	/** Solo del rol base {@code ADMIN_SISTEMA}: las cifras de todas las iglesias, en la vista global. */
+	public static final String ESTADISTICAS_SISTEMA = "estadisticas.sistema";
+
 	public static final String PUEDE_VER_IGLESIAS = "hasAuthority('" + IGLESIAS_VER + "')";
 
 	public static final String PUEDE_ADMINISTRAR_IGLESIAS = "hasAuthority('" + IGLESIAS_ADMINISTRAR + "')";
@@ -135,6 +138,19 @@ public final class Permisos {
 	/** Casos, historial y resumen de una persona: cualquiera de los tres; el servicio aplica el ámbito. */
 	public static final String PUEDE_CONSULTAR_CONSOLIDACION = "hasAnyAuthority('" + CONSOLIDACION_VER + "', '"
 			+ CONSOLIDACION_ADMINISTRAR + "', '" + CONSOLIDACION_CONTACTAR + "')";
+
+	/** Estadísticas de grupos: todos con {@code grupos.ver}; los del líder con {@code asistencia.grupo}. */
+	public static final String PUEDE_VER_ESTADISTICAS_GRUPOS = "hasAnyAuthority('" + GRUPOS_VER + "', '"
+			+ ASISTENCIA_GRUPO + "')";
+
+	/** Estadísticas de asistencia: de la iglesia con {@code asistencia.ver}; de su red con {@code asistencia.grupo}. */
+	public static final String PUEDE_VER_ESTADISTICAS_ASISTENCIA = "hasAnyAuthority('" + ASISTENCIA_VER + "', '"
+			+ ASISTENCIA_GRUPO + "')";
+
+	public static final String PUEDE_VER_ESTADISTICAS_CONSOLIDACION = "hasAnyAuthority('" + CONSOLIDACION_VER
+			+ "', '" + CONSOLIDACION_ADMINISTRAR + "')";
+
+	public static final String PUEDE_VER_ESTADISTICAS_SISTEMA = "hasAuthority('" + ESTADISTICAS_SISTEMA + "')";
 
 	private Permisos() {
 	}

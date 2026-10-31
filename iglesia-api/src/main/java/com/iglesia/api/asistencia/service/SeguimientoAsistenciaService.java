@@ -54,6 +54,7 @@ import com.iglesia.api.common.seguridad.constant.Permisos;
 import com.iglesia.api.grupos.model.GrupoAgenda;
 import com.iglesia.api.grupos.service.AgendaGrupos;
 import com.iglesia.api.miembros.model.MiembroAsistente;
+import com.iglesia.api.miembros.service.MiembroService;
 import com.iglesia.api.miembros.service.MiembrosParaAsistencia;
 
 /**
@@ -115,6 +116,15 @@ public class SeguimientoAsistenciaService {
 		return resumenDe(miembroId);
 	}
 
+	/** Resumen de asistencia del miembro vinculado al usuario del token: su propia información, sin permisos. */
+	@Transactional(readOnly = true)
+	public AsistenciaMiembroResponse delPropio() {
+		return usuarioActual.miembroId()
+			.filter(miembros::existe)
+			.map(this::resumenDe)
+			.orElseThrow(() -> new RecursoNoEncontradoException(MiembroService.SIN_MIEMBRO_VINCULADO));
+	}
+
 	/** Resumen de la ficha sin verificar el ámbito de asistencia: quien lo pide ya decidió que puede verlo. */
 	AsistenciaMiembroResponse resumenDe(Long miembroId) {
 		Periodo periodo = periodo();
@@ -173,8 +183,8 @@ public class SeguimientoAsistenciaService {
 	@Transactional(readOnly = true)
 	public ConteoAlertasResponse conteos(Long grupoId, String q) {
 		var evaluados = delAlcance(grupoId, q);
-		return new ConteoAlertasResponse(evaluados.stream().filter(e -> !e.alertas().isEmpty()).count(),
-				contar(evaluados, TipoAlerta.FALTAS_SEGUIDAS), contar(evaluados, TipoAlerta.NUEVO_SIN_VOLVER),
+		return new ConteoAlertasResponse(evaluados.size(),
+				evaluados.stream().filter(e -> !e.alertas().isEmpty()).count(), contar(evaluados, TipoAlerta.FALTAS_SEGUIDAS), contar(evaluados, TipoAlerta.NUEVO_SIN_VOLVER),
 				contar(evaluados, TipoAlerta.ASISTENCIA_EN_CAIDA));
 	}
 

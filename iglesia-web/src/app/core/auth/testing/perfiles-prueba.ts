@@ -3,14 +3,14 @@ import { Permiso, PERMISOS } from '../models/permiso';
 import { ETIQUETA_ROL, Rol, ROLES } from '../models/rol';
 import { UsuarioActual } from '../models/usuario-actual';
 
-/** Permisos del catálogo de iglesias: solo los tiene el administrador del sistema. */
-const PERMISOS_IGLESIAS: readonly Permiso[] = ['iglesias.ver', 'iglesias.administrar'];
+/** Permisos del catálogo de iglesias y de las estadísticas entre iglesias: solo los tiene el administrador del sistema. */
+const PERMISOS_IGLESIAS: readonly Permiso[] = ['iglesias.ver', 'iglesias.administrar', 'estadisticas.sistema'];
 
 /** Permisos que siembra Flyway para cada rol base. */
 const PERMISOS_ROL_BASE: Record<Rol, readonly Permiso[]> = {
     ADMIN_SISTEMA: ['usuarios.ver', 'usuarios.administrar', 'roles.ver', ...PERMISOS_IGLESIAS],
     ADMIN_IGLESIA: PERMISOS.filter((permiso) => !PERMISOS_IGLESIAS.includes(permiso) && permiso !== 'asistencia.grupo'),
-    LIDER: ['miembros.ver', 'aportes.ver', 'asistencia.grupo', 'consolidacion.contactar'],
+    LIDER: ['miembros.ver', 'asistencia.grupo', 'consolidacion.contactar'],
     MIEMBRO: []
 };
 

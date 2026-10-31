@@ -70,7 +70,7 @@ class RolIntegrationTest {
 	void listaElCatalogoDePermisosOrdenadoPorModulo() throws Exception {
 		mvc.perform(get("/api/permisos").header(HttpHeaders.AUTHORIZATION, bearer(administradorDe(51L))))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.length()").value(26))
+			.andExpect(jsonPath("$.length()").value(27))
 			.andExpect(jsonPath("$[0].codigo").value(Permisos.APORTES_VER))
 			.andExpect(jsonPath("$[0].modulo").value("Aportes"))
 			.andExpect(jsonPath("$[0].descripcion").isNotEmpty());
@@ -104,7 +104,7 @@ class RolIntegrationTest {
 	}
 
 	@Test
-	void losPermisosDeAportesLosTieneElAdministradorDeIglesiaYElLiderSoloVe() {
+	void losPermisosDeAportesSoloLosTieneElAdministradorDeIglesia() {
 		String permisosDe = """
 				select array_to_string(array_agg(rp.permiso_codigo order by rp.permiso_codigo), ',')
 				from rol_permiso rp join rol r on r.id = rp.rol_id
@@ -113,7 +113,7 @@ class RolIntegrationTest {
 		assertThat(jdbc.queryForObject(permisosDe, String.class, "ADMIN_IGLESIA")).isEqualTo(String.join(",",
 				Permisos.APORTES_ANULAR, Permisos.APORTES_CONFIGURAR, Permisos.APORTES_EDITAR,
 				Permisos.APORTES_REGISTRAR, Permisos.APORTES_VER));
-		assertThat(jdbc.queryForObject(permisosDe, String.class, "LIDER")).isEqualTo(Permisos.APORTES_VER);
+		assertThat(jdbc.queryForObject(permisosDe, String.class, "LIDER")).isNull();
 		assertThat(jdbc.queryForObject(permisosDe, String.class, "MIEMBRO")).isNull();
 		assertThat(jdbc.queryForObject(permisosDe, String.class, "ADMIN_SISTEMA")).isNull();
 	}
@@ -165,6 +165,16 @@ class RolIntegrationTest {
 	}
 
 	@Test
+	void unRolPuedeTenerPermisosQueNoTieneSuRolBase() throws Exception {
+		String token = administradorDe(65L);
+
+		crear(token, "Tesorería", "LIDER", Permisos.APORTES_VER, Permisos.APORTES_REGISTRAR)
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.rolBase").value("LIDER"))
+			.andExpect(jsonPath("$.permisos", contains(Permisos.APORTES_REGISTRAR, Permisos.APORTES_VER)));
+	}
+
+	@Test
 	void creaUnRolYLoRegistraSinDatosPersonales(CapturedOutput salida) throws Exception {
 		String token = administradorDe(52L);
 
@@ -191,8 +201,8 @@ class RolIntegrationTest {
 		String token = administradorDe(53L);
 		long personalizado = semilla.crearRolPersonalizado(53L, "Consejo", "ADMIN_IGLESIA", true, "miembros.ver");
 
-		crear(token, "Sin permiso", "LIDER", "usuarios.ver").andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.detail").value(containsString("usuarios.ver")));
+		crear(token, "Sin permiso", "LIDER", "inventado.algo").andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.detail").value(containsString("inventado.algo")));
 		crear(token, "Sistema", "ADMIN_SISTEMA").andExpect(status().isBadRequest());
 		crearConRolBaseId(token, "Heredado", personalizado).andExpect(status().isBadRequest());
 		crearConRolBaseId(token, "Inexistente", 999_999L).andExpect(status().isBadRequest());

@@ -1,0 +1,26 @@
+<div class="flex flex-col gap-6">
+    <dl class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 m-0" aria-label="Cifras clave del sistema">
+        @if (sistema.datos(); as datos) {
+        <div appTarjetaIndicador [destacada]="true" icono="pi pi-building" etiqueta="Iglesias activas" [valor]="numero(datos.iglesias)" ayuda="Iglesias dadas de alta y activas en el sistema."></div>
+        <div appTarjetaIndicador [destacada]="true" icono="pi pi-users" etiqueta="Miembros activos" [valor]="numero(datos.miembros)" ayuda="Miembros activos sumando todas las iglesias."></div>
+        } @else {
+        <p-skeleton height="6rem" /><p-skeleton height="6rem" />
+        }
+        @if (uso.datos(); as uso) {
+        <div appTarjetaIndicador [destacada]="true" icono="pi pi-sign-in" etiqueta="Usuarios activos en el mes" [valor]="numero(uso.activosMensuales)" ayuda="Usuarios distintos que entraron al menos una vez en los últimos 30 días."></div>
+        } @else {
+        <p-skeleton height="6rem" />
+        }
+        @if (sistema.datos(); as datos) {
+        <div appTarjetaIndicador [destacada]="true" icono="pi pi-plus-circle" etiqueta="Iglesias nuevas" [valor]="numero(datos.iglesiasNuevas)" [actual]="datos.iglesiasNuevas" [anterior]="datos.iglesiasNuevasAnterior" ayuda="Iglesias dadas de alta en el periodo."></div>
+        } @else {
+        <p-skeleton height="6rem" />
+        }
+    </dl>
+    <app-bloque-sistema [datos]="sistema.datos()" [cargando]="sistema.cargando()" [error]="sistema.error()" (reintentar)="sistema.recargar()" />
+    @defer (on viewport) {
+    <app-bloque-uso [datos]="uso.datos()" [cargando]="uso.cargando()" [error]="uso.error()" [ruta]="null" (reintentar)="uso.recargar()" />
+    } @placeholder {
+    <div class="card mb-0! h-64"></div>
+    }
+</div>

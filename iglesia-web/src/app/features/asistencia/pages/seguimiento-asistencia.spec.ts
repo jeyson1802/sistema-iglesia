@@ -51,7 +51,7 @@ describe('SeguimientoAsistenciaComponent', () => {
         permisos = new Set<Permiso>(['asistencia.ver', 'grupos.ver']);
         servicio = jasmine.createSpyObj<SeguimientoService>('SeguimientoService', ['lista', 'conteos', 'servicios']);
         servicio.lista.and.returnValue(of({ content: [PERSONA], page: { size: 10, number: 0, totalElements: 1, totalPages: 1 } }));
-        servicio.conteos.and.returnValue(of({ conAlertas: 1, faltasSeguidas: 1, nuevoSinVolver: 0, asistenciaEnCaida: 0 }));
+        servicio.conteos.and.returnValue(of({ personas: 5, conAlertas: 1, faltasSeguidas: 1, nuevoSinVolver: 0, asistenciaEnCaida: 0 }));
         servicio.servicios.and.returnValue(of({ semanas: ['2026-10-19', '2026-10-26'], cultos: [], personasEnCultos: [10, 2], presentesEnGrupos: [5, 1], porcentajeGrupos: [80, null] }));
         grupos = jasmine.createSpyObj<GruposService>('GruposService', ['listar']);
         grupos.listar.and.returnValue(of([{ id: 4, activo: true, lider: { id: 2, nombre: 'Juan Pérez', activo: true } } as Grupo]));
@@ -93,11 +93,30 @@ describe('SeguimientoAsistenciaComponent', () => {
     });
 
     it('un líder ve su red, sin la pestaña de servicios ni el filtro por grupo', async () => {
-        permisos = new Set<Permiso>(['asistencia.grupo']);
+        permisos = new Set<Permiso>(['asistencia.grupo', 'miembros.ver']);
         await crear();
 
-        expect(html().textContent).toContain('tu lista de a quién llamar');
+        expect(html().textContent).toContain('saber a quién llamar');
         expect(html().querySelector('p-tablist')).toBeNull();
         expect(grupos.listar).not.toHaveBeenCalled();
+    });
+
+    it('un líder ve por defecto a toda su red, también a quienes están al día', async () => {
+        permisos = new Set<Permiso>(['asistencia.grupo', 'miembros.ver']);
+        await crear();
+
+        expect(servicio.lista).toHaveBeenCalledWith(jasmine.objectContaining({ alerta: null, todos: true }), 0, 10);
+        expect(html().textContent).toContain('Las personas de tu red y cómo van asistiendo');
+    });
+
+    it('sin permiso para ver miembros las filas no abren el detalle (no lleva a «Acceso denegado»)', async () => {
+        permisos = new Set<Permiso>(['asistencia.grupo']);
+        await crear();
+        const navegar = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+
+        const fila = html().querySelector('p-table tbody tr') as HTMLElement;
+        expect(fila.classList).not.toContain('cursor-pointer');
+        fila.click();
+        expect(navegar).not.toHaveBeenCalled();
     });
 });

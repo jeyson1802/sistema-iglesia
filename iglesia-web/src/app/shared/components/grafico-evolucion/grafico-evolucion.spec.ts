@@ -32,4 +32,16 @@ describe('GraficoEvolucionComponent', () => {
         fixture.detectChanges();
         expect(fixture.nativeElement.querySelector('tbody td').textContent).toContain('3 %');
     });
+
+    it('oculta la tabla accesible en un contenedor sr-only (una tabla no respeta width: 1px y ensancharía la página)', () => {
+        const tabla = fixture.nativeElement.querySelector('table') as HTMLTableElement;
+        expect(tabla.parentElement?.classList).toContain('sr-only');
+    });
+
+    it('titula la columna de etiquetas según el eje', async () => {
+        expect(fixture.nativeElement.querySelector('thead th').textContent).toContain('Semana');
+        fixture.componentRef.setInput('etiquetaEje', 'Mes');
+        await fixture.whenStable();
+        expect(fixture.nativeElement.querySelector('thead th').textContent).toContain('Mes');
+    });
 });

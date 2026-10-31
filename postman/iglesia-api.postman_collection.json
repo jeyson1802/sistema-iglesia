@@ -5696,7 +5696,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Responde 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Trae cada conteo', () => { const c = pm.response.json(); ['conAlertas', 'faltasSeguidas', 'nuevoSinVolver', 'asistenciaEnCaida'].forEach(k => pm.expect(c[k]).to.be.a('number')); });"
+                  "pm.test('Trae cada conteo', () => { const c = pm.response.json(); ['personas', 'conAlertas', 'faltasSeguidas', 'nuevoSinVolver', 'asistenciaEnCaida'].forEach(k => pm.expect(c[k]).to.be.a('number')); });"
                 ]
               }
             }
@@ -7715,7 +7715,510 @@
       ]
     },
     {
-      "name": "12. Infraestructura",
+      "name": "12. Estadísticas de la iglesia",
+      "description": "Cifras de las páginas de inicio (SPEC 11) de la iglesia en la que se opera, con su comparación frente al periodo anterior de la misma duración. `periodo`: `HOY`, `SEMANA`, `MES` (por defecto), `MES_ANTERIOR`, `ANIO` o `PERSONALIZADO` (este último con `desde` y `hasta`, `yyyy-MM-dd`, hasta hoy y de máximo 366 días). La serie va por día, semana o mes según la duración. El ámbito sale del token: el administrador de iglesia ve toda la iglesia y el líder, solo su red. Cada endpoint exige el permiso de su módulo y solo `/aportes` devuelve aportes (con `aportes.ver`).",
+      "item": [
+        {
+          "name": "Estadísticas de miembros",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/estadisticas/miembros?periodo=MES",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "estadisticas",
+                "miembros"
+              ],
+              "query": [
+                {
+                  "key": "periodo",
+                  "value": "MES"
+                }
+              ]
+            },
+            "description": "Activos, altas y bajas frente al periodo anterior, serie de altas y bajas y distribuciones por condición, nivel, género y edad. Requiere `miembros.ver`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Trae el periodo y sus cifras', () => [\"periodo\", \"activos\", \"altas\", \"altasAnterior\", \"bajas\", \"serie\", \"porCondicion\", \"porNivel\", \"porGenero\", \"porEdad\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));",
+                  "// Revisa los nombres de los campos (no los valores: una iglesia podría llamarse «… Aportes»).",
+                  "const campos = []; (function recorrer(o) { if (o && typeof o === 'object') { Object.entries(o).forEach(([k, v]) => { campos.push(k); recorrer(v); }); } })(pm.response.json());",
+                  "pm.test('No trae campos de aportes', () => pm.expect(campos.join(' ')).to.not.match(/aporte|monto|diezmo|total/i));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estadísticas de miembros del año",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/estadisticas/miembros?periodo=ANIO",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "estadisticas",
+                "miembros"
+              ],
+              "query": [
+                {
+                  "key": "periodo",
+                  "value": "ANIO"
+                }
+              ]
+            },
+            "description": "El mismo indicador con el año en curso: la serie va por mes."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('La serie va por mes', () => pm.expect(pm.response.json().periodo.granularidad).to.eql('MES'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estadísticas de miembros de un rango personalizado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/estadisticas/miembros?periodo=PERSONALIZADO&desde=2026-09-01&hasta=2026-09-14",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "estadisticas",
+                "miembros"
+              ],
+              "query": [
+                {
+                  "key": "periodo",
+                  "value": "PERSONALIZADO"
+                },
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-09-14"
+                }
+              ]
+            },
+            "description": "Con `PERSONALIZADO` las cifras son del rango indicado (inclusivo) y se comparan con los 14 días anteriores. Hasta 14 días, la serie va por día."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const periodo = pm.response.json().periodo;",
+                  "pm.test('Usa el rango pedido', () => { pm.expect(periodo.periodo).to.eql('PERSONALIZADO'); pm.expect(periodo.desde).to.eql('2026-09-01'); pm.expect(periodo.hasta).to.eql('2026-09-14'); });",
+                  "pm.test('Compara con los 14 días anteriores', () => { pm.expect(periodo.anteriorDesde).to.eql('2026-08-18'); pm.expect(periodo.anteriorHasta).to.eql('2026-08-31'); });",
+                  "pm.test('La serie va por día', () => { pm.expect(periodo.granularidad).to.eql('DIA'); pm.expect(pm.response.json().serie).to.have.lengthOf(14); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rango personalizado incompleto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/estadisticas/miembros?periodo=PERSONALIZADO&desde=2026-09-01",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "estadisticas",
+                "miembros"
+              ],
+              "query": [
+                {
+                  "key": "periodo",
+                  "value": "PERSONALIZADO"
+                },
+                {
+                  "key": "desde",
+                  "value": "2026-09-01"
+                }
+              ]
+            },
+            "description": "Con `PERSONALIZADO` faltan las fechas: responde 400 con el error junto al campo `hasta`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Indica el campo con el error', () => pm.expect(pm.response.json().errores).to.have.property('hasta'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estadísticas con un periodo no admitido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/estadisticas/miembros?periodo=SIGLO",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "estadisticas",
+                "miembros"
+              ],
+              "query": [
+                {
+                  "key": "periodo",
+                  "value": "SIGLO"
+                }
+              ]
+            },
+            "description": "Un periodo fuera del catálogo responde 400."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Devuelve un ProblemDetail 400', () => pm.expect(pm.response.json().status).to.eql(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estadísticas de grupos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/estadisticas/grupos?periodo=MES",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "estadisticas",
+                "grupos"
+              ],
+              "query": [
+                {
+                  "key": "periodo",
+                  "value": "MES"
+                }
+              ]
+            },
+            "description": "Grupos activos, integrantes promedio, parte de los miembros en un grupo, grupos sin reuniones y asistencia de los integrantes por grupo. Requiere `grupos.ver` o `asistencia.grupo`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Trae el periodo y sus cifras', () => [\"periodo\", \"grupos\", \"miembrosEnGrupo\", \"sinReuniones\", \"porcentajeAsistencia\", \"porGrupo\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));",
+                  "// Revisa los nombres de los campos (no los valores: una iglesia podría llamarse «… Aportes»).",
+                  "const campos = []; (function recorrer(o) { if (o && typeof o === 'object') { Object.entries(o).forEach(([k, v]) => { campos.push(k); recorrer(v); }); } })(pm.response.json());",
+                  "pm.test('No trae campos de aportes', () => pm.expect(campos.join(' ')).to.not.match(/aporte|monto|diezmo|total/i));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estadísticas de asistencia",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/estadisticas/asistencia?periodo=MES",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "estadisticas",
+                "asistencia"
+              ],
+              "query": [
+                {
+                  "key": "periodo",
+                  "value": "MES"
+                }
+              ]
+            },
+            "description": "Asistentes promedio por día de culto, serie, personas que asistieron, alertas por tipo y nuevos que volvieron. Requiere `asistencia.ver` o `asistencia.grupo`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Trae el periodo y sus cifras', () => [\"periodo\", \"cultos\", \"asistentesPromedio\", \"serie\", \"alertas\", \"llegaron\", \"volvieron\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));",
+                  "// Revisa los nombres de los campos (no los valores: una iglesia podría llamarse «… Aportes»).",
+                  "const campos = []; (function recorrer(o) { if (o && typeof o === 'object') { Object.entries(o).forEach(([k, v]) => { campos.push(k); recorrer(v); }); } })(pm.response.json());",
+                  "pm.test('No trae campos de aportes', () => pm.expect(campos.join(' ')).to.not.match(/aporte|monto|diezmo|total/i));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estadísticas de consolidación",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/estadisticas/consolidacion?periodo=MES",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "estadisticas",
+                "consolidacion"
+              ],
+              "query": [
+                {
+                  "key": "periodo",
+                  "value": "MES"
+                }
+              ]
+            },
+            "description": "Rondas en curso, casos abiertos y cerrados, contactos por medio, contactadas que volvieron y cierres por resultado. Solo con toda la iglesia; requiere `consolidacion.ver` o `consolidacion.administrar`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Trae el periodo y sus cifras', () => [\"periodo\", \"rondasEnCurso\", \"casosAbiertos\", \"cerrados\", \"contactos\", \"contactosPorMedio\", \"cierresPorResultado\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));",
+                  "// Revisa los nombres de los campos (no los valores: una iglesia podría llamarse «… Aportes»).",
+                  "const campos = []; (function recorrer(o) { if (o && typeof o === 'object') { Object.entries(o).forEach(([k, v]) => { campos.push(k); recorrer(v); }); } })(pm.response.json());",
+                  "pm.test('No trae campos de aportes', () => pm.expect(campos.join(' ')).to.not.match(/aporte|monto|diezmo|total/i));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estadísticas de aportes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/estadisticas/aportes?periodo=MES",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "estadisticas",
+                "aportes"
+              ],
+              "query": [
+                {
+                  "key": "periodo",
+                  "value": "MES"
+                }
+              ]
+            },
+            "description": "Total del periodo frente al anterior, desglose por categoría y por medio y serie de totales. Único endpoint de estadísticas con aportes: requiere `aportes.ver` y toda la iglesia (el líder recibe 403)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Trae el periodo y sus cifras', () => [\"periodo\", \"resumen\", \"serie\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));",
+                  "pm.test('Trae la moneda de la iglesia', () => pm.expect(pm.response.json().resumen.moneda).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estadísticas del sistema dentro de una iglesia",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/estadisticas/sistema?periodo=MES",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "estadisticas",
+                "sistema"
+              ],
+              "query": [
+                {
+                  "key": "periodo",
+                  "value": "MES"
+                }
+              ]
+            },
+            "description": "Las estadísticas entre iglesias solo responden en la vista global: dentro de una iglesia, 403."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Devuelve un ProblemDetail 403', () => pm.expect(pm.response.json().status).to.eql(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "13. Mi perfil",
+      "description": "Información propia del miembro vinculado al usuario (claim `miembro_id` del token; nunca un parámetro). No exige permisos de módulo. Sin miembro vinculado responde 404, como le ocurre al administrador del sistema de esta colección.",
+      "item": [
+        {
+          "name": "Mi perfil sin miembro vinculado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/mi-perfil",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "mi-perfil"
+              ]
+            },
+            "description": "Nombre, nivel, grupo, líder, ingreso y edad del miembro del token. Sin miembro vinculado, 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Explica que el usuario no está vinculado', () => pm.expect(pm.response.json().status).to.eql(404));",
+                  "pm.test('Dice cómo seguir', () => pm.expect(pm.response.json().detail).to.include('no está vinculado'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mi asistencia sin miembro vinculado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/mi-perfil/asistencia",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "mi-perfil",
+                "asistencia"
+              ]
+            },
+            "description": "Indicadores, últimas 12 semanas y últimas reuniones del miembro del token. Sin miembro vinculado, 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Devuelve un ProblemDetail 404', () => pm.expect(pm.response.json().status).to.eql(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mi código de asistencia sin miembro vinculado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/mi-perfil/codigo-asistencia",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "mi-perfil",
+                "codigo-asistencia"
+              ]
+            },
+            "description": "Código y contenido del QR personal (el mismo del fotocheck). Sin miembro vinculado, 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Devuelve un ProblemDetail 404', () => pm.expect(pm.response.json().status).to.eql(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "14. Infraestructura",
       "description": "Endpoints públicos de soporte.",
       "auth": {
         "type": "noauth"
@@ -7753,7 +8256,7 @@
       ]
     },
     {
-      "name": "13. Documentación",
+      "name": "15. Documentación",
       "description": "Especificación OpenAPI 3 del backend. Solo responde con el perfil `local` (en producción está deshabilitada y responde 404). La versión navegable está en `{{apiUrl}}/swagger-ui.html`.",
       "auth": {
         "type": "noauth"
@@ -7795,8 +8298,8 @@
       ]
     },
     {
-      "name": "14. Cierre",
-      "description": "Deja la sesión como estaba: el administrador del sistema sale de la iglesia de prueba.",
+      "name": "16. Cierre",
+      "description": "Deja la sesión como estaba: el administrador del sistema sale de la iglesia de prueba. Después de salir de la iglesia, consulta las estadísticas del sistema en la vista global.",
       "item": [
         {
           "name": "Salir de la iglesia",
@@ -7831,6 +8334,84 @@
                   "pm.environment.set('tokenAcceso', pm.response.json().tokenAcceso);",
                   "const refresco = pm.cookies.get('iglesia_refresco');",
                   "if (refresco) { pm.environment.set('tokenRefresco', refresco); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estadísticas del sistema",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/estadisticas/sistema?periodo=ANIO",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "estadisticas",
+                "sistema"
+              ],
+              "query": [
+                {
+                  "key": "periodo",
+                  "value": "ANIO"
+                }
+              ]
+            },
+            "description": "En la vista global (después de salir de la iglesia): crecimiento de iglesias y de miembros en todas las iglesias, actividad por módulo, iglesias por tamaño y las de más miembros. Solo agregados, sin datos de personas ni de aportes. Requiere `estadisticas.sistema`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Trae el periodo y sus cifras', () => [\"periodo\", \"iglesias\", \"iglesiasNuevas\", \"miembros\", \"altas\", \"bajas\", \"serie\", \"porTamano\", \"mayores\"].forEach(k => pm.expect(pm.response.json()).to.have.property(k)));",
+                  "// Revisa los nombres de los campos (no los valores: una iglesia podría llamarse «… Aportes»).",
+                  "const campos = []; (function recorrer(o) { if (o && typeof o === 'object') { Object.entries(o).forEach(([k, v]) => { campos.push(k); recorrer(v); }); } })(pm.response.json());",
+                  "pm.test('No trae campos de aportes', () => pm.expect(campos.join(' ')).to.not.match(/aporte|monto|diezmo|total/i));",
+                  "pm.test('Las iglesias con más miembros solo traen nombre y conteo', () => pm.response.json().mayores.forEach(m => pm.expect(Object.keys(m).sort()).to.eql(['iglesiaId', 'miembros', 'nombre'])));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estadísticas de una iglesia en la vista global",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/api/estadisticas/miembros?periodo=MES",
+              "host": [
+                "{{apiUrl}}"
+              ],
+              "path": [
+                "api",
+                "estadisticas",
+                "miembros"
+              ],
+              "query": [
+                {
+                  "key": "periodo",
+                  "value": "MES"
+                }
+              ]
+            },
+            "description": "Fuera de una iglesia no hay alcance para las estadísticas de un módulo: 403."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Devuelve un ProblemDetail 403', () => pm.expect(pm.response.json().status).to.eql(403));"
                 ]
               }
             }

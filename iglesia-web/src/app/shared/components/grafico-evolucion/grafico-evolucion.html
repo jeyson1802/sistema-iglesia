@@ -3,27 +3,29 @@
         <p-chart [type]="tipo()" [data]="datos()" [options]="opciones()" height="100%" />
     </div>
     <figcaption class="sr-only">{{ descripcion() }}</figcaption>
-    <table class="sr-only">
-        <caption>
-            {{ descripcion() }}
-        </caption>
-        <thead>
-            <tr>
-                <th scope="col">Semana</th>
-                @for (serie of series(); track serie.etiqueta) {
-                <th scope="col">{{ serie.etiqueta }}</th>
+    <div class="sr-only">
+        <table>
+            <caption>
+                {{ descripcion() }}
+            </caption>
+            <thead>
+                <tr>
+                    <th scope="col">{{ etiquetaEje() }}</th>
+                    @for (serie of series(); track serie.etiqueta) {
+                    <th scope="col">{{ serie.etiqueta }}</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @for (etiqueta of etiquetas(); track $index; let indice = $index) {
+                <tr>
+                    <th scope="row">{{ etiqueta }}</th>
+                    @for (serie of series(); track serie.etiqueta) {
+                    <td>{{ valor(serie.valores[indice]) }}</td>
+                    }
+                </tr>
                 }
-            </tr>
-        </thead>
-        <tbody>
-            @for (etiqueta of etiquetas(); track $index; let indice = $index) {
-            <tr>
-                <th scope="row">{{ etiqueta }}</th>
-                @for (serie of series(); track serie.etiqueta) {
-                <td>{{ valor(serie.valores[indice]) }}</td>
-                }
-            </tr>
-            }
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+    </div>
 </figure>

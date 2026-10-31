@@ -1,0 +1,14 @@
+<app-bloque-estadistico titulo="Consolidación" idTitulo="titulo-bloque-consolidacion" ruta="/consolidacion" [cargando]="cargando() || (!datos() && !error())" [error]="error()" (reintentar)="reintentar.emit()">
+    @if (datos(); as datos) {
+    <dl class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 m-0 mb-6">
+        <div appTarjetaIndicador etiqueta="Casos abiertos" [valor]="numero(datos.casosAbiertos)" [ayuda]="'Personas en seguimiento hoy, en ' + numero(datos.rondasEnCurso) + (datos.rondasEnCurso === 1 ? ' ronda en curso.' : ' rondas en curso.')"></div>
+        <div appTarjetaIndicador etiqueta="Casos cerrados" [valor]="numero(datos.cerrados)" [actual]="datos.cerrados" [anterior]="datos.cerradosAnterior" ayuda="Casos que se cerraron en el periodo, con cualquier resultado."></div>
+        <div appTarjetaIndicador etiqueta="Contactos" [valor]="numero(datos.contactos)" [actual]="datos.contactos" [anterior]="datos.contactosAnterior" ayuda="Llamadas, mensajes y visitas registrados en el periodo."></div>
+        <div appTarjetaIndicador etiqueta="Contactadas que volvieron" [valor]="numero(datos.volvieron) + ' de ' + numero(datos.contactadas)" ayuda="Personas contactadas en el periodo que después asistieron al menos una vez."></div>
+    </dl>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <app-grafico-distribucion [partes]="datos.contactosPorMedio" descripcion="Contactos por medio" />
+        <app-grafico-distribucion [partes]="datos.cierresPorResultado" descripcion="Cierres por resultado" />
+    </div>
+    }
+</app-bloque-estadistico>

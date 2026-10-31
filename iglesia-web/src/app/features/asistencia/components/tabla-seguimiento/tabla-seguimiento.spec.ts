@@ -42,6 +42,19 @@ describe('TablaSeguimientoComponent', () => {
         expect(visto).toHaveBeenCalledWith(jasmine.objectContaining({ miembroId: 1 }));
     });
 
+    it('sin navegación, las filas y tarjetas no son enlaces ni avisan al hacer clic', async () => {
+        fixture.componentRef.setInput('navegable', false);
+        await fixture.whenStable();
+        const visto = jasmine.createSpy('ver');
+        fixture.componentInstance.ver.subscribe(visto);
+        const fila = fixture.nativeElement.querySelector('p-table tbody tr') as HTMLElement;
+        expect(fila.getAttribute('tabindex')).toBeNull();
+        fila.click();
+        expect(visto).not.toHaveBeenCalled();
+        expect(fixture.nativeElement.querySelector('ul button')).toBeNull();
+        expect((fixture.nativeElement as HTMLElement).textContent).toContain('Ana Quispe');
+    });
+
     it('muestra siempre el paginador', () => {
         expect(fixture.nativeElement.querySelector('p-paginator')).not.toBeNull();
     });

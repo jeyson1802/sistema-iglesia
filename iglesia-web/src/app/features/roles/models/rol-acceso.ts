@@ -55,5 +55,24 @@ export interface GuardarRol {
 /** Roles base de los que una iglesia puede heredar (el administrador del sistema no es heredable). */
 export const ROLES_BASE_HEREDABLES: readonly Rol[] = ['ADMIN_IGLESIA', 'LIDER', 'MIEMBRO'];
 
+/**
+ * Cómo se muestra el rol base en la administración de roles: como «alcance», porque es lo que decide (qué datos
+ * alcanzan sus permisos y, con ello, qué página de inicio ve). Así no se confunde con los permisos, que son libres.
+ */
+export const ETIQUETA_ALCANCE: Record<Rol, string> = {
+    ADMIN_SISTEMA: 'Todas las iglesias',
+    ADMIN_IGLESIA: 'Toda la iglesia',
+    LIDER: 'Su red',
+    MIEMBRO: 'Solo lo propio'
+};
+
+/** Qué página de inicio ve cada alcance; se explica junto al selector. */
+export const INICIO_DEL_ALCANCE: Record<Rol, string> = {
+    ADMIN_SISTEMA: 'inicio del sistema',
+    ADMIN_IGLESIA: 'inicio de la iglesia',
+    LIDER: 'inicio del líder',
+    MIEMBRO: 'inicio del miembro'
+};
+
 /** Límite de iglesia-seguridad (`LimitesRol.NOMBRE_MAX`). */
 export const NOMBRE_ROL_MAX = 60;

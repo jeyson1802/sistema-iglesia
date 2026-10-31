@@ -194,10 +194,10 @@ describe('Rutas de la aplicación', () => {
             expect(await navegarA('/aportes/configuracion')).toBe('/aportes/configuracion');
         });
 
-        it('el Líder abre sus aportes, pero no la configuración', async () => {
+        it('el Líder no abre los aportes ni su configuración', async () => {
             iniciarSesionCon('LIDER');
 
-            expect(await navegarA('/aportes')).toBe('/aportes');
+            expect(await navegarA('/aportes')).toBe('/auth/acceso-denegado');
             expect(await navegarA('/aportes/configuracion')).toBe('/auth/acceso-denegado');
         });
 

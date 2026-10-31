@@ -1,7 +1,7 @@
 <div class="card">
     <header class="mb-6">
         <h1 class="font-semibold text-2xl text-surface-900 dark:text-surface-0 m-0">Seguimiento</h1>
-        <p class="text-muted-color m-0 mt-1">@if (esLider()) { Las personas de tu red que están faltando: tu lista de a quién llamar. } @else { Quién está faltando y cómo evoluciona la asistencia de la iglesia. }</p>
+        <p class="text-muted-color m-0 mt-1">@if (esLider()) { Las personas de tu red y cómo van asistiendo. Filtra por alerta para saber a quién llamar. } @else { Las personas de la iglesia y cómo van asistiendo, y la evolución de los servicios. Filtra por alerta para saber a quién llamar. }</p>
     </header>
 
     <p-tabs [value]="pestana()" (valueChange)="cambiarPestana($event)">
@@ -21,7 +21,7 @@
                         <p-button label="Reintentar" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="cargar()" />
                     </div>
                     } @else {
-                    <app-tabla-seguimiento [personas]="personas()" [totalRegistros]="total()" [pagina]="pagina()" [tamanoPagina]="tamanoPagina()" [cargando]="cargando()" (cambiarPagina)="cambiarPagina($event)" (ver)="ver($event)" />
+                    <app-tabla-seguimiento [personas]="personas()" [totalRegistros]="total()" [pagina]="pagina()" [tamanoPagina]="tamanoPagina()" [cargando]="cargando()" [navegable]="puedeVerPersonas()" [mensajeVacio]="mensajeVacio()" (cambiarPagina)="cambiarPagina($event)" (ver)="ver($event)" />
                     }
                 </div>
             </p-tabpanel>

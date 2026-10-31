@@ -672,7 +672,7 @@
     },
     {
       "name": "4. Roles y permisos",
-      "description": "Catálogo fijo de permisos y roles de acceso. Los 4 roles base son globales y de solo lectura (`PUT` y `PATCH` responden 403). Cada iglesia crea roles personalizados que heredan de `ADMIN_IGLESIA`, `LIDER` o `MIEMBRO` su ámbito y página de inicio, con un subconjunto de sus permisos. Consultar exige `roles.ver` y modificar, `roles.administrar` (inicia sesión con un `ADMIN_IGLESIA`). Los roles de otra iglesia responden 404. Ejecutar en orden: «Listar roles» guarda `{{rolBaseId}}` y «Crear rol» guarda `{{rolId}}`.",
+      "description": "Catálogo fijo de permisos y roles de acceso. Los 4 roles base son globales y de solo lectura (`PUT` y `PATCH` responden 403). Cada iglesia crea roles personalizados que heredan de `ADMIN_IGLESIA`, `LIDER` o `MIEMBRO` su ámbito y página de inicio; sus permisos pueden ser cualquiera de iglesia, sin importar el rol base (nunca los del sistema). Consultar exige `roles.ver` y modificar, `roles.administrar` (inicia sesión con un `ADMIN_IGLESIA`). Los roles de otra iglesia responden 404. Ejecutar en orden: «Listar roles» guarda `{{rolBaseId}}` y «Crear rol» guarda `{{rolId}}`.",
       "item": [
         {
           "name": "Listar permisos",
@@ -766,7 +766,7 @@
                 "roles"
               ]
             },
-            "description": "Crea un rol personalizado activo en mi iglesia que hereda de `{{rolBaseId}}` (`ADMIN_IGLESIA`). Los permisos deben ser un subconjunto de los del rol base (si no, 400) y el nombre, único en la iglesia sin distinguir mayúsculas (si no, 409). El nombre lleva `{{$timestamp}}` para poder repetir la ejecución. Responde 201 con `Location` y guarda `{{rolId}}`.",
+            "description": "Crea un rol personalizado activo en mi iglesia que hereda de `{{rolBaseId}}` (`ADMIN_IGLESIA`). Los permisos pueden ser cualquiera de iglesia sin importar el rol base; uno inexistente o del sistema, como `iglesias.ver`, responde 400 y el nombre, único en la iglesia sin distinguir mayúsculas (si no, 409). El nombre lleva `{{$timestamp}}` para poder repetir la ejecución. Responde 201 con `Location` y guarda `{{rolId}}`.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Secretaría {{$timestamp}}\",\n  \"rolBaseId\": {{rolBaseId}},\n  \"permisos\": [\n    \"miembros.ver\",\n    \"miembros.crear\"\n  ]\n}",
@@ -968,7 +968,318 @@
       ]
     },
     {
-      "name": "5. Infraestructura",
+      "name": "5. Estadísticas de uso",
+      "description": "Uso del sistema (SPEC 11): una fila por usuario y día con actividad (inicio de sesión o renovación del token). En la vista global exige `estadisticas.sistema` y cuenta todas las iglesias; dentro de una iglesia exige `usuarios.ver` y cuenta solo esa iglesia. `periodo`: `HOY`, `SEMANA`, `MES` (por defecto), `MES_ANTERIOR`, `ANIO` o `PERSONALIZADO` (este último con `desde` y `hasta`, `yyyy-MM-dd`, hasta hoy y de máximo 366 días). La serie va por día, semana o mes según la duración.",
+      "item": [
+        {
+          "name": "Uso del sistema en todas las iglesias",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/estadisticas/uso?periodo=MES",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "estadisticas",
+                "uso"
+              ],
+              "query": [
+                {
+                  "key": "periodo",
+                  "value": "MES"
+                }
+              ]
+            },
+            "description": "Usuarios habilitados y nuevos, activos del periodo, diarios, semanales y mensuales, iglesias con actividad, serie y activos por rol base, frente al periodo anterior."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Es la vista global', () => pm.expect(pm.response.json().global).to.be.true);",
+                  "pm.test('Cuenta las iglesias con actividad', () => pm.expect(pm.response.json().iglesiasActivas).to.be.a('number'));",
+                  "pm.test('Quien entró hoy cuenta como activo', () => pm.expect(pm.response.json().activosPeriodo).to.be.above(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Uso con un periodo no admitido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/estadisticas/uso?periodo=SIGLO",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "estadisticas",
+                "uso"
+              ],
+              "query": [
+                {
+                  "key": "periodo",
+                  "value": "SIGLO"
+                }
+              ]
+            },
+            "description": "Un periodo fuera del catálogo responde 400."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Devuelve un ProblemDetail 400', () => pm.expect(pm.response.json().status).to.eql(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Uso con un rango personalizado inválido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/estadisticas/uso?periodo=PERSONALIZADO&desde=2026-09-15&hasta=2026-09-01",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "estadisticas",
+                "uso"
+              ],
+              "query": [
+                {
+                  "key": "periodo",
+                  "value": "PERSONALIZADO"
+                },
+                {
+                  "key": "desde",
+                  "value": "2026-09-15"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-09-01"
+                }
+              ]
+            },
+            "description": "El último día del rango es anterior al primero: responde 400."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Devuelve un ProblemDetail 400', () => pm.expect(pm.response.json().status).to.eql(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Entrar a una iglesia para ver su uso",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAcceso}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "iglesia_refresco={{tokenRefresco}}",
+                "description": "Token de refresco guardado por «Iniciar sesión» o «Refrescar token»."
+              }
+            ],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/auth/iglesia-actuando",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "iglesia-actuando"
+              ]
+            },
+            "description": "El administrador del sistema pasa a operar dentro de la iglesia `{{iglesiaActuandoId}}` (id del catálogo de iglesia-api). Requiere el permiso `iglesias.administrar` y la cookie de refresco. Rota la cookie y responde un token de acceso con `iglesia_id`, `actuando_en_iglesia: true`, el rol `ADMIN_SISTEMA` y los permisos de un administrador de iglesia; renovar el token conserva la iglesia. Sin el permiso: 403. Sin cookie o con la de otro usuario: 401 y la cookie se borra. Iniciar sesión como ADMIN_SISTEMA para ver el caso de éxito.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"iglesiaId\": {{iglesiaActuandoId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Lee los claims de un JWT (sin validar la firma: solo para las pruebas).",
+                  "const claimsDe = (jwt) => {",
+                  "  const parte = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');",
+                  "  return JSON.parse(atob(parte.padEnd(parte.length + (4 - parte.length % 4) % 4, '=')));",
+                  "};",
+                  "// Solo quien tiene `iglesias.administrar` (ADMIN_SISTEMA) puede entrar o salir; con otro usuario se comprueba el 403.",
+                  "const puedeEntrar = (claimsDe(pm.environment.get('tokenAcceso')).permisos || []).includes('iglesias.administrar');",
+                  "if (puedeEntrar) {",
+                  "  pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "  const cuerpo = pm.response.json();",
+                  "  pm.environment.set('tokenAcceso', cuerpo.tokenAcceso);",
+                  "  pm.test('Rota la cookie de refresco', () => pm.expect(pm.response.headers.get('Set-Cookie')).to.include('iglesia_refresco='));",
+                  "  const refresco = pm.cookies.get('iglesia_refresco');",
+                  "  if (refresco) { pm.environment.set('tokenRefresco', refresco); }",
+                  "  const claims = claimsDe(cuerpo.tokenAcceso);",
+                  "  pm.test('El token lleva la iglesia elegida', () => pm.expect(claims.iglesia_id).to.eql(Number(pm.environment.get('iglesiaActuandoId'))));",
+                  "  pm.test('Marca que actúa dentro de la iglesia', () => pm.expect(claims.actuando_en_iglesia).to.eql(true));",
+                  "  pm.test('Sigue siendo ADMIN_SISTEMA', () => pm.expect(claims.roles).to.eql(['ADMIN_SISTEMA']));",
+                  "  pm.test('Suma los permisos de un administrador de iglesia', () => pm.expect(claims.permisos).to.include.members(['roles.administrar', 'usuarios.administrar', 'iglesias.administrar']));",
+                  "} else {",
+                  "  pm.test('Sin iglesias.administrar responde 403', () => pm.response.to.have.status(403));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Uso del sistema en la iglesia",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/estadisticas/uso?periodo=MES_ANTERIOR",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "estadisticas",
+                "uso"
+              ],
+              "query": [
+                {
+                  "key": "periodo",
+                  "value": "MES_ANTERIOR"
+                }
+              ]
+            },
+            "description": "Dentro de una iglesia solo cuenta sus usuarios y no informa iglesias con actividad."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('No es la vista global', () => pm.expect(pm.response.json().global).to.be.false);",
+                  "pm.test('No informa iglesias con actividad', () => pm.expect(pm.response.json().iglesiasActivas).to.be.null);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Volver a la vista global",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenAcceso}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "iglesia_refresco={{tokenRefresco}}",
+                "description": "Token de refresco guardado por «Iniciar sesión» o «Refrescar token»."
+              }
+            ],
+            "url": {
+              "raw": "{{seguridadUrl}}/api/auth/iglesia-actuando",
+              "host": [
+                "{{seguridadUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "iglesia-actuando"
+              ]
+            },
+            "description": "Sin cuerpo. El administrador del sistema vuelve a la vista global: rota la cookie de refresco sin iglesia y responde un token de acceso sin `iglesia_id` ni `actuando_en_iglesia`, solo con sus propios permisos. Si no operaba en ninguna iglesia responde igual. Requiere `iglesias.administrar` (si no, 403) y la cookie de refresco (si no, 401)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Lee los claims de un JWT (sin validar la firma: solo para las pruebas).",
+                  "const claimsDe = (jwt) => {",
+                  "  const parte = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');",
+                  "  return JSON.parse(atob(parte.padEnd(parte.length + (4 - parte.length % 4) % 4, '=')));",
+                  "};",
+                  "// Solo quien tiene `iglesias.administrar` (ADMIN_SISTEMA) puede entrar o salir; con otro usuario se comprueba el 403.",
+                  "const puedeEntrar = (claimsDe(pm.environment.get('tokenAcceso')).permisos || []).includes('iglesias.administrar');",
+                  "if (puedeEntrar) {",
+                  "  pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "  const cuerpo = pm.response.json();",
+                  "  pm.environment.set('tokenAcceso', cuerpo.tokenAcceso);",
+                  "  pm.test('Rota la cookie de refresco', () => pm.expect(pm.response.headers.get('Set-Cookie')).to.include('iglesia_refresco='));",
+                  "  const refresco = pm.cookies.get('iglesia_refresco');",
+                  "  if (refresco) { pm.environment.set('tokenRefresco', refresco); }",
+                  "  const claims = claimsDe(cuerpo.tokenAcceso);",
+                  "  pm.test('El token ya no lleva iglesia', () => pm.expect(claims).to.not.have.property('iglesia_id'));",
+                  "  pm.test('Ya no actúa dentro de una iglesia', () => pm.expect(claims).to.not.have.property('actuando_en_iglesia'));",
+                  "  pm.test('Solo conserva sus propios permisos', () => pm.expect(claims.permisos).to.not.include('roles.administrar'));",
+                  "} else {",
+                  "  pm.test('Sin iglesias.administrar responde 403', () => pm.response.to.have.status(403));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Infraestructura",
       "description": "Endpoints públicos de soporte.",
       "auth": {
         "type": "noauth"
@@ -1035,7 +1346,7 @@
       ]
     },
     {
-      "name": "6. Documentación",
+      "name": "7. Documentación",
       "description": "Especificación OpenAPI 3 del backend. Solo responde con el perfil `local` (en producción está deshabilitada y responde 404). La versión navegable está en `{{seguridadUrl}}/swagger-ui.html`.",
       "auth": {
         "type": "noauth"
@@ -1077,7 +1388,7 @@
       ]
     },
     {
-      "name": "7. Cierre",
+      "name": "8. Cierre",
       "description": "Requests que terminan la sesión: van al final para que la colección se pueda ejecutar completa de una vez. «Cerrar sesión» borra `{{tokenAcceso}}` y `{{tokenRefresco}}` del entorno.\n\n**Aviso:** «Cambiar mi contraseña» cambia la clave del usuario de `{{correo}}` a `NuevaClave123` y cierra todas sus sesiones. Antes de volver a ejecutar la colección, actualiza `contrasena` en el entorno (o restablece la clave del usuario).",
       "item": [
         {

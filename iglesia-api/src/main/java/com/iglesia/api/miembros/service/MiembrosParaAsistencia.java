@@ -99,6 +99,12 @@ public class MiembrosParaAsistencia {
 		return miembros.findAll(EspecificacionesMiembro.nombreContiene(q)).stream().map(Miembro::getId).toList();
 	}
 
+	/** Si el miembro existe en la iglesia, sin mirar el ámbito (para la información propia del usuario). */
+	@Transactional(readOnly = true)
+	public boolean existe(Long miembroId) {
+		return miembros.existsById(miembroId);
+	}
+
 	/** Si el usuario del token puede ver la ficha del miembro (mismo ámbito que el registro de miembros). */
 	@Transactional(readOnly = true)
 	public boolean visible(Long miembroId) {
@@ -112,6 +118,19 @@ public class MiembrosParaAsistencia {
 		if (miembro.getCodigoAsistencia() == null) {
 			miembro.asignarCodigoAsistencia(codigoLibre());
 			LOG.info("Código de asistencia generado para miembroId={} por usuarioId={}", miembroId, usuario());
+		}
+		return new CodigoAsistencia(miembro.getCodigoAsistencia());
+	}
+
+	/** Código del miembro vinculado al usuario del token (su propio QR); se genera si aún no tiene. */
+	@Transactional
+	public CodigoAsistencia codigoPropio() {
+		Miembro miembro = usuarioActual.miembroId()
+			.flatMap(miembros::findById)
+			.orElseThrow(() -> new RecursoNoEncontradoException(MiembroService.SIN_MIEMBRO_VINCULADO));
+		if (miembro.getCodigoAsistencia() == null) {
+			miembro.asignarCodigoAsistencia(codigoLibre());
+			LOG.info("Código de asistencia generado para miembroId={} por usuarioId={}", miembro.getId(), usuario());
 		}
 		return new CodigoAsistencia(miembro.getCodigoAsistencia());
 	}

@@ -1,0 +1,26 @@
+<app-bloque-estadistico [titulo]="titulo()" idTitulo="titulo-bloque-asistencia" [ruta]="ruta()" etiquetaRuta="Ver seguimiento" [cargando]="cargando() || (!datos() && !error())" [error]="error()" (reintentar)="reintentar.emit()">
+    @if (datos(); as datos) {
+    <dl class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 m-0 mb-6">
+        <div appTarjetaIndicador etiqueta="Asistentes por culto" [valor]="numero(datos.asistentesPromedio, 1)" [actual]="datos.asistentesPromedio" [anterior]="datos.asistentesPromedioAnterior" [ayuda]="datos.red ? 'Personas de tu red que asistieron, en promedio, por día de culto.' : 'Personas que asistieron, en promedio, por día de culto.'"></div>
+        <div appTarjetaIndicador etiqueta="Días de culto" [valor]="numero(datos.cultos)" [actual]="datos.cultos" [anterior]="datos.cultosAnterior" ayuda="Días con al menos un culto registrado en el periodo."></div>
+        <div appTarjetaIndicador etiqueta="Personas que asistieron" [valor]="numero(datos.personasQueAsistieron)" [actual]="datos.personasQueAsistieron" [anterior]="datos.personasQueAsistieronAnterior" ayuda="Personas distintas que asistieron al menos una vez a un culto o a su grupo."></div>
+        <div appTarjetaIndicador etiqueta="Nuevos que volvieron" [valor]="numero(datos.volvieron) + ' de ' + numero(datos.llegaron)" ayuda="De quienes ingresaron en el periodo, cuántos asistieron al menos una vez."></div>
+    </dl>
+    <h3 class="font-medium text-base m-0 mb-2">Asistentes por culto</h3>
+    @if (huboCultos()) {
+    <app-grafico-evolucion [etiquetaEje]="eje(datos.periodo.granularidad)" tipo="line" [etiquetas]="etiquetas()" [series]="series()" descripcion="Asistentes promedio por día de culto en cada intervalo del periodo" alto="h-56" />
+    } @else {
+    <p class="text-muted-color m-0">No hubo cultos con asistencia registrada en el periodo.</p>
+    }
+    <h3 class="font-medium text-base mt-6 mb-1">Personas con alerta</h3>
+    <p class="text-sm text-muted-color m-0 mb-3">Hoy, {{ numero(datos.alertas.conAlertas) }} {{ datos.alertas.conAlertas === 1 ? 'persona necesita' : 'personas necesitan' }} seguimiento.</p>
+    <ul class="list-none p-0 m-0 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        @for (alerta of alertas(); track alerta.tipo) {
+        <li class="flex items-center justify-between gap-2 rounded-border border border-surface p-3">
+            <span class="flex items-center gap-2 min-w-0"><i [class]="alerta.icono" aria-hidden="true"></i><span class="truncate">{{ alerta.etiqueta }}</span></span>
+            <p-tag [value]="numero(alerta.cantidad)" [severity]="alerta.cantidad === 0 ? 'secondary' : alerta.severidad" />
+        </li>
+        }
+    </ul>
+    }
+</app-bloque-estadistico>

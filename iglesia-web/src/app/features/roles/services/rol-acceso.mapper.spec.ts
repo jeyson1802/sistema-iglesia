@@ -40,7 +40,7 @@ describe('Mapper de roles de acceso', () => {
     it('agrupa los permisos por módulo en el orden en que llegan', () => {
         const grupos = agruparPorModulo(CATALOGO);
 
-        expect(grupos.map((grupo) => grupo.modulo)).toEqual(['Miembros', 'Roles', 'Usuarios']);
+        expect(grupos.map((grupo) => grupo.modulo)).toEqual(['Miembros', 'Roles', 'Usuarios', 'Iglesias']);
         expect(grupos[0].permisos.length).toBe(4);
         expect(grupos[2].permisos.map((permiso) => permiso.codigo)).toEqual(['usuarios.ver', 'usuarios.administrar']);
     });

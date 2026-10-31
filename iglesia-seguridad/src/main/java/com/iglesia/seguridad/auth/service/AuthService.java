@@ -14,6 +14,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.iglesia.seguridad.actividad.service.RegistroActividadService;
 import com.iglesia.seguridad.auth.dto.LoginRequest;
 import com.iglesia.seguridad.auth.dto.TokenAccesoResponse;
 import com.iglesia.seguridad.auth.exception.TokenRefrescoInvalidoException;
@@ -46,16 +47,19 @@ public class AuthService {
 
 	private final ProveedorUsuarioAutenticado proveedorUsuario;
 
+	private final RegistroActividadService actividad;
+
 	private final Clock reloj;
 
 	AuthService(AuthenticationManager gestorAutenticacion, UsuarioRepository usuarios,
 			GeneradorTokenAcceso generadorTokenAcceso, TokenRefrescoService tokensRefresco,
-			ProveedorUsuarioAutenticado proveedorUsuario, Clock reloj) {
+			ProveedorUsuarioAutenticado proveedorUsuario, RegistroActividadService actividad, Clock reloj) {
 		this.gestorAutenticacion = gestorAutenticacion;
 		this.usuarios = usuarios;
 		this.generadorTokenAcceso = generadorTokenAcceso;
 		this.tokensRefresco = tokensRefresco;
 		this.proveedorUsuario = proveedorUsuario;
+		this.actividad = actividad;
 		this.reloj = reloj;
 	}
 
@@ -66,6 +70,7 @@ public class AuthService {
 		Usuario usuario = usuarios.findByCorreo(autenticacion.getName())
 			.orElseThrow(() -> new BadCredentialsException("Credenciales inválidas"));
 		SesionEmitida sesion = emitirTokens(usuario, null);
+		actividad.registrar(usuario);
 		LOG.info("Inicio de sesión exitoso usuarioId={}", usuario.getId());
 		return sesion;
 	}
@@ -80,6 +85,7 @@ public class AuthService {
 		Usuario usuario = consumido.usuario();
 		Long iglesiaActuandoId = puedeEntrarAIglesias(usuario) ? consumido.iglesiaActuandoId() : null;
 		SesionEmitida sesion = emitirTokens(usuario, iglesiaActuandoId);
+		actividad.registrar(usuario);
 		LOG.info("Token renovado usuarioId={}", usuario.getId());
 		return sesion;
 	}

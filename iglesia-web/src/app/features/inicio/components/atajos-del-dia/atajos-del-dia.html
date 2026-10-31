@@ -1,0 +1,23 @@
+@if (atajos().length > 0) {
+<nav aria-labelledby="titulo-atajos" class="card mb-0!">
+    <h2 id="titulo-atajos" class="font-semibold text-lg m-0 mb-3">Para hoy</h2>
+    <ul class="list-none p-0 m-0 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+        @for (atajo of atajos(); track atajo.ruta + atajo.etiqueta; let primero = $first) {
+        <li>
+            <a
+                [routerLink]="atajo.ruta"
+                [queryParams]="atajo.queryParams"
+                class="flex items-center gap-3 h-full p-3 rounded-border border no-underline transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                [class]="primero ? 'bg-primary text-primary-contrast border-primary hover:bg-primary-emphasis' : 'border-surface text-surface-900 dark:text-surface-0 hover:bg-emphasis'"
+            >
+                <i class="text-xl" [class]="atajo.icono" aria-hidden="true"></i>
+                <span class="flex flex-col min-w-0">
+                    <span class="font-medium">{{ atajo.etiqueta }}</span>
+                    <span class="text-sm" [class]="primero ? 'opacity-90' : 'text-muted-color'">{{ atajo.descripcion }}</span>
+                </span>
+            </a>
+        </li>
+        }
+    </ul>
+</nav>
+}

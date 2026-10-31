@@ -1,0 +1,26 @@
+<app-bloque-estadistico [titulo]="titulo()" idTitulo="titulo-bloque-miembros" [ruta]="ruta()" [cargando]="cargando() || (!datos() && !error())" [error]="error()" (reintentar)="reintentar.emit()">
+    @if (datos(); as datos) {
+    <dl class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 m-0 mb-6">
+        <div appTarjetaIndicador etiqueta="Activos" [valor]="numero(datos.activos)" [ayuda]="datos.red ? 'Personas activas en toda tu red, sin contarte a ti.' : 'Miembros activos de la iglesia hoy.'"></div>
+        <div appTarjetaIndicador etiqueta="Altas" [valor]="numero(datos.altas)" [actual]="datos.altas" [anterior]="datos.altasAnterior" ayuda="Personas que ingresaron en el periodo (por su fecha de ingreso)."></div>
+        <div appTarjetaIndicador etiqueta="Bajas" [valor]="numero(datos.bajas)" [actual]="datos.bajas" [anterior]="datos.bajasAnterior" [subirEsBueno]="false" ayuda="Personas desactivadas en el periodo."></div>
+        @if (datos.red) {
+        <div appTarjetaIndicador etiqueta="Sin grupo" [valor]="numero(datos.sinGrupo)" ayuda="Personas activas de tu red que no están en ningún grupo."></div>
+        } @else {
+        <div appTarjetaIndicador etiqueta="Sin grupo · sin líder" [valor]="numero(datos.sinGrupo) + ' · ' + numero(datos.sinLider)" ayuda="Activos que no están en ningún grupo, y activos sin líder asignado (sin contar al pastor principal)."></div>
+        }
+    </dl>
+    <h3 class="font-medium text-base m-0 mb-2">Altas y bajas</h3>
+    @if (huboMovimiento()) {
+    <app-grafico-evolucion [etiquetaEje]="eje(datos.periodo.granularidad)" [etiquetas]="etiquetas()" [series]="series()" descripcion="Altas y bajas de miembros en cada intervalo del periodo" alto="h-56" />
+    } @else {
+    <p class="text-muted-color m-0">No hubo altas ni bajas en el periodo.</p>
+    }
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <app-grafico-distribucion [partes]="datos.porCondicion" descripcion="Por condición" />
+        <app-grafico-distribucion [partes]="datos.porNivel" descripcion="Por nivel" />
+        <app-grafico-distribucion [partes]="datos.porGenero" descripcion="Por género" />
+        <app-grafico-distribucion [partes]="datos.porEdad" descripcion="Por edad" />
+    </div>
+    }
+</app-bloque-estadistico>

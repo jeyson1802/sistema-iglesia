@@ -36,11 +36,14 @@ export class SeguimientoAsistenciaComponent implements OnInit {
 
     protected readonly puedeVerServicios = computed(() => this.sesion.tienePermiso('asistencia.ver'));
     protected readonly esLider = computed(() => !this.sesion.tienePermiso('asistencia.ver'));
+    /** El detalle de una persona (su asistencia y su ficha) exige ver la asistencia de la iglesia o los miembros. */
+    protected readonly puedeVerPersonas = computed(() => this.sesion.tienePermiso('asistencia.ver') || this.sesion.tienePermiso('miembros.ver'));
     protected readonly nombreGrupo = computed(() => this.configuracion.nombresGrupos().nombreGrupoSingular);
     protected readonly nombreGrupos = computed(() => this.configuracion.nombresGrupos().nombreGrupoPlural);
     protected readonly pestana = signal<Pestana>('personas');
 
     protected readonly filtro = signal<FiltroSeguimiento>(FILTRO_SEGUIMIENTO_INICIAL);
+    protected readonly mensajeVacio = computed(() => (this.filtro().alerta ? 'Nadie tiene esta alerta con estos filtros.' : 'No hay personas con estos filtros.'));
     protected readonly personas = signal<readonly PersonaSeguimiento[]>([]);
     protected readonly total = signal(0);
     protected readonly pagina = signal(0);
@@ -92,7 +95,9 @@ export class SeguimientoAsistenciaComponent implements OnInit {
     }
 
     protected ver({ miembroId }: PersonaSeguimiento): void {
-        this.router.navigate(['/miembros', miembroId, 'asistencia']);
+        if (this.puedeVerPersonas()) {
+            this.router.navigate(['/miembros', miembroId, 'asistencia']);
+        }
     }
 
     protected cambiarPestana(valor: string | number | undefined): void {

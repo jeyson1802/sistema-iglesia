@@ -17,6 +17,7 @@ public record CrearRolRequest(
 				example = "Secretaría") @NotBlank @Size(max = LimitesRol.NOMBRE_MAX) String nombre,
 		@Schema(description = "Id del rol base del que hereda ámbito y página de inicio: `ADMIN_IGLESIA`, `LIDER` o "
 				+ "`MIEMBRO`.", example = "2") @NotNull @Positive Long rolBaseId,
-		@Schema(description = "Códigos de los permisos; deben ser un subconjunto de los del rol base.",
+		@Schema(description = "Códigos de los permisos: cualquiera de iglesia, sin importar el rol base (nunca los del "
+				+ "sistema, como el catálogo de iglesias).",
 				example = "[\"miembros.ver\", \"miembros.crear\"]") @NotNull Set<@NotBlank String> permisos) {
 }

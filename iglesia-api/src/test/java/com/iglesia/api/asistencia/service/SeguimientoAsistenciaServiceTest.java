@@ -130,7 +130,9 @@ class SeguimientoAsistenciaServiceTest {
 		verify(consultas).indicadores(IGLESIA, HOY, DESDE_ANALISIS, null, null, 7L, false);
 
 		given(ambito.paraSeguimiento()).willReturn(AlcanceSeguimiento.ninguno());
-		assertThat(servicio.conteos(null, null).conAlertas()).isZero();
+		var sinAlcance = servicio.conteos(null, null);
+		assertThat(sinAlcance.personas()).isZero();
+		assertThat(sinAlcance.conAlertas()).isZero();
 	}
 
 	@Test

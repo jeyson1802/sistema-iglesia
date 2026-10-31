@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, model, output, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, model, output, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { map, startWith } from 'rxjs';
@@ -79,8 +79,6 @@ export class FormularioAporteComponent {
     protected readonly mensajesOperacion: MensajesError = { maxlength: `Máximo ${LIMITES_APORTE.numeroOperacion} caracteres` };
     protected readonly mensajesPeticion: MensajesError = { maxlength: `Máximo ${LIMITES_APORTE.peticion} caracteres` };
     protected readonly mensajesObservacion: MensajesError = { maxlength: `Máximo ${LIMITES_APORTE.observacion} caracteres` };
-
-    protected readonly masDatos = signal(false);
 
     private readonly categoriaId = toSignal(this.formulario.controls.categoriaId.valueChanges.pipe(startWith(this.formulario.controls.categoriaId.value)), { initialValue: null });
     private readonly medio = toSignal(this.formulario.controls.medio.valueChanges.pipe(startWith(this.formulario.controls.medio.value)), { initialValue: MEDIO_POR_DEFECTO });
@@ -176,11 +174,9 @@ export class FormularioAporteComponent {
                 peticion: aporte.peticion ?? '',
                 observacion: aporte.observacion ?? ''
             });
-            this.masDatos.set(Boolean(aporte.peticion || aporte.observacion));
         } else {
             const ultima = leerUltimaSeleccion();
             this.formulario.reset({ monto: null, categoriaId: this.categoriaInicial(ultima.categoriaId), medio: ultima.medio ?? MEDIO_POR_DEFECTO, fecha: hoyIso(), miembro: null, numeroOperacion: '', peticion: '', observacion: '' });
-            this.masDatos.set(false);
         }
         this.formulario.updateValueAndValidity();
         this.enfocarMonto();

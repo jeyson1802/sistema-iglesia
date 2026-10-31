@@ -1,0 +1,46 @@
+<app-bloque-estadistico [titulo]="titulo()" idTitulo="titulo-bloque-grupos" [ruta]="ruta()" [cargando]="cargando() || (!datos() && !error())" [error]="error()" (reintentar)="reintentar.emit()">
+    @if (datos(); as datos) {
+    <dl class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 m-0 mb-6">
+        <div appTarjetaIndicador etiqueta="Grupos activos" [valor]="numero(datos.grupos)" [ayuda]="'Con ' + numero(datos.integrantesPromedio, 1) + ' integrantes en promedio.'"></div>
+        <div appTarjetaIndicador etiqueta="Miembros en un grupo" [valor]="porcentaje(porcentajeDe(datos.miembrosEnGrupo, datos.miembrosActivos))" [ayuda]="numero(datos.miembrosEnGrupo) + ' de ' + numero(datos.miembrosActivos) + ' personas activas están en un grupo.'"></div>
+        <div appTarjetaIndicador etiqueta="Asistencia a los grupos" [valor]="porcentaje(datos.porcentajeAsistencia)" [actual]="datos.porcentajeAsistencia" [anterior]="datos.porcentajeAsistenciaAnterior" ayuda="Parte de los integrantes que asistió a las reuniones de su grupo en el periodo."></div>
+        <div appTarjetaIndicador etiqueta="Sin reuniones" [valor]="numero(datos.sinReuniones)" ayuda="Grupos activos sin ninguna reunión registrada en el periodo."></div>
+    </dl>
+    <h3 class="font-medium text-base m-0 mb-1">Asistencia por grupo</h3>
+    <p class="text-sm text-muted-color m-0 mb-3">De mayor a menor asistencia; al final, los que no registraron reuniones.</p>
+    <p-table
+        [value]="filas()"
+        [paginator]="true"
+        [rows]="filasPorPagina"
+        [rowsPerPageOptions]="opcionesPorPagina"
+        [showCurrentPageReport]="true"
+        [currentPageReportTemplate]="plantillaReporte"
+        [alwaysShowPaginator]="true"
+        dataKey="grupoId"
+        [scrollable]="true"
+        tableStyleClass="min-w-120"
+    >
+        <ng-template #header>
+            <tr>
+                <th scope="col">Grupo</th>
+                <th scope="col" class="text-right">Integrantes</th>
+                <th scope="col" class="text-right">Reuniones</th>
+                <th scope="col" class="text-right">Asistencia</th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-grupo>
+            <tr>
+                <td>{{ grupo.nombre }}</td>
+                <td class="text-right tabular-nums">{{ grupo.integrantes }}</td>
+                <td class="text-right tabular-nums">{{ grupo.reuniones }}</td>
+                <td class="text-right tabular-nums">{{ porcentaje(grupo.porcentaje) }}</td>
+            </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+            <tr>
+                <td colspan="4" class="text-center text-muted-color py-6">Aún no hay grupos activos.</td>
+            </tr>
+        </ng-template>
+    </p-table>
+    }
+</app-bloque-estadistico>

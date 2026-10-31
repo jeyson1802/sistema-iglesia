@@ -1,1 +1,13 @@
-<app-bienvenida-perfil [titulo]="titulo" [descripcion]="descripcion" [icono]="icono" [etiquetaPerfil]="etiquetaPerfil" [correo]="correo()" />
+@if (actuandoEnIglesia()) {
+<div class="flex flex-col gap-4">
+    <p-message severity="info" icon="pi pi-building" text="Estás viendo el inicio de {{ nombreIglesia() }}." />
+    <app-inicio-administracion />
+</div>
+} @else {
+<div class="flex flex-col gap-6">
+    <app-bienvenida-perfil [titulo]="titulo" [descripcion]="descripcion" [icono]="icono" [etiquetaPerfil]="etiquetaPerfil" [nombre]="correo()">
+        <app-selector-periodo [(periodo)]="periodo" />
+    </app-bienvenida-perfil>
+    <app-panorama-sistema [periodo]="periodo()" />
+</div>
+}

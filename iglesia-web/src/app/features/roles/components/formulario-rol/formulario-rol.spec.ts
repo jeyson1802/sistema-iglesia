@@ -54,10 +54,11 @@ describe('FormularioRolComponent', () => {
     describe('al crear', () => {
         beforeEach(() => abrir('crear'));
 
-        it('muestra el título, el nombre y el selector de rol base', () => {
+        it('muestra el título, el nombre y el selector de alcance, que explica la página de inicio', () => {
             expect(dialogo().textContent).toContain('Nuevo rol');
             expect(document.getElementById('rol-nombre')).not.toBeNull();
-            expect(dialogo().textContent).toContain('Hereda de');
+            expect(dialogo().textContent).toContain('Alcance');
+            expect(dialogo().textContent).toContain('qué página de inicio ve');
         });
 
         it('agrupa los permisos por módulo', () => {
@@ -67,35 +68,36 @@ describe('FormularioRolComponent', () => {
             expect(texto).toContain('Registrar miembros');
         });
 
-        it('sin rol base elegido no se puede marcar ningún permiso', () => {
-            expect(CATALOGO.every(({ codigo }) => casilla(codigo).disabled)).toBeTrue();
+        it('se puede marcar cualquier permiso de iglesia sin importar el rol base', async () => {
+            const deIglesia = CATALOGO.filter(({ codigo }) => codigo !== 'iglesias.ver');
+            expect(deIglesia.every(({ codigo }) => !casilla(codigo).disabled)).toBeTrue();
+
+            await elegirRolBase(3);
+            await marcar('miembros.crear');
+
+            expect(casilla('miembros.crear').checked).toBeTrue();
+            expect(deIglesia.every(({ codigo }) => !casilla(codigo).disabled)).toBeTrue();
         });
 
-        it('solo se pueden marcar los permisos del rol base elegido', async () => {
+        it('cambiar el rol base no descarta los permisos marcados', async () => {
             await elegirRolBase(2);
-
-            expect(CATALOGO.every(({ codigo }) => !casilla(codigo).disabled)).toBeTrue();
+            await marcar('miembros.ver');
 
             await elegirRolBase(4);
 
-            expect(CATALOGO.every(({ codigo }) => casilla(codigo).disabled)).toBeTrue();
-        });
-
-        it('al cambiar a un rol base con menos permisos se descartan los que ya no aplican', async () => {
-            await elegirRolBase(2);
-            await marcar('miembros.ver');
             expect(casilla('miembros.ver').checked).toBeTrue();
-
-            await elegirRolBase(3);
-
-            expect(casilla('miembros.ver').checked).toBeFalse();
-            expect(formulario().getRawValue().permisos['miembros.ver']).toBeFalse();
         });
 
-        it('el rol base no ofrece al administrador del sistema', () => {
+        it('no ofrece los permisos del sistema, que no se pueden dar a un rol de iglesia', () => {
+            expect(casilla('iglesias.ver')).toBeNull();
+            expect(dialogo().textContent).not.toContain('Ver el catálogo de iglesias');
+        });
+
+        it('el alcance ofrece toda la iglesia, su red o solo lo propio, con su página de inicio, pero no todas las iglesias', () => {
             const opciones = fixture.componentInstance['opcionesRolBase']();
 
-            expect(opciones.map((opcion) => opcion.etiqueta)).toEqual(['Administrador de iglesia', 'Líder', 'Miembro']);
+            expect(opciones.map((opcion) => opcion.etiqueta)).toEqual(['Toda la iglesia', 'Su red', 'Solo lo propio']);
+            expect(opciones.map((opcion) => opcion.inicio)).toEqual(['inicio de la iglesia', 'inicio del líder', 'inicio del miembro']);
         });
 
         it('sin nombre o sin permisos «Guardar» queda deshabilitado', async () => {
@@ -134,16 +136,15 @@ describe('FormularioRolComponent', () => {
             expect(guardados).toEqual([{ nombre: 'Secretaría', rolBaseId: 2, permisos: ['miembros.crear', 'roles.ver'] }]);
         });
 
-        it('al reabrir el diálogo y elegir el mismo rol base vuelve a habilitar sus permisos', async () => {
-            await elegirRolBase(2);
-            fixture.componentInstance.visible.set(false);
+        it('emite un rol basado en Líder con permisos de aportes', async () => {
+            await escribirNombre('Tesorería');
+            await elegirRolBase(3);
+            await marcar('roles.ver');
+
+            boton('Guardar')!.click();
             await fixture.whenStable();
 
-            await abrir('crear');
-            expect(casilla('miembros.ver').disabled).toBeTrue();
-            await elegirRolBase(2);
-
-            expect(casilla('miembros.ver').disabled).toBeFalse();
+            expect(guardados).toEqual([{ nombre: 'Tesorería', rolBaseId: 3, permisos: ['roles.ver'] }]);
         });
 
         it('muestra el error del backend dentro del diálogo', async () => {
@@ -164,16 +165,17 @@ describe('FormularioRolComponent', () => {
     describe('al editar', () => {
         beforeEach(() => abrir('editar', SECRETARIA));
 
-        it('carga el nombre y los permisos del rol, sin selector de rol base', () => {
+        it('carga el nombre y los permisos del rol, sin selector de alcance', () => {
             expect(dialogo().textContent).toContain('Editar «Secretaría»');
             expect((document.getElementById('rol-nombre') as HTMLInputElement).value).toBe('Secretaría');
-            expect(dialogo().textContent).not.toContain('Hereda de');
+            expect(document.getElementById('rol-base')).toBeNull();
             expect(casilla('miembros.ver').checked).toBeTrue();
             expect(casilla('miembros.editar').checked).toBeFalse();
         });
 
-        it('permite los permisos del rol base del que hereda', () => {
+        it('permite cualquier permiso de iglesia', () => {
             expect(casilla('roles.administrar').disabled).toBeFalse();
+            expect(casilla('iglesias.ver')).toBeNull();
         });
 
         it('emite los cambios sin rol base', async () => {

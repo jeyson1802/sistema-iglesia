@@ -60,12 +60,13 @@ describe('AportesMiembroComponent', () => {
         expect(servicio.resumen).not.toHaveBeenCalled();
     });
 
-    it('en su propia ficha el líder sí ve sus aportes', async () => {
+    it('el líder no ve aportes, ni siquiera en su propia ficha', async () => {
         perfil = perfilBase('LIDER');
         miembroPropio = 12;
         await crear(12);
 
-        expect(html().textContent).toContain('Aportes');
+        expect(html().textContent).not.toContain('Aportes');
+        expect(servicio.resumen).not.toHaveBeenCalled();
     });
 
     it('si no carga ofrece reintentar', async () => {

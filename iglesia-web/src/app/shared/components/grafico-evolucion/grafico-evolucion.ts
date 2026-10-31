@@ -47,6 +47,8 @@ export class GraficoEvolucionComponent {
     readonly porcentaje = input(false);
     /** Título accesible del gráfico y de su tabla. */
     readonly descripcion = input.required<string>();
+    /** Encabezado de la columna de etiquetas en la tabla accesible (p. ej. «Semana» o «Mes»). */
+    readonly etiquetaEje = input('Semana');
     /** Clase de alto del contenedor (Tailwind). */
     readonly alto = input('h-64');
 

@@ -1,0 +1,17 @@
+<app-bloque-estadistico titulo="Aportes" idTitulo="titulo-bloque-aportes" ruta="/aportes" [cargando]="cargando() || (!datos() && !error())" [error]="error()" (reintentar)="reintentar.emit()">
+    @if (datos(); as datos) {
+    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-3 m-0 mb-6">
+        <div appTarjetaIndicador etiqueta="Total del periodo" [valor]="monto()(datos.resumen.total)" [actual]="datos.resumen.total" [anterior]="datos.resumen.totalPeriodoAnterior" ayuda="Suma de los aportes vigentes del periodo (sin anulados)."></div>
+        <div appTarjetaIndicador etiqueta="Aportes registrados" [valor]="numero(datos.resumen.cantidad)" ayuda="Cantidad de aportes vigentes del periodo."></div>
+    </dl>
+    @if (huboAportes()) {
+    <h3 class="font-medium text-base m-0 mb-2">Total por intervalo</h3>
+    <app-grafico-evolucion [etiquetaEje]="eje(datos.periodo.granularidad)" [etiquetas]="etiquetas()" [series]="series()" descripcion="Total de aportes en cada intervalo del periodo" alto="h-56" />
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <app-grafico-distribucion [partes]="porCategoria()" descripcion="Por categoría" [formato]="monto()" />
+        <app-grafico-distribucion [partes]="porMedio()" descripcion="Por medio" [formato]="monto()" />
+    </div>
+    } @else {
+    <p class="text-muted-color m-0">No hay aportes registrados en el periodo.</p>
+    } }
+</app-bloque-estadistico>

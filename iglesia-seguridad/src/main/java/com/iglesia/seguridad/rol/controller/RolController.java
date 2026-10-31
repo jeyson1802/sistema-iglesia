@@ -41,7 +41,7 @@ import com.iglesia.seguridad.rol.service.RolService;
 @Tag(name = "Roles", description = """
 		Roles de acceso de la iglesia. Los 4 roles base (`ADMIN_SISTEMA`, `ADMIN_IGLESIA`, `LIDER` y `MIEMBRO`) son \
 		globales y de solo lectura. Cada iglesia crea sus roles personalizados: heredan de un rol base su ámbito y su \
-		página de inicio, y sus permisos son un subconjunto de los del rol base. Consultar exige `roles.ver` \
+		página de inicio, y pueden tener cualquier permiso de iglesia (nunca los del sistema). Consultar exige `roles.ver` \
 		(listar también se permite con `usuarios.administrar`) y modificar, `roles.administrar`. Los roles personalizados de otra iglesia se responden como inexistentes \
 		(404). Los cambios de permisos llegan a los usuarios en el siguiente refresco de su token.""")
 class RolController {
@@ -104,12 +104,13 @@ class RolController {
 			`roles.administrar`.
 
 			Reglas: el rol base es `ADMIN_IGLESIA`, `LIDER` o `MIEMBRO` (nunca `ADMIN_SISTEMA` ni otro rol \
-			personalizado); los permisos son un subconjunto de los del rol base; el nombre es único en la \
+			personalizado); los permisos pueden ser cualquiera de iglesia, sin importar el rol base (el rol base solo \
+			decide la página de inicio y el ámbito), nunca los del sistema; el nombre es único en la \
 			iglesia sin distinguir mayúsculas (puede repetirse en otra iglesia).""")
 	@ApiResponse(responseCode = "201", description = "Rol creado.",
 			headers = @Header(name = HttpHeaders.LOCATION, description = "URL del rol creado."))
 	@ApiResponse(responseCode = "400", description = RespuestasOpenApi.DATOS_INVALIDOS
-			+ " También si el rol base no existe o no es heredable, o si algún permiso no lo tiene el rol base.",
+			+ " También si el rol base no existe o no es heredable, o si algún permiso no existe o es del sistema.",
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
 					schema = @Schema(implementation = ProblemDetailEsquema.class)))
 	@ApiResponse(responseCode = "401", description = RespuestasOpenApi.NO_AUTENTICADO,
@@ -139,7 +140,7 @@ class RolController {
 			que pueda administrar usuarios.""")
 	@ApiResponse(responseCode = "200", description = "Rol actualizado.")
 	@ApiResponse(responseCode = "400", description = RespuestasOpenApi.DATOS_INVALIDOS
-			+ " También si algún permiso no lo tiene el rol base.",
+			+ " También si algún permiso no existe o es del sistema.",
 			content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
 					schema = @Schema(implementation = ProblemDetailEsquema.class)))
 	@ApiResponse(responseCode = "401", description = RespuestasOpenApi.NO_AUTENTICADO,

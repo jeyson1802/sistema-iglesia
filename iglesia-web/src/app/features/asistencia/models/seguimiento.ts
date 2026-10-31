@@ -66,7 +66,7 @@ export interface PersonaSeguimiento {
 }
 
 export interface FiltroSeguimiento {
-    /** `null`: cualquier alerta. */
+    /** `null` con `todos`: todas las personas; un tipo: solo quienes tienen esa alerta. */
     readonly alerta: TipoAlerta | null;
     readonly grupoId: number | null;
     readonly q: string;
@@ -74,10 +74,13 @@ export interface FiltroSeguimiento {
     readonly todos: boolean;
 }
 
-export const FILTRO_SEGUIMIENTO_INICIAL: FiltroSeguimiento = { alerta: null, grupoId: null, q: '', todos: false };
+/** Por defecto se ve a todas las personas del alcance (con o sin alertas): el seguimiento es de toda la red. */
+export const FILTRO_SEGUIMIENTO_INICIAL: FiltroSeguimiento = { alerta: null, grupoId: null, q: '', todos: true };
 
 /** Contrato de `ConteoAlertasResponse`. */
 export interface ConteoAlertas {
+    /** Todas las personas del alcance y filtros, con o sin alertas. */
+    readonly personas: number;
     readonly conAlertas: number;
     readonly faltasSeguidas: number;
     readonly nuevoSinVolver: number;

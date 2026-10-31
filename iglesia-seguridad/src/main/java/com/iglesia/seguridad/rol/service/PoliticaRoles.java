@@ -1,5 +1,6 @@
 package com.iglesia.seguridad.rol.service;
 
+import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
@@ -16,7 +17,7 @@ import com.iglesia.seguridad.rol.entity.Rol;
 
 /**
  * Reglas de los roles personalizados que no se pueden expresar con restricciones de la base: de qué rol
- * base pueden heredar, qué permisos pueden tener, quién los ve y cuándo se pueden desactivar. Qué
+ * base pueden heredar, qué permisos se les pueden dar, quién los ve y cuándo se pueden desactivar. Qué
  * acción se puede hacer lo decide el permiso de cada endpoint.
  */
 @Component
@@ -46,14 +47,23 @@ class PoliticaRoles {
 		}
 	}
 
-	/** Evita la escalada de privilegios: un rol personalizado nunca tiene más que su rol base. */
-	void verificarPermisosDelRolBase(Set<String> permisos, Rol rolBase) {
-		Set<String> permitidos = new TreeSet<>();
-		rolBase.getPermisos().stream().map(Permiso::getCodigo).forEach(permitidos::add);
+	/**
+	 * Un rol personalizado puede tener cualquier permiso de iglesia, sea cual sea su rol base (p. ej. «Tesorería» con
+	 * todo lo de aportes): el rol base solo decide su página de inicio y su ámbito. Evita la escalada de privilegios:
+	 * los permisos asignables son los de los roles base heredables, así que nunca los del sistema (catálogo de
+	 * iglesias, estadísticas entre iglesias), que solo tiene {@code ADMIN_SISTEMA}.
+	 */
+	void verificarPermisosAsignables(Set<String> permisos, Collection<Rol> rolesBaseHeredables) {
+		Set<String> asignables = new TreeSet<>();
+		rolesBaseHeredables.stream()
+			.flatMap(rol -> rol.getPermisos().stream())
+			.map(Permiso::getCodigo)
+			.forEach(asignables::add);
 		Set<String> sobrantes = new TreeSet<>(permisos);
-		sobrantes.removeAll(permitidos);
+		sobrantes.removeAll(asignables);
 		if (!sobrantes.isEmpty()) {
-			throw new ReglaNegocioException("Estos permisos no existen o no los tiene el rol base: " + sobrantes);
+			throw new ReglaNegocioException(
+					"Estos permisos no existen o no se pueden dar a un rol de iglesia: " + sobrantes);
 		}
 	}
 

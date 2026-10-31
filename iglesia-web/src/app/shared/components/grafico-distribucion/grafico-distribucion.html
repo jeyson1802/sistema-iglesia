@@ -1,0 +1,18 @@
+<figure class="m-0">
+    <figcaption class="text-sm font-medium mb-2">{{ descripcion() }}</figcaption>
+    @if (total() === 0) {
+    <p class="text-sm text-muted-color m-0">Aún no hay datos.</p>
+    } @else {
+    <ul class="list-none p-0 m-0 flex flex-col gap-2">
+        @for (fila of filas(); track fila.clave) {
+        <li>
+            <div class="flex items-center justify-between gap-2 text-sm mb-1">
+                <span class="truncate">{{ fila.etiqueta }}</span>
+                <span class="tabular-nums text-muted-color shrink-0">{{ formato()(fila.valor) }} · {{ fila.porcentaje }} %</span>
+            </div>
+            <p-progressbar [value]="fila.porcentaje" [showValue]="false" styleClass="h-2!" [attr.aria-label]="fila.etiqueta + ': ' + fila.porcentaje + ' %'" />
+        </li>
+        }
+    </ul>
+    }
+</figure>

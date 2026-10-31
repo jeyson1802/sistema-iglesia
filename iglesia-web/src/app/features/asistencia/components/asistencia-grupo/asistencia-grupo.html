@@ -61,6 +61,7 @@
         [tamanoPagina]="tamanoPagina()"
         mensajeVacio="El grupo aún no tiene integrantes activos."
         (cambiarPagina)="cambiarPagina($event)"
+        [navegable]="puedeVerPersonas()"
         (ver)="verPersona($event)"
     />
     } }

@@ -26,6 +26,12 @@ public class AsistenciaMiembroService {
 		return aRespuesta(miembros.codigoDe(miembroId));
 	}
 
+	/** Código del QR del propio miembro del token (lo genera si aún no tiene). */
+	@Transactional
+	public CodigoAsistenciaResponse codigoPropio() {
+		return aRespuesta(miembros.codigoPropio());
+	}
+
 	/** Reemplaza el código: el anterior deja de valer al instante. */
 	@Transactional
 	public CodigoAsistenciaResponse regenerarCodigo(Long miembroId) {
